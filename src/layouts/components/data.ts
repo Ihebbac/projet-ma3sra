@@ -187,6 +187,28 @@ export const menuItems: MenuItemType[] = [
   { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
   { key: 'Stock propriétaire', label: 'Stock propriétaire',icon: LuHandshake, url: '/crm/Qteproprietaire' },
   {
+    key: 'Caisse & Financement',
+    label: 'Caisse & Financement',
+    icon: LuLifeBuoy,
+    children: [
+      { key: 'Caisse', label: 'Caisse', url: '/users/contacts' },
+      { key: 'Saisie dépenses', label: 'Saisie dépenses', url: '/users/profile' },
+      { key: 'Saisie recettes', label: 'Saisie recettes', url: '/users/roles' },
+      { key: 'Historique transactions', label: 'Historique transactions', url: '/users/roles-details' },
+    ],
+  },
+  {
+    key: 'Employés',
+    label: 'Employés',
+    icon: LuReceiptText,
+    children: [
+      { key: 'Liste des Employés', label: 'Liste des Employés', url: '/users/contacts' },
+      { key: 'suivi présence ', label: 'suivi présence', url: '/users/profile' },
+      { key: 'calcul salire', label: 'calcul salire', url: '/users/roles' },
+     
+    ],
+  },
+  {
     key: 'users',
     label: 'Users',
     icon: TbUsers,

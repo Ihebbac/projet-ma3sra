@@ -38,110 +38,122 @@ const CustomersCard = () => {
 
     const columns = [
         {
-            id: 'select',
-            header: ({ table }: { table: TableType<CustomerType> }) => (
-                <input
-                    type="checkbox"
-                    className="form-check-input form-check-input-light fs-14"
-                    checked={table.getIsAllRowsSelected()}
-                    onChange={table.getToggleAllRowsSelectedHandler()}
-                />
-            ),
-            cell: ({ row }: { row: TableRow<CustomerType> }) => (
-                <input
-                    type="checkbox"
-                    className="form-check-input form-check-input-light fs-14"
-                    checked={row.getIsSelected()}
-                    onChange={row.getToggleSelectedHandler()}
-                />
-            ),
-            enableSorting: false,
-            enableColumnFilter: false,
+          id: 'select',
+          header: ({ table }: { table: TableType<CustomerType> }) => (
+            <input
+              type="checkbox"
+              className="form-check-input form-check-input-light fs-14"
+              checked={table.getIsAllRowsSelected()}
+              onChange={table.getToggleAllRowsSelectedHandler()}
+            />
+          ),
+          cell: ({ row }: { row: TableRow<CustomerType> }) => (
+            <input
+              type="checkbox"
+              className="form-check-input form-check-input-light fs-14"
+              checked={row.getIsSelected()}
+              onChange={row.getToggleSelectedHandler()}
+            />
+          ),
+          enableSorting: false,
+          enableColumnFilter: false,
         },
-        columnHelper.accessor('name', {
-            header: 'Client Name',
-            cell: ({ row }) => (
-                <div className="d-flex align-items-center gap-2">
-                    <div className="avatar avatar-sm">
-                        <Image src={row.original.avatar.src} alt="" height={32} width={32} className="img-fluid rounded-circle" />
-                    </div>
-                    <div>
-                        <h5 className="mb-0">
-                            <Link href="/users/profile" className="link-reset">
-                                {row.original.name}
-                            </Link>
-                        </h5>
-                        <p className="text-muted fs-xs mb-0">{row.original.email}</p>
-                    </div>
-                </div>
-            ),
+      
+        columnHelper.accessor('numCin', {
+          header: 'CIN',
+          cell: ({ row }) => <span>{row.original.numCin}</span>,
         }),
-        columnHelper.accessor('phone', { header: 'Phone' }),
-
-        columnHelper.accessor('country', {
-            header: 'Country',
-            cell: ({ row }) => (
-                <>
-                    <span className='badge p-1 text-bg-light fs-sm'>
-                        <Image src={row.original.countryFlag.src} alt="" className="rounded-circle me-1" height={16} width={16} /> {row.original.country}
-                    </span>
-                </>
-            ),
+      
+        columnHelper.accessor('nomPrenom', {
+          header: 'Nom & Prénom',
+          cell: ({ row }) => (
+            <h5 className="mb-0">
+              <Link href="/users/profile" className="link-reset">
+                {row.original.nomPrenom}
+              </Link>
+            </h5>
+          ),
         }),
-        columnHelper.accessor('joined', {
-            header: 'Date',
-            cell: ({ row }) => (
-                <>
-                    {row.original.joined}
-                </>
-            ),
+      
+        columnHelper.accessor('numTelephone', {
+          header: 'Téléphone',
+          cell: ({ row }) => <span>{row.original.numTelephone}</span>,
         }),
-        columnHelper.accessor('type', { header: 'Type' }),
-        columnHelper.accessor('company', { header: 'Company' }),
-        columnHelper.accessor('status', {
-            header: 'Status',
-            cell: ({ row }) => {
-                const color =
-                    row.original.status === 'Blocked'
-                        ? ' bg-danger-subtle text-danger badge-label'
-                        : row.original.status === 'Verification Pending'
-                            ? 'bg-warning-subtle text-warning badge-label'
-                            : row.original.status === 'Active'
-                                ? 'bg-success-subtle text-success badge-label'
-                                : 'bg-secondary-subtle text-secondary badge-label'
-                return <span className={`badge ${color}`}>{row.original.status}</span>
-            },
+      
+        columnHelper.accessor('dateCreation', {
+          header: 'Date de création',
+          cell: ({ row }) => <span>{row.original.dateCreation}</span>,
         }),
-
+      
+        columnHelper.accessor('type', {
+          header: 'Type',
+          cell: ({ row }) => (
+            <span
+              className={`badge ${
+                row.original.type === 'fallah'
+                  ? 'bg-success-subtle text-success badge-label'
+                  : 'bg-info-subtle text-info badge-label'
+              }`}
+            >
+              {row.original.type}
+            </span>
+          ),
+        }),
+      
         {
-            header: 'Actions',
-            cell: ({ row }: { row: TableRow<CustomerType> }) => (
-                console.log("row",row),
-                <div className="d-flex  gap-1">
-                    <Button variant="default" size="sm" className="btn btn-default btn-icon btn-sm rounded" onClick={() => {setShowModaldetail(true) 
-                        setSelectedCustomer(row.original)}}>
-                        <TbEye className="fs-lg" />
-                    </Button>
-                    <CustomerModalViewDetail show={showModaldetail} onHide={() => setShowModaldetail(false)} customer={selectedCustomer} />
-                    <Button variant="default" size="sm" className="btn btn-default btn-icon btn-sm rounded" onClick={() => {setShowEditModal(true) 
-                        setSelectedCustomer(row.original)}}>
-                        <TbEdit className="fs-lg" />
-                    </Button>
-                    <CustomerEditModal show={showModalEdit} onHide={ () => setShowEditModal (false)} customer={selectedCustomer} />
-                    <Button
-                        variant="default"
-                        size="sm"
-                        className="btn btn-default btn-icon btn-sm rounded"
-                        onClick={() => {
-                            toggleDeleteModal()
-                            setSelectedRowIds({ [row.id]: true })
-                        }}>
-                        <TbTrash className="fs-lg" />
-                    </Button>
-                </div>
-            ),
+          header: 'Actions',
+          cell: ({ row }: { row: TableRow<CustomerType> }) => (
+            <div className="d-flex gap-1">
+              <Button
+                variant="default"
+                size="sm"
+                className="btn btn-default btn-icon btn-sm rounded"
+                onClick={() => {
+                  setShowModaldetail(true);
+                  setSelectedCustomer(row.original);
+                }}
+              >
+                <TbEye className="fs-lg" />
+              </Button>
+              <CustomerModalViewDetail
+                show={showModaldetail}
+                onHide={() => setShowModaldetail(false)}
+                customer={selectedCustomer}
+              />
+      
+              <Button
+                variant="default"
+                size="sm"
+                className="btn btn-default btn-icon btn-sm rounded"
+                onClick={() => {
+                  setShowEditModal(true);
+                  setSelectedCustomer(row.original);
+                }}
+              >
+                <TbEdit className="fs-lg" />
+              </Button>
+              <CustomerEditModal
+                show={showModalEdit}
+                onHide={() => setShowEditModal(false)}
+                customer={selectedCustomer}
+              />
+      
+              <Button
+                variant="default"
+                size="sm"
+                className="btn btn-default btn-icon btn-sm rounded"
+                onClick={() => {
+                  toggleDeleteModal();
+                  setSelectedRowIds({ [row.id]: true });
+                }}
+              >
+                <TbTrash className="fs-lg" />
+              </Button>
+            </div>
+          ),
         },
-    ]
+      ];
+      
 
     const [data, setData] = useState<CustomerType[]>(() => [...customers])
     const [globalFilter, setGlobalFilter] = useState('')

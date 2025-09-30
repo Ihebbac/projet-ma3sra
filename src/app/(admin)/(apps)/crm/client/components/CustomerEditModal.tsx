@@ -17,11 +17,12 @@ import {
 import Flatpickr from 'react-flatpickr'
 
 type Customer = {
-  name: string
-  cin: string
-  phone: string
-  type: string
-  date?: string
+  id: string;
+  numCin: string;
+  nomPrenom: string;
+  numTelephone: string;
+  dateCreation: string; // format YYYY-MM-DD
+  type: 'fallah' | 'kayyel';
 }
 
 type CustomerModalProps = {
@@ -43,21 +44,21 @@ const CustomerEditModal = ({ show, onHide, customer }: CustomerModalProps) => {
             <Col md={6}>
               <FormGroup controlId="customerName">
                 <FormLabel>Nom et prénom</FormLabel>
-                <FormControl type="text" placeholder="Nom et prénom" defaultValue={customer?.name} required />
+                <FormControl type="text" placeholder="Nom et prénom" defaultValue={customer?.nomPrenom} required />
               </FormGroup>
             </Col>
 
             <Col md={6}>
               <FormGroup controlId="cin">
                 <FormLabel>Num CIN</FormLabel>
-                <FormControl type="number" placeholder="Carte d'identité nationale" defaultValue={customer?.cin} required />
+                <FormControl type="number" placeholder="Carte d'identité nationale" defaultValue={customer?.numCin} required />
               </FormGroup>
             </Col>
 
             <Col md={6}>
               <FormGroup controlId="phone">
                 <FormLabel>Num Tél</FormLabel>
-                <FormControl type="number" placeholder="exp : 96 458 362" defaultValue={customer?.phone} required />
+                <FormControl type="text" placeholder="exp : 96 458 362" defaultValue={customer?.numTelephone} required />
               </FormGroup>
             </Col>
 
@@ -75,7 +76,7 @@ const CustomerEditModal = ({ show, onHide, customer }: CustomerModalProps) => {
             <Col md={6}>
               <FormGroup controlId="joinedDate">
                 <FormLabel>Date si besoin</FormLabel>
-                <Flatpickr className="form-control" options={{ dateFormat: 'd M Y' }} defaultValue={customer?.date} />
+                <Flatpickr className="form-control" options={{ dateFormat: 'd M Y' }} defaultValue={customer?.dateCreation} />
               </FormGroup>
             </Col>
           </Row>
