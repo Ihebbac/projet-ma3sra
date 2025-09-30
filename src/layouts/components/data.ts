@@ -115,7 +115,7 @@ export const menuItems: MenuItemType[] = [
     badge: { variant: 'success', text: '02' },
     children: [
       { key: 'dashboard-v1', label: 'Dashboard 1', url: '/dashboard' },
-      { key: 'dashboard-v2', label: 'Dashboard 2', url: '/dashboard2' },
+      // { key: 'dashboard-v2', label: 'Dashboard 2', url: '/dashboard2' },
     ],
   },
   // { key: 'landing', label: 'Landing Page', icon: LuEarth, url: '/landing' },
@@ -178,7 +178,8 @@ export const menuItems: MenuItemType[] = [
     icon: TbUsers,
   children: [
     { key: 'Clients', label: 'Clients', icon: LuHandshake, url: '/crm/client' },
-    { key: 'Qantité client', label: 'Qantité client',icon: LuRss, url: '/crm/Qteclient' },
+    { key: 'Qantité zitoun', label: 'Qantité zitoun',icon: LuRss, url: '/crm/Qteclient' },
+    { key: 'Qantité Zit', label: 'Qantité Zit',icon: LuRss, url: '/crm/Qteclientzit' },
   ],
 },
   { key: 'Fitoura', label: 'Fitoura',icon: LuFolderOpenDot, url: '/crm/fitoura' },
