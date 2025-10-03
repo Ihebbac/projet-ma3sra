@@ -1,552 +1,177 @@
-import ComponentCard from "@/components/cards/ComponentCard";
-import PageBreadcrumb from "@/components/PageBreadcrumb";
-import FlatpickrClient from '@/components/client-wrapper/FlatpickrClient'
-import WizardClient from '@/components/client-wrapper/WizardClient'
-import React from "react";
+import ComponentCard from '@/components/cards/ComponentCard'
+import React, { useState } from 'react'
 import {
-    Modal,
-    Button,
-    Row,
-    Col,
-    Form,
-    ModalHeader,
-    ModalTitle,
-    ModalBody,
-    FormGroup,
-    FormLabel,
-    FormControl,
-    FormSelect,
-    ModalFooter,
-    Container,
-    ProgressBar,
-} from "react-bootstrap";
+  Modal,
+  Button,
+  Row,
+  Col,
+  Form,
+  Container,
+  Collapse,
+} from 'react-bootstrap'
 import Flatpickr from 'react-flatpickr'
-import { useWizard } from 'react-use-wizard'
-import clsx from "clsx";
-import { TbBook, TbFolder, TbMapPin, TbUserCircle, TbUsers } from "react-icons/tb";
+
 type CustomerModalProps = {
-    show: boolean;
-    onHide: () => void;
-};
+  show: boolean
+  onHide: () => void
+}
 
-const Header = ({ className, withProgress }: { className?: string; withProgress?: boolean }) => {
-    const { goToStep, activeStep, stepCount } = useWizard()
-  
-    return (
-      <>
-        {withProgress && <ProgressBar now={(activeStep + 1) * (100 / stepCount)} className="mb-3" style={{ height: '6px' }} />}
-  
-        <ul className={clsx('nav nav-tabs wizard-tabs mb-3', className)}>
-          <li className="nav-item">
-            <button
-              className={clsx('nav-link d-flex w-100 text-start border-0', activeStep === 0 && 'active', activeStep > 0 && 'wizard-item-done')}
-              onClick={() => goToStep(0)}>
-              <span className="d-flex align-items-center">
-                <TbUserCircle className="fs-32" />
-                <span className="flex-grow-1 ms-2 text-truncate">
-                  <span className="mb-0 lh-base d-block fw-semibold text-body fs-base">informations Client</span>
-                  <span className="fs-xxs mb-0">information personnel</span>
-                </span>
-              </span>
-            </button>
-          </li>
-  
-          <li className="nav-item">
-            <button
-              className={clsx('nav-link d-flex w-100 text-start border-0', activeStep === 1 && 'active', activeStep > 1 && 'wizard-item-done')}
-              onClick={() => goToStep(1)}>
-              <span className="d-flex align-items-center">
-                <TbMapPin className="fs-32" />
-                <span className="flex-grow-1 ms-2 text-truncate">
-                  <span className="mb-0 lh-base d-block fw-semibold text-body fs-base">Quantité d'olive</span>
-                  <span className="fs-xxs mb-0">Quantité Zitoun</span>
-                </span>
-              </span>
-            </button>
-          </li>
-  
-          <li className="nav-item">
-            <button
-              className={clsx('nav-link d-flex w-100 text-start border-0', activeStep === 2 && 'active', activeStep > 2 && 'wizard-item-done')}
-              onClick={() => goToStep(2)}>
-              <span className="d-flex align-items-center">
-                <TbBook className="fs-32" />
-                <span className="flex-grow-1 ms-2 text-truncate">
-                  <span className="mb-0 lh-base d-block fw-semibold text-body fs-base">Quantité d'huile</span>
-                  <span className="fs-xxs mb-0">Quantité Zit</span>
-                </span>
-              </span>
-            </button>
-          </li>
-  
-          {/* <li className="nav-item">
-            <button
-              className={clsx('nav-link d-flex w-100 text-start border-0', activeStep === 3 && 'active', activeStep > 3 && 'wizard-item-done')}
-              onClick={() => goToStep(3)}>
-              <span className="d-flex align-items-center">
-                <TbUsers className="fs-32" />
-                <span className="flex-grow-1 ms-2 text-truncate">
-                  <span className="mb-0 lh-base d-block fw-semibold text-body fs-base">Parent Info</span>
-                  <span className="fs-xxs mb-0">Guardian details</span>
-                </span>
-              </span>
-            </button>
-          </li>
-  
-          <li className="nav-item">
-            <button
-              className={clsx('nav-link d-flex w-100 text-start border-0', activeStep === 4 && 'active', activeStep > 4 && 'wizard-item-done')}
-              onClick={() => goToStep(4)}>
-              <span className="d-flex align-items-center">
-                <TbFolder className="fs-32" />
-                <span className="flex-grow-1 ms-2 text-truncate">
-                  <span className="mb-0 lh-base d-block fw-semibold text-body fs-base">Documents</span>
-                  <span className="fs-xxs mb-0">Upload certificates</span>
-                </span>
-              </span>
-            </button>
-          </li> */}
-        </ul>
-      </>
-    )
-  }
-
-
-  const Step1 = ({ className }: { className?: string }) => {
-    const { nextStep } = useWizard()
-  
-    return (
-      <Form className={`${className}`}>
-        <Row className="g-3">
-          <Col md={6}>
-            <FormGroup controlId="customerName">
-              <FormLabel>Nom et prénom</FormLabel>
-              <FormControl
-                type="text"
-                placeholder="Nom et prénom"
-                name="fullname"
-                required
-              />
-            </FormGroup>
-          </Col>
-  
-          <Col md={6}>
-            <FormGroup controlId="email">
-              <FormLabel>Num CIN</FormLabel>
-              <FormControl
-                type="number"
-                placeholder="Carte d'identité nationale"
-                name="cin"
-                required
-              />
-            </FormGroup>
-          </Col>
-  
-          <Col md={6}>
-            <FormGroup controlId="phone">
-              <FormLabel>Num Tél</FormLabel>
-              <FormControl
-                type="number"
-                placeholder="exp : 96 458 362"
-                name="phone"
-                required
-              />
-            </FormGroup>
-          </Col>
-  
-          <Col md={6}>
-            <FormGroup controlId="country">
-              <FormLabel>Type</FormLabel>
-              <FormSelect required defaultValue="فلاح" name="type">
-                <option value="">Type</option>
-                <option value="فلاح">فلاح</option>
-                <option value="كيال">كيال</option>
-              </FormSelect>
-            </FormGroup>
-          </Col>
-  
-          <Col md={6}>
-            <FormGroup controlId="joinedDate">
-              <FormLabel>Date si besoin</FormLabel>
-              <Flatpickr
-                className="form-control"
-                required
-                options={{ dateFormat: "d M Y" }}
-                name="date"
-              />
-            </FormGroup>
-          </Col>
-        </Row>
-  
-        <div className="d-flex justify-content-end mt-3">
-          <Button variant="primary" onClick={nextStep}>
-            Suivant: quantité olive  →
-          </Button>
-        </div>
-      </Form>
-    )
-  }
-  
-  
-  const Step2 = ({ className }: { className?: string }) => {
-    const { previousStep, nextStep } = useWizard()
-  
-    return (
-      <Form className={`${className}`}>
-        <Row>
-          <Col xl={6}>
-            <FormGroup className="mb-3">
-              <FormLabel>Nombre des caisses utilisées</FormLabel>
-              <FormControl
-                type="number"
-                placeholder="Ex: 25"
-                name="nbCaisses"
-                required
-              />
-            </FormGroup>
-          </Col>
-          <Col xl={6}>
-            <FormGroup className="mb-3">
-              <FormLabel>Quantité d'olive (KG)</FormLabel>
-              <FormControl
-                type="number"
-                placeholder="Ex: 320"
-                name="quantiteOlive"
-                required
-              />
-            </FormGroup>
-          </Col>
-        </Row>
-  
-        <div className="d-flex justify-content-between mt-3">
-          <Button variant="secondary" onClick={previousStep}>
-            ← Retour:  client
-          </Button>
-          <Button variant="primary" onClick={nextStep}>
-            Suivant: Confirmation →
-          </Button>
-        </div>
-      </Form>
-    )
-  }
-  
-  
-//   const Step3 = ({ className }: { className?: string }) => {
-//     const { previousStep, nextStep } = useWizard()
-  
-//     return (
-//       <Form className={`${className}`}>
-//         <Row>
-//           <Col xl={6}>
-//             <FormGroup className="mb-3">
-//               <FormLabel>Choose Course</FormLabel>
-//               <FormSelect name="course" required>
-//                 <option value="">Select</option>
-//                 <option value="Engineering">Engineering</option>
-//                 <option value="Medical">Medical</option>
-//                 <option value="Business">Business</option>
-//               </FormSelect>
-//             </FormGroup>
-//           </Col>
-//           <Col xl={6}>
-//             <FormGroup className="mb-3">
-//               <FormLabel>Enrollment Type</FormLabel>
-//               <FormSelect name="enrollment" required>
-//                 <option value="">Select</option>
-//                 <option value="Full Time">Full Time</option>
-//                 <option value="Part Time">Part Time</option>
-//               </FormSelect>
-//             </FormGroup>
-//           </Col>
-//           <Col xl={6}>
-//             <FormGroup className="mb-3">
-//               <FormLabel>Preferred Batch Time</FormLabel>
-//               <FormSelect name="batch_time" required>
-//                 <option value="">Select Time</option>
-//                 <option value="Morning">Morning (8am – 12pm)</option>
-//                 <option value="Afternoon">Afternoon (1pm – 5pm)</option>
-//                 <option value="Evening">Evening (6pm – 9pm)</option>
-//               </FormSelect>
-//             </FormGroup>
-//           </Col>
-//           <Col xl={6}>
-//             <FormGroup className="mb-3">
-//               <FormLabel>Mode of Study</FormLabel>
-//               <FormSelect name="mode" required>
-//                 <option value="">Select Mode</option>
-//                 <option value="Offline">Offline</option>
-//                 <option value="Online">Online</option>
-//                 <option value="Hybrid">Hybrid</option>
-//               </FormSelect>
-//             </FormGroup>
-//           </Col>
-//         </Row>
-//         <div className="d-flex justify-content-between mt-3">
-//           <Button variant="secondary" onClick={previousStep}>
-//             ← Back: Address Info
-//           </Button>
-//           <Button variant="primary" onClick={nextStep}>
-//             Next: Parent Info →
-//           </Button>
-//         </div>
-//       </Form>
-//     )
-//   }
-const Step3 = ({ className }: { className?: string }) => {
-    const { previousStep } = useWizard()
-  
-    return (
-      <Form className={`${className}`}>
-        <Row>
-          <Col md={4}>
-            <FormGroup className="mb-3">
-              <FormLabel>Quantité d'huile </FormLabel>
-              <FormControl
-                type="number"
-                placeholder="Ex: 50 L"
-                name="quantiteHuile"
-                required
-              />
-            </FormGroup>
-          </Col>
-  
-          <Col md={4}>
-            <FormGroup className="mb-3">
-              <FormLabel>القطوع (%)</FormLabel>
-              <FormControl
-                type="number"
-                placeholder="Ex: 5"
-                name="kattou3"
-                required
-              />
-            </FormGroup>
-          </Col>
-  
-          <Col md={4}>
-            <FormGroup className="mb-3">
-              <FormLabel>النسبة (%)</FormLabel>
-              <FormControl
-                type="number"
-                placeholder="Ex: 20"
-                name="nisba"
-                required
-              />
-            </FormGroup>
-          </Col>
-        </Row>
-  
-        <div className="d-flex justify-content-between mt-3">
-          <Button variant="secondary" onClick={previousStep}>
-            ← Retour: Olive 
-          </Button>
-          <Button variant="success" type="submit">
-            Ajouter
-          </Button>
-        </div>
-      </Form>
-    )
-  }
-  
 const CustomerModal = ({ show, onHide }: CustomerModalProps) => {
-    return (
-        <Modal show={show} onHide={onHide} size="lg">
-            <ModalHeader closeButton>
-                <ModalTitle as="h5">Ajouter un nouveau client</ModalTitle>
-            </ModalHeader>
+  const [openOlive, setOpenOlive] = useState(false)
+  const [openHuile, setOpenHuile] = useState(false)
 
-            <Form id="addCustomerForm">
-                <ModalBody>
-                    <Row className="g-3">
-                        <Col md={6}>
-                            <FormGroup controlId="customerName">
-                                <FormLabel>Nom et prénom</FormLabel>
-                                <FormControl
-                                    type="text"
-                                    placeholder="Nom et prénom"
-                                    required
-                                />
-                            </FormGroup>
-                        </Col>
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const data = Object.fromEntries(formData.entries())
+    console.log("data envoyé à l'API:", data)
 
-                        <Col md={6}>
-                            <FormGroup controlId="email">
-                                <FormLabel>Num CIN</FormLabel>
-                                <FormControl
-                                    type="number"
-                                    placeholder="Carte d'identité national"
-                                    required
-                                />
-                            </FormGroup>
-                        </Col>
+    try {
+      const res = await fetch('http://localhost:8170/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          numCIN: Number(data.numCIN),
+          numTelephone: Number(data.numTelephone),
+          nombreCaisses: Number(data.nombreCaisses || 0),
+          quantiteOlive: Number(data.quantiteOlive || 0),
+          quantiteHuile: Number(data.quantiteHuile || 0),
+          kattou3: Number(data.kattou3 || 0),
+          nisba: Number(data.nisba || 0),
+          dateCreation: data.dateCreation
+        }),
+      })
+      if (!res.ok) throw new Error('Erreur lors de l’ajout')
+      alert('Client ajouté avec succès')
+      onHide()
+    } catch (err) {
+      console.error(err)
+      alert('Impossible d’ajouter le client')
+    }
+  }
 
-                        <Col md={6}>
-                            <FormGroup controlId="phone">
-                                <FormLabel>Num Tél</FormLabel>
-                                <FormControl
-                                    type="number"
-                                    placeholder="exp : 96 458 362"
-                                    required
-                                />
-                            </FormGroup>
-                        </Col>
+  return (
+    <Modal show={show} onHide={onHide} size="lg">
+      <Modal.Header closeButton>
+        <Modal.Title>Ajouter un nouveau client</Modal.Title>
+      </Modal.Header>
 
-                        {/* <Col md={6}>
-                            <FormGroup controlId="company">
-                                <FormLabel>Company</FormLabel>
-                                <FormControl type="text" placeholder="Company name" />
-                            </FormGroup>
-                        </Col> */}
+      <Form onSubmit={handleSubmit}>
+        <Modal.Body>
+          <Container fluid>
+            <ComponentCard title="Nouveau Client">
+              {/* Informations Client */}
+              <h5>Informations Client</h5>
+              <Row className="g-3 mb-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Nom et prénom</Form.Label>
+                    <Form.Control type="text" name="nomPrenom" placeholder="Nom et prénom" required />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Num CIN</Form.Label>
+                    <Form.Control type="number" name="numCIN" placeholder="Carte d'identité" required />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Num Tél</Form.Label>
+                    <Form.Control type="number" name="numTelephone" placeholder="Ex: 96 458 362" required />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Type</Form.Label>
+                    <Form.Select name="type" required defaultValue="">
+                      <option value="">Type</option>
+                      <option value="فلاح">فلاح</option>
+                      <option value="كيال">كيال</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Date création</Form.Label>
+                    <Flatpickr className="form-control" name="dateCreation" options={{ dateFormat: 'Y-m-d' }} />
+                  </Form.Group>
+                </Col>
+              </Row>
 
-                        <Col md={6}>
-                            <FormGroup controlId="country">
-                                <FormLabel>Type</FormLabel>
-                                <FormSelect required defaultValue="فلاح">
-                                    <option value="">Type</option>
-                                    <option value="US">فلاح</option>
-                                    <option value="UK">كيال</option>
-                                    
-                                </FormSelect>
-                            </FormGroup>
-                        </Col>
+              {/* Quantité Olive */}
+              <h5
+                className="d-flex justify-content-between align-items-center"
+                onClick={() => setOpenOlive(!openOlive)}
+                style={{ cursor: 'pointer' }}
+              >
+                Quantité d'olive
+                <span>{openOlive ? '▲' : '▼'}</span>
+              </h5>
+              <Collapse in={openOlive}>
+                <div className="mb-3">
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Nombre des caisses utilisées</Form.Label>
+                        <Form.Control type="number" name="nombreCaisses" placeholder="Ex: 25" />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Quantité d'olive (KG)</Form.Label>
+                        <Form.Control type="number" name="quantiteOlive" placeholder="Ex: 320" />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </div>
+              </Collapse>
 
-                        {/* <Col md={6}>
-                            <FormGroup controlId="customerType">
-                                <FormLabel>Customer Type</FormLabel>
-                                <FormSelect required defaultValue="">
-                                    <option value="">Select type</option>
-                                    <option value="Lead">Lead</option>
-                                    <option value="Prospect">Prospect</option>
-                                    <option value="Client">Client</option>
-                                </FormSelect>
-                            </FormGroup>
-                        </Col>
+              {/* Quantité Huile */}
+              <h5
+                className="d-flex justify-content-between align-items-center"
+                onClick={() => setOpenHuile(!openHuile)}
+                style={{ cursor: 'pointer' }}
+              >
+                Quantité d'huile
+                <span>{openHuile ? '▲' : '▼'}</span>
+              </h5>
+              <Collapse in={openHuile}>
+                <div className="mb-3">
+                  <Row className="g-3">
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>Quantité d'huile (L)</Form.Label>
+                        <Form.Control type="number" name="quantiteHuile" placeholder="Ex: 50" />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>القطوع (%)</Form.Label>
+                        <Form.Control type="number" name="kattou3" placeholder="Ex: 5" />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>النسبة (%)</Form.Label>
+                        <Form.Control type="number" name="nisba" placeholder="Ex: 20" />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </div>
+              </Collapse>
+            </ComponentCard>
+          </Container>
+        </Modal.Body>
 
-                        <Col md={6}>
-                            <FormGroup controlId="accountStatus">
-                                <FormLabel>Account Status</FormLabel>
-                                <FormSelect required defaultValue="">
-                                    <option value="">Select status</option>
-                                    <option value="Active">Active</option>
-                                    <option value="Verification Pending">Verification Pending</option>
-                                    <option value="Inactive">Inactive</option>
-                                    <option value="Blocked">Blocked</option>
-                                </FormSelect>
-                            </FormGroup>
-                        </Col> */}
+        <Modal.Footer>
+          <Button variant="light" onClick={onHide}>Annuler</Button>
+          <Button type="submit" variant="success">Ajouter</Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  )
+}
 
-                        <Col md={6}>
-                            <FormGroup controlId="joinedDate">
-                                <FormLabel>Date si besoin</FormLabel>
-                               <Flatpickr className="form-control" required options={{ dateFormat: "d M Y" }}/>
-                            </FormGroup>
-                        </Col>
-                    </Row>
-
-                    <Row className="g-3">
-                        <Col md={6}>
-                            <FormGroup controlId="Nbre caisse">
-                                <FormLabel>Nombre caisse utilisé</FormLabel>
-                                <FormControl
-                                    type="Number"
-                                    placeholder="3,4,5...."
-                                    required
-                                />
-                            </FormGroup>
-                        </Col>
-
-                        <Col md={6}>
-                            <FormGroup controlId="email">
-                                <FormLabel>Quantité Zitoun</FormLabel>
-                                <FormControl
-                                    type="number"
-                                    placeholder="Exp : 420 Kg"
-                                    required
-                                />
-                            </FormGroup>
-                        </Col>
-                        </Row>
-                    <Row className="g-3">
-                        <Col md={6}>
-                            <FormGroup controlId="Nbre caisse">
-                                <FormLabel>Nombre caisse utilisé</FormLabel>
-                                <FormControl
-                                    type="Number"
-                                    placeholder="3,4,5...."
-                                    required
-                                />
-                            </FormGroup>
-                        </Col>
-
-                        <Col md={6}>
-                            <FormGroup controlId="email">
-                                <FormLabel>Quantité Zitoun</FormLabel>
-                                <FormControl
-                                    type="number"
-                                    placeholder="Exp : 420 Kg"
-                                    required
-                                />
-                            </FormGroup>
-                        </Col>
-                        </Row>
-                        <Row>
-                        <Container fluid>
-      {/* <PageBreadcrumb title="Wizard" subtitle="Forms" /> */}
-
-      <Row className="justify-content-center">
-        <Col xxl={12}>
-          {/* <ComponentCard title="Basic Wizard">
-            <WizardClient header={<Header />}>
-              <Step1 />
-              <Step2 />
-              <Step3 />
-              <Step4 />
-              <Step5 />
-            </WizardClient>
-          </ComponentCard> */}
-
-          {/* <ComponentCard title="Wizard with Progress">
-            <WizardClient header={<Header withProgress />}>
-              <Step1 />
-              <Step2 />
-              <Step3 />
-              <Step4 />
-              <Step5 />
-            </WizardClient>
-          </ComponentCard> */}
-
-          <ComponentCard title="nouveau client">
-            <div className="row">
-              <WizardClient
-                header={
-                  <div className="col-md-4">
-                    <Header className="flex-column wizard-bordered wizard-tabs nav-pills" />
-                  </div>
-                }>
-                <Step1 className="col-md-8 border border-dashed rounded p-4" />
-                <Step2 className="col-md-8 border border-dashed rounded p-4" />
-                {/* <Step3 className="col-md-8 border border-dashed rounded p-4" />
-                <Step4 className="col-md-8 border border-dashed rounded p-4" /> */}
-                <Step3 className="col-md-8 border border-dashed rounded p-4" />
-              </WizardClient>
-            </div>
-          </ComponentCard>
-        </Col>
-      </Row>
-    </Container>
-                        </Row>
-                </ModalBody>
-
-                <ModalFooter>
-                    <Button variant="light" onClick={onHide}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" variant="primary">
-                        Ajouter
-                    </Button>
-                </ModalFooter>
-            </Form>
-        </Modal>
-    );
-};
-
-export default CustomerModal;
+export default CustomerModal

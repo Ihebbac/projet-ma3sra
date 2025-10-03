@@ -1,19 +1,17 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import {
   createColumnHelper,
+  useReactTable,
   getCoreRowModel,
+  getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel,
   SortingState,
   Row as TableRow,
   Table as TableType,
-  useReactTable,
 } from '@tanstack/react-table'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useState } from 'react'
 import { Button, Card, CardFooter, CardHeader, Col, Container, Row } from 'react-bootstrap'
 import { LuGlobe, LuSearch, LuShuffle } from 'react-icons/lu'
 import { TbEdit, TbEye, TbPlus, TbTrash } from 'react-icons/tb'
@@ -22,19 +20,48 @@ import DataTable from '@/components/table/DataTable'
 import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
 import TablePagination from '@/components/table/TablePagination'
 import CustomerModal from './components/CustomerModal'
-import { customers, CustomerType } from './data'
-import { Page } from 'react-pdf'
-import PageBreadcrumb from '@/components/PageBreadcrumb'
 import CustomerModalViewDetail from '../client/components/CustomerModalViewDetail'
 import CustomerEditModal from '../client/components/CustomerEditModal'
 import FlatpickrClient from '@/components/client-wrapper/FlatpickrClient'
+import PageBreadcrumb from '@/components/PageBreadcrumb'
+
+type CustomerType = {
+  _id: string
+  nomPrenom: string
+  numCIN: number
+  numTelephone: number
+  type: string
+  dateCreation: string
+  nombreCaisses?: number
+  quantiteOlive?: number
+  quantiteHuile?: number
+  kattou3?: number
+  nisba?: number
+}
 
 const columnHelper = createColumnHelper<CustomerType>()
 
 const CustomersCard = () => {
+  const [data, setData] = useState<CustomerType[]>([])
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
+
+  const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({})
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null)
+
   const [showModal, setShowModal] = useState(false)
-  const [showModaldetail, setShowModaldetail] = useState(false)
-  const [showModalEdit, setShowEditModal] = useState(false)
+  const [showModalDetail, setShowModalDetail] = useState(false)
+  const [showModalEdit, setShowModalEdit] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+
+  // --- fetch customers from API ---
+  useEffect(() => {
+    fetch('http://localhost:8170/clients')
+      .then((res) => res.json())
+      .then((json) => setData(json))
+      .catch((err) => console.error('Error fetching clients:', err))
+  }, [])
 
   const columns = [
     {
@@ -58,45 +85,25 @@ const CustomersCard = () => {
       enableSorting: false,
       enableColumnFilter: false,
     },
-
-    columnHelper.accessor('numCin', {
-      header: 'CIN',
-      cell: ({ row }) => <span>{row.original.numCin}</span>,
-    }),
-
+    columnHelper.accessor('numCIN', { header: 'CIN', cell: (info) => info.getValue() }),
     columnHelper.accessor('nomPrenom', {
       header: 'Nom & Prénom',
-      cell: ({ row }) => (
-        <h5 className="mb-0">
-          <Link href="/users/profile" className="link-reset">
-            {row.original.nomPrenom}
-          </Link>
-        </h5>
-      ),
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
     }),
-
-    columnHelper.accessor('numTelephone', {
-      header: 'Téléphone',
-      cell: ({ row }) => <span>{row.original.numTelephone}</span>,
-    }),
-
-    columnHelper.accessor('dateCreation', {
-      header: 'Date de création',
-      cell: ({ row }) => <span>{row.original.dateCreation}</span>,
-    }),
-
+    columnHelper.accessor('numTelephone', { header: 'Téléphone', cell: (info) => info.getValue() }),
+    columnHelper.accessor('dateCreation', { header: 'Date de création', cell: (info) => info.getValue() }),
     columnHelper.accessor('type', {
       header: 'Type',
-      cell: ({ row }) => (
+      cell: (info) => (
         <span
           className={`badge ${
-            row.original.type === 'fallah' ? 'bg-success-subtle text-success badge-label' : 'bg-info-subtle text-info badge-label'
-          }`}>
-          {row.original.type}
+            info.getValue() === 'فلاح' ? 'bg-success-subtle text-success badge-label' : 'bg-info-subtle text-info badge-label'
+          }`}
+        >
+          {info.getValue()}
         </span>
       ),
     }),
-
     {
       header: 'Actions',
       cell: ({ row }: { row: TableRow<CustomerType> }) => (
@@ -104,35 +111,35 @@ const CustomersCard = () => {
           <Button
             variant="default"
             size="sm"
-            className="btn btn-default btn-icon btn-sm rounded"
             onClick={() => {
-              setShowModaldetail(true)
+              setShowModalDetail(true)
               setSelectedCustomer(row.original)
-            }}>
+            }}
+          >
             <TbEye className="fs-lg" />
           </Button>
-          <CustomerModalViewDetail show={showModaldetail} onHide={() => setShowModaldetail(false)} customer={selectedCustomer} />
+          <CustomerModalViewDetail show={showModalDetail} onHide={() => setShowModalDetail(false)} customer={selectedCustomer} />
 
           <Button
             variant="default"
             size="sm"
-            className="btn btn-default btn-icon btn-sm rounded"
             onClick={() => {
-              setShowEditModal(true)
+              setShowModalEdit(true)
               setSelectedCustomer(row.original)
-            }}>
+            }}
+          >
             <TbEdit className="fs-lg" />
           </Button>
-          <CustomerEditModal show={showModalEdit} onHide={() => setShowEditModal(false)} customer={selectedCustomer} />
+          <CustomerEditModal show={showModalEdit} onHide={() => setShowModalEdit(false)} customer={selectedCustomer} />
 
           <Button
             variant="default"
             size="sm"
-            className="btn btn-default btn-icon btn-sm rounded"
             onClick={() => {
-              toggleDeleteModal()
+              setShowDeleteModal(true)
               setSelectedRowIds({ [row.id]: true })
-            }}>
+            }}
+          >
             <TbTrash className="fs-lg" />
           </Button>
         </div>
@@ -140,13 +147,6 @@ const CustomersCard = () => {
     },
   ]
 
-  const [data, setData] = useState<CustomerType[]>(() => [...customers])
-  const [globalFilter, setGlobalFilter] = useState('')
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
-
-  const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({})
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null)
   const table = useReactTable({
     data,
     columns,
@@ -167,15 +167,8 @@ const CustomersCard = () => {
   const pageIndex = table.getState().pagination.pageIndex
   const pageSize = table.getState().pagination.pageSize
   const totalItems = table.getFilteredRowModel().rows.length
-
   const start = pageIndex * pageSize + 1
   const end = Math.min(start + pageSize - 1, totalItems)
-
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false)
-
-  const toggleDeleteModal = () => {
-    setShowDeleteModal(!showDeleteModal)
-  }
 
   const handleDelete = () => {
     const selectedIds = new Set(Object.keys(selectedRowIds))
@@ -205,7 +198,7 @@ const CustomersCard = () => {
                 </div>
 
                 {Object.keys(selectedRowIds).length > 0 && (
-                  <Button variant="danger" size="sm" onClick={toggleDeleteModal}>
+                  <Button variant="danger" size="sm" onClick={() => setShowDeleteModal(true)}>
                     Delete
                   </Button>
                 )}
@@ -215,42 +208,26 @@ const CustomersCard = () => {
                 </Button>
                 <CustomerModal show={showModal} onHide={() => setShowModal(false)} />
               </div>
-
               <div className="d-flex align-items-center gap-2">
                 <span className="me-2 fw-semibold">Filtrer :</span>
 
-                <div className="app-search">
-                  <FlatpickrClient className="form-control" options={{ dateFormat: 'd M, Y', defaultDate: 'today' }} />
+                <FlatpickrClient className="form-control" options={{ dateFormat: 'd M, Y', defaultDate: 'today' }} />
+                <LuGlobe className="app-search-icon text-muted" />
 
-                  <LuGlobe className="app-search-icon text-muted" />
-                </div>
-
-                <div className="app-search">
-                  <select
-                    className="form-select form-control my-1 my-md-0"
-                    value={(table.getColumn('status')?.getFilterValue() as string) ?? 'All'}
-                    onChange={(e) => table.getColumn('status')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}>
-                    <option value="">Type</option>
-                    <option value="US">فلاح</option>
-                    <option value="UK">كيال</option>
-                  </select>
-                  <LuShuffle className="app-search-icon text-muted" />
-                </div>
-
-                <div>
-                  <select
-                    className="form-select form-control my-1 my-md-0"
-                    value={table.getState().pagination.pageSize}
-                    onChange={(e) => table.setPageSize(Number(e.target.value))}>
-                    {[5, 8, 10, 15, 20].map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  className="form-select form-control my-1 my-md-0"
+                  value={table.getState().pagination.pageSize}
+                  onChange={(e) => table.setPageSize(Number(e.target.value))}
+                >
+                  {[5, 8, 10, 15, 20].map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
               </div>
             </CardHeader>
+
             <DataTable<CustomerType> table={table} emptyMessage="No records found" />
 
             {table.getRowModel().rows.length > 0 && (
@@ -274,7 +251,7 @@ const CustomersCard = () => {
 
             <DeleteConfirmationModal
               show={showDeleteModal}
-              onHide={toggleDeleteModal}
+              onHide={() => setShowDeleteModal(false)}
               onConfirm={handleDelete}
               selectedCount={Object.keys(selectedRowIds).length}
               itemName="customers"
