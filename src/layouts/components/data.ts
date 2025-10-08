@@ -203,7 +203,7 @@ export const menuItems: MenuItemType[] = [
     icon: LuReceiptText,
     children: [
       { key: 'Liste des Employés', label: 'Liste des Employés', url: '/users/contacts' },
-      { key: 'suivi présence ', label: 'suivi présence', url: '/users/profile' },
+      { key: 'suivi présence ', label: 'suivi présence', url: '/crm/employe' },
       { key: 'calcul salire', label: 'calcul salire', url: '/users/roles' },
      
     ],

@@ -49,6 +49,7 @@
     "ladda": "^2.0.3",
     "leaflet": "^1.9.4",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.544.0",
     "masonic": "^4.1.0",
     "moment": "^2.30.1",
     "next": "^15.3.4",
@@ -89,7 +90,6 @@
     "zod": "^3.25.63"
   },
   "devDependencies": {
-    "@types/sortablejs": "^1.15.8",
     "@eslint/eslintrc": "^3",
     "@iconify/react": "^6.0.0",
     "@types/leaflet": "^1.9.18",
@@ -97,6 +97,7 @@
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/sortablejs": "^1.15.8",
     "eslint": "^9",
     "eslint-config-next": "^15.3.4",
     "prettier": "^3.5.3",

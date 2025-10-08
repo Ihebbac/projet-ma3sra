@@ -1,62 +1,25 @@
 'use client'
-import { Button, Col, Form, FormControl, FormGroup, FormLabel, FormSelect, Modal, ModalFooter, ModalHeader, ModalTitle, Row } from 'react-bootstrap'
+import { Button, Col, Form, FormControl, FormGroup, FormLabel, Modal, ModalFooter, ModalHeader, ModalTitle, Row } from 'react-bootstrap'
 import Flatpickr from 'react-flatpickr'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-interface CreateDealModalProps {
+interface EditModalProps {
   show: boolean;
   toggleModal: () => void;
-  onProprietaireCreated?: () => void;
+  data: CustomerType;
+  onSave: (data: CustomerType) => void;
 }
 
-const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDealModalProps) => {
-  const [formData, setFormData] = useState<Partial<CustomerType>>({
-    nomPrenom: 'Propriétaire',
-    nombreCaisses: 0,
-    quantiteOlive: 0,
-    quantiteHuile: 0,
-    kattou3: 0,
-    nisba: 0,
-  })
+const EditModal = ({ show, toggleModal, data, onSave }: EditModalProps) => {
+  const [formData, setFormData] = useState<CustomerType>(data)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    setFormData(data)
+  }, [data])
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    try {
-      const response = await fetch('http://localhost:8170/proprietaires', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          dateCreation: new Date().toISOString()
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create proprietaire')
-      }
-
-      // Reset form
-      setFormData({
-        nomPrenom: '',
-        nombreCaisses: 0,
-        quantiteOlive: 0,
-        quantiteHuile: 0,
-        kattou3: 0,
-        nisba: 0,
-      })
-
-      toggleModal()
-      
-      // Callback pour rafraîchir les données
-      if (onProprietaireCreated) {
-        onProprietaireCreated()
-      }
-    } catch (error) {
-      console.error('Error creating proprietaire:', error)
-      // Optionnel: Afficher un message d'erreur
-    }
+    onSave(formData)
   }
 
   const handleChange = (field: keyof CustomerType, value: any) => {
@@ -69,32 +32,30 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
   return (
     <Modal show={show} onHide={toggleModal} size="lg">
       <ModalHeader closeButton>
-        <ModalTitle as="h5">Nouveau Propriétaire</ModalTitle>
+        <ModalTitle as="h5">Modifier le Propriétaire</ModalTitle>
       </ModalHeader>
 
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           <Row className="g-3">
             <Col md={12}>
-              <FormGroup controlId="nomPrenom">
-                <FormLabel>Nom et Prénom</FormLabel>
+              <FormGroup controlId="editNomPrenom">
+                <FormLabel>Propriétaire</FormLabel>
                 <FormControl 
-                 disabled value="Propriétaire"
-                  
-                
-                  
+                  type="text" 
+                  value={formData.nomPrenom}
+                  onChange={(e) => handleChange('nomPrenom', e.target.value)}
+                  required 
                 />
               </FormGroup>
             </Col>
 
-           
-
             <Col md={6}>
-              <FormGroup controlId="nombreCaisses">
+              <FormGroup controlId="editNombreCaisses">
                 <FormLabel>Nombre de caisses</FormLabel>
                 <FormControl 
                   type="number" 
-                  value={formData.nombreCaisses}
+                  value={formData.nombreCaisses || 0}
                   onChange={(e) => handleChange('nombreCaisses', parseInt(e.target.value))}
                   min="0"
                   required 
@@ -103,11 +64,26 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
             </Col>
 
             <Col md={6}>
-              <FormGroup controlId="quantiteOlive">
+              <FormGroup controlId="editDateCreation">
+                <FormLabel>Date création</FormLabel>
+                <Flatpickr 
+                  className="form-control" 
+                  value={formData.dateCreation}
+                  onChange={([date]) => handleChange('dateCreation', date.toISOString())}
+                  options={{ 
+                    dateFormat: "d-m-Y",
+                  }}
+                  required 
+                />
+              </FormGroup>
+            </Col>
+
+            <Col md={6}>
+              <FormGroup controlId="editQuantiteOlive">
                 <FormLabel>Quantité Olive (kg)</FormLabel>
                 <Form.Control 
                   type="number" 
-                  value={formData.quantiteOlive}
+                  value={formData.quantiteOlive || 0}
                   onChange={(e) => handleChange('quantiteOlive', parseFloat(e.target.value))}
                   min="0"
                   step="0.1"
@@ -117,11 +93,11 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
             </Col>
 
             <Col md={6}>
-              <FormGroup controlId="quantiteHuile">
+              <FormGroup controlId="editQuantiteHuile">
                 <FormLabel>Quantité Huile (L)</FormLabel>
                 <Form.Control 
                   type="number" 
-                  value={formData.quantiteHuile}
+                  value={formData.quantiteHuile || 0}
                   onChange={(e) => handleChange('quantiteHuile', parseFloat(e.target.value))}
                   min="0"
                   step="0.1"
@@ -131,11 +107,11 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
             </Col>
 
             <Col md={6}>
-              <FormGroup controlId="kattou3">
+              <FormGroup controlId="editKattou3">
                 <FormLabel>Kattou3 (%)</FormLabel>
                 <Form.Control 
                   type="number" 
-                  value={formData.kattou3}
+                  value={formData.kattou3 || 0}
                   onChange={(e) => handleChange('kattou3', parseFloat(e.target.value))}
                   min="0"
                   max="100"
@@ -146,11 +122,11 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
             </Col>
 
             <Col md={6}>
-              <FormGroup controlId="nisba">
+              <FormGroup controlId="editNisba">
                 <FormLabel>Nisba (%)</FormLabel>
                 <Form.Control 
                   type="number" 
-                  value={formData.nisba}
+                  value={formData.nisba || 0}
                   onChange={(e) => handleChange('nisba', parseFloat(e.target.value))}
                   min="0"
                   max="100"
@@ -159,6 +135,8 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
                 />
               </FormGroup>
             </Col>
+
+            
           </Row>
         </Modal.Body>
 
@@ -167,7 +145,7 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
             Annuler
           </Button>
           <Button variant="primary" type="submit">
-            Créer Propriétaire
+            Enregistrer les modifications
           </Button>
         </ModalFooter>
       </Form>
@@ -175,4 +153,4 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
   )
 }
 
-export default CreateDealModal
+export default EditModal

@@ -1,19 +1,19 @@
 'use client'
 
 import {
-    createColumnHelper,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    SortingState,
-    Row as TableRow,
-    Table as TableType,
-    useReactTable,
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  Row as TableRow,
+  Table as TableType,
+  useReactTable,
 } from '@tanstack/react-table'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button, Card, CardFooter, CardHeader, Col, Container, Row } from 'react-bootstrap'
 import { LuGlobe, LuSearch, LuShuffle } from 'react-icons/lu'
 import { TbEdit, TbEye, TbPlus, TbTrash } from 'react-icons/tb'
@@ -21,282 +21,231 @@ import { TbEdit, TbEye, TbPlus, TbTrash } from 'react-icons/tb'
 import DataTable from '@/components/table/DataTable'
 import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
 import TablePagination from '@/components/table/TablePagination'
-import CustomerModal from './components/CustomerModal'
-import { customers, CustomerType } from './data'
-import { Page } from 'react-pdf'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import FitouraAddModal from './components/FitouraAddModal'
+import FitouraEditModal from './components/FitouraEditModal'
+import FitouraDetailModal from './components/FitouraDetailModal'
 
+type FitouraType = {
+  _id: string
+  matriculeCamion: string
+  chauffeur: string
+  poidsEntree: number
+  poidsSortie?: number
+  poidsNet?: number
+  prixUnitaire: number
+  montantTotal?: number
+  status: string
+  dateSortie?: string
+}
 
-const columnHelper = createColumnHelper<CustomerType>()
+const columnHelper = createColumnHelper<FitouraType>()
 
 const FitouraCard = () => {
-    const [showModal, setShowModal] = useState(false);
-    const [showModaldetail, setShowModaldetail] = useState(false);
+  const [data, setData] = useState<FitouraType[]>([])
+  const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({})
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [currentOperation, setCurrentOperation] = useState<FitouraType | null>(null)
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-    const columns = [
-        {
-            id: 'select',
-            header: ({ table }: { table: TableType<CustomerType> }) => (
-                <input
-                    type="checkbox"
-                    className="form-check-input form-check-input-light fs-14"
-                    checked={table.getIsAllRowsSelected()}
-                    onChange={table.getToggleAllRowsSelectedHandler()}
-                />
-            ),
-            cell: ({ row }: { row: TableRow<CustomerType> }) => (
-                <input
-                    type="checkbox"
-                    className="form-check-input form-check-input-light fs-14"
-                    checked={row.getIsSelected()}
-                    onChange={row.getToggleSelectedHandler()}
-                />
-            ),
-            enableSorting: false,
-            enableColumnFilter: false,
-        },
-        columnHelper.accessor('name', {
-            header: 'Client Name',
-            cell: ({ row }) => (
-                <div className="d-flex align-items-center gap-2">
-                    <div className="avatar avatar-sm">
-                        <Image src={row.original.avatar.src} alt="" height={32} width={32} className="img-fluid rounded-circle" />
-                    </div>
-                    <div>
-                        <h5 className="mb-0">
-                            <Link href="/users/profile" className="link-reset">
-                                {row.original.name}
-                            </Link>
-                        </h5>
-                        <p className="text-muted fs-xs mb-0">{row.original.email}</p>
-                    </div>
-                </div>
-            ),
-        }),
-        columnHelper.accessor('phone', { header: 'Phone' }),
+  const fetchData = async () => {
+    const res = await fetch('http://localhost:8170/fitoura')
+    const result = await res.json()
+    setData(result)
+  }
 
-        columnHelper.accessor('country', {
-            header: 'Country',
-            cell: ({ row }) => (
-                <>
-                    <span className='badge p-1 text-bg-light fs-sm'>
-                        <Image src={row.original.countryFlag.src} alt="" className="rounded-circle me-1" height={16} width={16} /> {row.original.country}
-                    </span>
-                </>
-            ),
-        }),
-        columnHelper.accessor('joined', {
-            header: 'Date',
-            cell: ({ row }) => (
-                <>
-                    {row.original.joined}
-                </>
-            ),
-        }),
-        columnHelper.accessor('type', { header: 'Type' }),
-        columnHelper.accessor('company', { header: 'Company' }),
-        columnHelper.accessor('status', {
-            header: 'Status',
-            cell: ({ row }) => {
-                const color =
-                    row.original.status === 'Blocked'
-                        ? ' bg-danger-subtle text-danger badge-label'
-                        : row.original.status === 'Verification Pending'
-                            ? 'bg-warning-subtle text-warning badge-label'
-                            : row.original.status === 'Active'
-                                ? 'bg-success-subtle text-success badge-label'
-                                : 'bg-secondary-subtle text-secondary badge-label'
-                return <span className={`badge ${color}`}>{row.original.status}</span>
-            },
-        }),
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-        {
-            header: 'Actions',
-            cell: ({ row }: { row: TableRow<CustomerType> }) => (
-                <div className="d-flex  gap-1">
-                    <Button variant="default" size="sm" className="btn btn-default btn-icon btn-sm rounded" onClick={() => setShowModaldetail(true)}>
-                        <TbEye className="fs-lg" />
-                    </Button>
-                    {/* <CustomerModalViewDetail show={showModaldetail} onHide={() => setShowModaldetail(false)} /> */}
-                    <Button variant="default" size="sm" className="btn btn-default btn-icon btn-sm rounded">
-                        <TbEdit className="fs-lg" />
-                    </Button>
-                    <Button
-                        variant="default"
-                        size="sm"
-                        className="btn btn-default btn-icon btn-sm rounded"
-                        onClick={() => {
-                            toggleDeleteModal()
-                            setSelectedRowIds({ [row.id]: true })
-                        }}>
-                        <TbTrash className="fs-lg" />
-                    </Button>
-                </div>
-            ),
-        },
-    ]
-
-    const [data, setData] = useState<CustomerType[]>(() => [...customers])
-    const [globalFilter, setGlobalFilter] = useState('')
-    const [sorting, setSorting] = useState<SortingState>([])
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
-
-    const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({})
-
-    const table = useReactTable({
-        data,
-        columns,
-        state: { sorting, globalFilter, pagination, rowSelection: selectedRowIds },
-        onSortingChange: setSorting,
-        onGlobalFilterChange: setGlobalFilter,
-        onPaginationChange: setPagination,
-        onRowSelectionChange: setSelectedRowIds,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        globalFilterFn: 'includesString',
-        enableColumnFilters: true,
-        enableRowSelection: true,
+  const handleAdd = async (formData: any) => {
+    await fetch('http://localhost:8170/fitoura/entree', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
     })
+    fetchData()
+  }
 
-    const pageIndex = table.getState().pagination.pageIndex
-    const pageSize = table.getState().pagination.pageSize
-    const totalItems = table.getFilteredRowModel().rows.length
+  const handleEdit = async (id: string, formData: any) => {
+    await fetch(`http://localhost:8170/fitoura/sortie/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    })
+    fetchData()
+  }
 
-    const start = pageIndex * pageSize + 1
-    const end = Math.min(start + pageSize - 1, totalItems)
+  const handleDelete = async () => {
+    const selectedIds = Object.keys(selectedRowIds)
+    await Promise.all(selectedIds.map((id) => fetch(`http://localhost:8170/fitoura/${id}`, { method: 'DELETE' })))
+    setSelectedRowIds({})
+    fetchData()
+    setShowDeleteModal(false)
+  }
 
-    const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false)
+  const toggleDeleteModal = () => setShowDeleteModal(!showDeleteModal)
 
-    const toggleDeleteModal = () => {
-        setShowDeleteModal(!showDeleteModal)
-    }
+  const columns = [
+    {
+      id: 'select',
+      header: ({ table }: { table: TableType<FitouraType> }) => (
+        <input
+          type="checkbox"
+          className="form-check-input form-check-input-light fs-14"
+          checked={table.getIsAllRowsSelected()}
+          onChange={table.getToggleAllRowsSelectedHandler()}
+        />
+      ),
+      cell: ({ row }: { row: TableRow<FitouraType> }) => (
+        <input
+          type="checkbox"
+          className="form-check-input form-check-input-light fs-14"
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+        />
+      ),
+      enableSorting: false,
+      enableColumnFilter: false,
+    },
+    columnHelper.accessor('matriculeCamion', { header: 'Matricule Camion' }),
+    columnHelper.accessor('chauffeur', { header: 'Chauffeur' }),
+    columnHelper.accessor('poidsEntree', { header: 'Poids Entrée (kg)' }),
+    columnHelper.accessor('poidsSortie', { header: 'Poids Sortie (kg)' }),
+    columnHelper.accessor('poidsNet', { header: 'Poids Net (kg)' }),
+    columnHelper.accessor('prixUnitaire', { header: 'Prix Unitaire (DT/kg)' }),
+    columnHelper.accessor('montantTotal', { header: 'Montant Total (DT)' }),
+    columnHelper.accessor('status', {
+      header: 'Status',
+      cell: ({ row }) => {
+        const color =
+          row.original.status === 'Bloqué'
+            ? ' bg-danger-subtle text-danger badge-label'
+            : row.original.status === 'EN_COURS'
+              ? 'bg-danger-subtle text-danger badge-label'
+              : row.original.status === 'TERMINE'
+                ? 'bg-success-subtle text-success badge-label'
+                : 'bg-secondary-subtle text-secondary badge-label'
+        return <span className={`badge ${color}`}>{row.original.status}</span>
+      },
+    }),
+    {
+      header: 'Actions',
+      cell: ({ row }: { row: TableRow<FitouraType> }) => (
+        <div className="d-flex gap-1">
+          <Button
+            variant="default"
+            size="sm"
+            className="btn-icon"
+            onClick={() => {
+              setCurrentOperation(row.original)
+              setShowDetailModal(true)
+            }}>
+            <TbEye className="fs-lg" />
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            className="btn-icon"
+            onClick={() => {
+              setCurrentOperation(row.original)
+              setShowEditModal(true)
+            }}>
+            <TbEdit className="fs-lg" />
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            className="btn-icon"
+            onClick={() => {
+              setSelectedRowIds({ [row.id]: true })
+              toggleDeleteModal()
+            }}>
+            <TbTrash className="fs-lg" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
 
-    const handleDelete = () => {
-        const selectedIds = new Set(Object.keys(selectedRowIds))
-        setData((old) => old.filter((_, idx) => !selectedIds.has(idx.toString())))
-        setSelectedRowIds({})
-        setPagination({ ...pagination, pageIndex: 0 })
-        setShowDeleteModal(false)
-    }
+  const table = useReactTable({
+    data,
+    columns,
+    state: { sorting, globalFilter, pagination, rowSelection: selectedRowIds },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    onRowSelectionChange: setSelectedRowIds,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+    enableColumnFilters: true,
+    enableRowSelection: true,
+  })
 
-    return (
-        <Container fluid>
-            <PageBreadcrumb title="Customers" subtitle="CRM" />
-            <Row>
-                
-                <Col xs={12}>
-                <text>ihebbbbbbbbbbbbbbbbb</text>
-                    <Card>
-                        <CardHeader className="border-light justify-content-between">
-                            <div className="d-flex gap-2">
-                                <div className="app-search">
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="cherchez un client..."
-                                        value={globalFilter ?? ''}
-                                        onChange={(e) => setGlobalFilter(e.target.value)}
-                                    />
-                                    <LuSearch className="app-search-icon text-muted" />
-                                </div>
+  const pageIndex = table.getState().pagination.pageIndex
+  const pageSize = table.getState().pagination.pageSize
+  const totalItems = table.getFilteredRowModel().rows.length
+  const start = pageIndex * pageSize + 1
+  const end = Math.min(start + pageSize - 1, totalItems)
 
-                                {Object.keys(selectedRowIds).length > 0 && (
-                                    <Button variant="danger" size="sm" onClick={toggleDeleteModal}>
-                                        Delete
-                                    </Button>
-                                )}
+  return (
+    <Container fluid>
+      <PageBreadcrumb title="Fitoura" subtitle="Gestion" />
+      <Row>
+        <Col xs={12}>
+          <Card>
+            <CardHeader className="border-light justify-content-between d-flex align-items-center">
+              <div className="d-flex gap-2">
+                <Button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                  <TbPlus /> Ajouter
+                </Button>
+              </div>
+            </CardHeader>
 
-                                <Button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                                    <TbPlus className="fs-lg" /> Ajouter un client
-                                </Button>
-                                <CustomerModal show={showModal} onHide={() => setShowModal(false)} />
-                            </div>
+            <DataTable table={table} emptyMessage="No records found" />
 
-                            <div className="d-flex align-items-center gap-2">
-                                <span className="me-2 fw-semibold">Filtrer :</span>
+            {table.getRowModel().rows.length > 0 && (
+              <CardFooter className="border-0">
+                <TablePagination
+                  totalItems={totalItems}
+                  start={start}
+                  end={end}
+                  itemsName="operations"
+                  showInfo
+                  previousPage={table.previousPage}
+                  canPreviousPage={table.getCanPreviousPage()}
+                  pageCount={table.getPageCount()}
+                  pageIndex={pageIndex}
+                  setPageIndex={table.setPageIndex}
+                  nextPage={table.nextPage}
+                  canNextPage={table.getCanNextPage()}
+                />
+              </CardFooter>
+            )}
+          </Card>
+        </Col>
+      </Row>
 
-                                <div className="app-search">
-                                    <select
-                                        className="form-select form-control my-1 my-md-0"
-                                        value={(table.getColumn('country')?.getFilterValue() as string) ?? 'All'}
-                                        onChange={(e) => table.getColumn('country')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}>
-                                        <option value="All">Country</option>
-                                        <option value="US">United States</option>
-                                        <option value="UK">United Kingdom</option>
-                                        <option value="BR">Brazil</option>
-                                        <option value="DE">Germany</option>
-                                        <option value="JP">Japan</option>
-                                        <option value="FR">France</option>
-                                        <option value="IN">India</option>
-                                        <option value="EG">Egypt</option>
-                                        <option value="CA">Canada</option>
-                                    </select>
-                                    <LuGlobe className="app-search-icon text-muted" />
-                                </div>
-
-                                <div className="app-search">
-                                    <select
-                                        className="form-select form-control my-1 my-md-0"
-                                        value={(table.getColumn('status')?.getFilterValue() as string) ?? 'All'}
-                                        onChange={(e) => table.getColumn('status')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}>
-                                        <option value="All">Account Status</option>
-                                        <option value="Active">Active</option>
-                                        <option value="Verification Pending">Verification Pending</option>
-                                        <option value="Inactive">Inactive</option>
-                                        <option value="Blocked">Blocked</option>
-                                    </select>
-                                    <LuShuffle className="app-search-icon text-muted" />
-                                </div>
-
-                                <div>
-                                    <select
-                                        className="form-select form-control my-1 my-md-0"
-                                        value={table.getState().pagination.pageSize}
-                                        onChange={(e) => table.setPageSize(Number(e.target.value))}>
-                                        {[5, 8, 10, 15, 20].map((size) => (
-                                            <option key={size} value={size}>
-                                                {size}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <DataTable<CustomerType> table={table} emptyMessage="No records found" />
-
-                        {table.getRowModel().rows.length > 0 && (
-                            <CardFooter className="border-0">
-                                <TablePagination
-                                    totalItems={totalItems}
-                                    start={start}
-                                    end={end}
-                                    itemsName="customers"
-                                    showInfo
-                                    previousPage={table.previousPage}
-                                    canPreviousPage={table.getCanPreviousPage()}
-                                    pageCount={table.getPageCount()}
-                                    pageIndex={table.getState().pagination.pageIndex}
-                                    setPageIndex={table.setPageIndex}
-                                    nextPage={table.nextPage}
-                                    canNextPage={table.getCanNextPage()}
-                                />
-                            </CardFooter>
-                        )}
-
-                        <DeleteConfirmationModal
-                            show={showDeleteModal}
-                            onHide={toggleDeleteModal}
-                            onConfirm={handleDelete}
-                            selectedCount={Object.keys(selectedRowIds).length}
-                            itemName="customers"
-                        />
-                    </Card>
-                </Col>
-            </Row>
-        </Container>
-    )
+      <FitouraAddModal show={showAddModal} onHide={() => setShowAddModal(false)} onSubmit={handleAdd} />
+      <FitouraEditModal show={showEditModal} onHide={() => setShowEditModal(false)} operation={currentOperation} onSubmit={handleEdit} />
+      <FitouraDetailModal show={showDetailModal} onHide={() => setShowDetailModal(false)} operation={currentOperation} />
+      <DeleteConfirmationModal
+        show={showDeleteModal}
+        onHide={toggleDeleteModal}
+        onConfirm={handleDelete}
+        selectedCount={Object.keys(selectedRowIds).length}
+        itemName="operations"
+      />
+    </Container>
+  )
 }
 
 export default FitouraCard

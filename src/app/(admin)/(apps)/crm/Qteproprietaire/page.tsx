@@ -1,13 +1,11 @@
 'use client'
 import { Button, CardFooter, Col, Container, Row } from 'react-bootstrap'
-import { deals, dealWidgets } from '@/app/(admin)/(apps)/crm/data'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { TbEdit, TbEye, TbPlus, TbTrash } from 'react-icons/tb'
-import { LuDollarSign, LuSearch, LuShuffle } from 'react-icons/lu'
+import { LuSearch, LuShuffle } from 'react-icons/lu'
 import {
   ColumnFiltersState,
   createColumnHelper,
-  FilterFn,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
@@ -15,27 +13,47 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { DealType } from '@/app/(admin)/(apps)/crm/types'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Row as TableRow, type Table as TableType } from '@tanstack/table-core'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
 import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
-import { currency } from '@/helpers'
 import { useToggle } from 'usehooks-ts'
-import CreateDealModal from '@/app/(admin)/(apps)/crm/Qteclient/components/CreateDealModal'
-import DealWidget from '@/app/(admin)/(apps)/crm/deals/components/DealWidget'
+import CreateDealModal from '@/app/(admin)/(apps)/crm/Qteproprietaire/components/CreateDealModal'
+import ViewDetailModal from '@/app/(admin)/(apps)/crm/Qteproprietaire/components/ViewDetailModal'
+import EditModal from '@/app/(admin)/(apps)/crm/Qteproprietaire/components/EditModal'
 
-const columnHelper = createColumnHelper<DealType>()
+// Types
+type CustomerType = {
+  _id: string
+  nomPrenom: string
+  dateCreation: string
+  nombreCaisses?: number
+  quantiteOlive?: number
+  quantiteHuile?: number
+  kattou3?: number
+  nisba?: number
+  numCIN?: number
+  numTelephone?: number
+  type?: string
+}
 
-const priceRangeFilterFn: FilterFn<any> = (row, columnId, value) => {
-  const amount = row.getValue<number>(columnId)
-  if (!value) return true
-  if (value === '50000+') return amount > 50000
-  const [min, max] = value.split('-').map(Number)
-  return amount >= min && amount <= max
+type TableCustomerType = CustomerType & {
+  selected?: boolean
+}
+
+const columnHelper = createColumnHelper<TableCustomerType>()
+
+// Données par défaut pour éviter les valeurs null
+const defaultRowData: CustomerType = {
+  _id: '',
+  nomPrenom: 'Propriétaire',
+  dateCreation: new Date().toISOString(),
+  nombreCaisses: 0,
+  quantiteOlive: 0,
+  quantiteHuile: 0,
+  kattou3: 0,
+  nisba: 0
 }
 
 const Qteclient = () => {
@@ -44,7 +62,7 @@ const Qteclient = () => {
       id: 'select',
       maxSize: 45,
       size: 45,
-      header: ({ table }: { table: TableType<DealType> }) => (
+      header: ({ table }: { table: TableType<TableCustomerType> }) => (
         <input
           type="checkbox"
           className="form-check-input form-check-input-light fs-14"
@@ -52,7 +70,7 @@ const Qteclient = () => {
           onChange={table.getToggleAllRowsSelectedHandler()}
         />
       ),
-      cell: ({ row }: { row: TableRow<DealType> }) => (
+      cell: ({ row }: { row: TableRow<TableCustomerType> }) => (
         <input
           type="checkbox"
           className="form-check-input form-check-input-light fs-14"
@@ -63,62 +81,66 @@ const Qteclient = () => {
       enableSorting: false,
       enableColumnFilter: false,
     },
-    columnHelper.accessor('name', {
-      header: 'Deal Name',
-    }),
-    columnHelper.accessor('company', {
-      header: 'Company',
-      enableSorting: false,
+    columnHelper.accessor('nomPrenom', {
+      header: 'Propriétaire',
       cell: ({ row }) => (
-        <div className="d-flex align-items-center">
-          <div className="avatar-sm border flex-shrink-0 border-dashed rounded-circle me-2 justify-content-center d-flex align-items-center">
-            <Image src={row.original.logo} alt="Product" height="20" />
-          </div>
-          <Link href="" className="link-reset">
-            {row.original.company}
-          </Link>
-        </div>
+        <span className="fw-semibold">{row.original.nomPrenom}</span>
       ),
     }),
-    columnHelper.accessor('amount', {
-      header: 'amount (usd)',
-      enableColumnFilter: true,
-      filterFn: priceRangeFilterFn,
+    columnHelper.accessor('nombreCaisses', {
+      header: 'Nombre de caisses',
       cell: ({ row }) => (
-        <>
-          {currency}
-          {row.original.amount}
-        </>
+        <span>{row.original.nombreCaisses || 0}</span>
       ),
     }),
-
-    columnHelper.accessor('stage', { header: 'Stage', enableColumnFilter: true }),
-
-    columnHelper.accessor('probability', {
-      header: 'Probability',
+    columnHelper.accessor('quantiteOlive', {
+      header: 'Quantité Olive (kg)',
       cell: ({ row }) => (
-        <div className="d-flex align-items-center gap-1">
-          {[...Array(5)].map((_, i) => {
-            const activeBars = Math.round(row.original.probability / 20)
-            const opacity = i < activeBars ? 'opacity-100' : i === activeBars ? 'opacity-50' : 'opacity-25'
-            const color = row.original.probability === 0 ? 'bg-danger' : 'bg-success'
-            return <div key={i} className={`prob-bar ${color} ${opacity}`}></div>
-          })}
-          <strong className="text-dark">{row.original.probability}%</strong>
-        </div>
+        <span>{row.original.quantiteOlive || 0}</span>
       ),
     }),
-    columnHelper.accessor('date', {
-      header: 'Closing Date',
+    columnHelper.accessor('quantiteHuile', {
+      header: 'Quantité Huile (L)',
+      cell: ({ row }) => (
+        <span>{row.original.quantiteHuile || 0}</span>
+      ),
+    }),
+    columnHelper.accessor('kattou3', {
+      header: 'Kattou3 (%)',
+      cell: ({ row }) => (
+        <span>{row.original.kattou3 || 0}%</span>
+      ),
+    }),
+    columnHelper.accessor('nisba', {
+      header: 'Nisba (%)',
+      cell: ({ row }) => (
+        <span>{row.original.nisba || 0}%</span>
+      ),
+    }),
+    columnHelper.accessor('dateCreation', {
+      header: 'Date création',
+      cell: ({ row }) => (
+        <span>{new Date(row.original.dateCreation).toLocaleDateString('fr-FR')}</span>
+      ),
     }),
     {
       header: 'Actions',
-      cell: ({ row }: { row: TableRow<DealType> }) => (
-        <div className="d-flex  gap-1">
-          <Button variant="default" size="sm" className="btn-icon">
+      cell: ({ row }: { row: TableRow<TableCustomerType> }) => (
+        <div className="d-flex gap-1">
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="btn-icon"
+            onClick={() => handleViewDetails(row.original)}
+          >
             <TbEye className="fs-lg" />
           </Button>
-          <Button variant="default" size="sm" className="btn-icon">
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="btn-icon"
+            onClick={() => handleEdit(row.original)}
+          >
             <TbEdit className="fs-lg" />
           </Button>
           <Button
@@ -136,12 +158,41 @@ const Qteclient = () => {
     },
   ]
 
-  const [data, setData] = useState<DealType[]>(() => [...deals])
+  const [data, setData] = useState<TableCustomerType[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
   const [globalFilter, setGlobalFilter] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
   const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({})
+  const [selectedRow, setSelectedRow] = useState<CustomerType>(defaultRowData)
+
+  // États pour les modals
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false)
+  const [showDealModal, toggleDealModal] = useToggle(false)
+  const [showViewModal, setShowViewModal] = useState<boolean>(false)
+  const [showEditModal, setShowEditModal] = useState<boolean>(false)
+
+  // Fetch data from API
+  useEffect(() => {
+    const fetchProprietaires = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('http://localhost:8170/proprietaires')
+        if (!response.ok) {
+          throw new Error('Failed to fetch data')
+        }
+        const json: CustomerType[] = await response.json()
+        setData(json)
+      } catch (err) {
+        console.error('Error fetching proprietaires:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProprietaires()
+  }, [])
 
   const table = useReactTable({
     data,
@@ -159,9 +210,6 @@ const Qteclient = () => {
     globalFilterFn: 'includesString',
     enableColumnFilters: true,
     enableRowSelection: true,
-    filterFns: {
-      priceRange: priceRangeFilterFn,
-    },
   })
 
   const pageIndex = table.getState().pagination.pageIndex
@@ -171,30 +219,90 @@ const Qteclient = () => {
   const start = pageIndex * pageSize + 1
   const end = Math.min(start + pageSize - 1, totalItems)
 
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false)
-  const [showDealModal, toggleDealModal] = useToggle(false)
-
   const toggleDeleteModal = () => {
     setShowDeleteModal(!showDeleteModal)
   }
 
-  const handleDelete = () => {
-    const selectedIds = new Set(Object.keys(selectedRowIds))
-    setData((old) => old.filter((_, idx) => !selectedIds.has(idx.toString())))
-    setSelectedRowIds({})
-    setPagination({ ...pagination, pageIndex: 0 })
-    setShowDeleteModal(false)
+  const handleViewDetails = (rowData: CustomerType) => {
+    setSelectedRow(rowData)
+    setShowViewModal(true)
   }
+
+  const handleEdit = (rowData: CustomerType) => {
+    setSelectedRow(rowData)
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = async (updatedData: CustomerType) => {
+    try {
+      const response = await fetch(`http://localhost:8170/proprietaires/${updatedData._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update proprietaire')
+      }
+
+      // Refresh data after update
+      const refreshResponse = await fetch('http://localhost:8170/proprietaires')
+      const refreshedData: CustomerType[] = await refreshResponse.json()
+      setData(refreshedData)
+      
+      setShowEditModal(false)
+    } catch (err) {
+      console.error('Error updating proprietaire:', err)
+    }
+  }
+
+  const handleDelete = async () => {
+    try {
+      const selectedIds = Object.keys(selectedRowIds)
+      const deletePromises = selectedIds.map(id => {
+        const rowId = data[parseInt(id)]._id
+        return fetch(`http://localhost:8170/proprietaires/${rowId}`, {
+          method: 'DELETE',
+        })
+      })
+
+      await Promise.all(deletePromises)
+
+      // Refresh data after deletion
+      const response = await fetch('http://localhost:8170/proprietaires')
+      const refreshedData: CustomerType[] = await response.json()
+      setData(refreshedData)
+      
+      setSelectedRowIds({})
+      setPagination({ ...pagination, pageIndex: 0 })
+      setShowDeleteModal(false)
+    } catch (err) {
+      console.error('Error deleting proprietaires:', err)
+    }
+  }
+
+  const refreshData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('http://localhost:8170/proprietaires')
+      if (!response.ok) {
+        throw new Error('Failed to fetch data')
+      }
+      const json: CustomerType[] = await response.json()
+      setData(json)
+    } catch (err) {
+      console.error('Error fetching proprietaires:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Container fluid>
-      <PageBreadcrumb title={'Deals'} subtitle={'CRM'} />
-      <Row className="row-cols-xxl-5 row-cols-md-3 row-cols-1 g-2">
-        {dealWidgets.map((item, idx) => (
-          <Col key={idx}>
-            <DealWidget item={item} />
-          </Col>
-        ))}
-      </Row>
+      <PageBreadcrumb title={'Quantités Clients'} subtitle={'Gestion'} />
+      
       <Row>
         <Col xs={12}>
           <div className="card">
@@ -204,52 +312,36 @@ const Qteclient = () => {
                   <input
                     type="search"
                     className="form-control"
-                    placeholder="Search deals..."
+                    placeholder="Rechercher..."
                     value={globalFilter ?? ''}
                     onChange={(e) => setGlobalFilter(e.target.value)}
                   />
                   <LuSearch className="app-search-icon text-muted" />
                 </div>
                 <Button variant="primary" onClick={toggleDealModal}>
-                  <TbPlus className="me-1" /> Create Deal
+                  <TbPlus className="me-1" /> Nouveau
                 </Button>
                 {Object.keys(selectedRowIds).length > 0 && (
                   <Button variant="danger" size="sm" onClick={toggleDeleteModal}>
-                    Delete
+                    Supprimer ({Object.keys(selectedRowIds).length})
                   </Button>
                 )}
               </div>
 
               <div className="d-flex align-items-center gap-2">
-                <span className="me-2 fw-semibold">Filter By:</span>
+                <span className="me-2 fw-semibold">Filtrer par:</span>
 
                 <div className="app-search">
                   <select
                     className="form-select form-control my-1 my-md-0"
-                    value={(table.getColumn('stage')?.getFilterValue() as string) ?? 'All'}
-                    onChange={(e) => table.getColumn('stage')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}>
-                    <option value="All">Stage</option>
-                    <option value="Qualification">Qualification</option>
-                    <option value="Proposal Sent">Proposal Sent</option>
-                    <option value="Negotiation">Negotiation</option>
-                    <option value="Won">Won</option>
-                    <option value="Lost">Lost</option>
+                    value={(table.getColumn('quantiteHuile')?.getFilterValue() as string) ?? 'All'}
+                    onChange={(e) => table.getColumn('quantiteHuile')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}>
+                    <option value="All">Quantité Huile</option>
+                    <option value="0-50">0-50 L</option>
+                    <option value="51-200">51-200 L</option>
+                    <option value="201+">201+ L</option>
                   </select>
                   <LuShuffle className="app-search-icon text-muted" />
-                </div>
-
-                <div className="app-search">
-                  <select
-                    value={(table.getColumn('amount')?.getFilterValue() as string) ?? 'All'}
-                    onChange={(e) => table.getColumn('amount')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}
-                    className="form-select form-control my-1 my-md-0">
-                    <option value="All">Amount Range</option>
-                    <option value="0-1000">$0 - $10000</option>
-                    <option value="10001-25000">$10001 - $25000</option>
-                    <option value="25001-50000">$25001 - $50000</option>
-                    <option value="50000+">$50000+</option>
-                  </select>
-                  <LuDollarSign className="app-search-icon text-muted" />
                 </div>
 
                 <div>
@@ -268,16 +360,27 @@ const Qteclient = () => {
             </div>
 
             <div className="card-body p-0">
-              <DataTable<DealType> table={table} emptyMessage="No records found" />
+              {loading ? (
+                <div className="text-center p-4">
+                  <div className="spinner-border" role="status">
+                    <span className="visually-hidden">Chargement...</span>
+                  </div>
+                </div>
+              ) : (
+                <DataTable<TableCustomerType> 
+                  table={table} 
+                  emptyMessage="Aucun propriétaire trouvé" 
+                />
+              )}
             </div>
 
-            {table.getRowModel().rows.length > 0 && (
+            {!loading && table.getRowModel().rows.length > 0 && (
               <CardFooter className="border-0">
                 <TablePagination
                   totalItems={totalItems}
                   start={start}
                   end={end}
-                  itemsName="deals"
+                  itemsName="propriétaires"
                   showInfo
                   previousPage={table.previousPage}
                   canPreviousPage={table.getCanPreviousPage()}
@@ -290,15 +393,33 @@ const Qteclient = () => {
               </CardFooter>
             )}
 
+            {/* Modals */}
             <DeleteConfirmationModal
               show={showDeleteModal}
               onHide={toggleDeleteModal}
               onConfirm={handleDelete}
               selectedCount={Object.keys(selectedRowIds).length}
-              itemName="deal"
+              itemName="propriétaire"
             />
 
-            <CreateDealModal show={showDealModal} toggleModal={toggleDealModal} />
+            <CreateDealModal 
+              show={showDealModal} 
+              toggleModal={toggleDealModal} 
+              onProprietaireCreated={refreshData}
+            />
+
+            <ViewDetailModal 
+              show={showViewModal} 
+              toggleModal={() => setShowViewModal(false)} 
+              data={selectedRow} 
+            />
+
+            <EditModal 
+              show={showEditModal} 
+              toggleModal={() => setShowEditModal(false)} 
+              data={selectedRow}
+              onSave={handleSaveEdit}
+            />
           </div>
         </Col>
       </Row>
