@@ -173,14 +173,12 @@ export const menuItems: MenuItemType[] = [
   //   ],
   // },
   {
-    key: 'Client',
-    label: 'Client',
-    icon: TbUsers,
-  children: [
-    { key: 'Clients', label: 'Clients', icon: LuHandshake, url: '/crm/client' },
-    { key: 'Qantité zitoun', label: 'Qantité zitoun',icon: LuRss, url: '/crm/Qteclient' },
-    { key: 'Qantité Zit', label: 'Qantité Zit',icon: LuRss, url: '/crm/Qteclientzit' },
-  ],
+     key: 'Clients', label: 'Clients', icon: LuHandshake, url: '/crm/client' 
+  // children: [
+  //   ,
+    // { key: 'Qantité zitoun', label: 'Qantité zitoun',icon: LuRss, url: '/crm/Qteclient' },
+    // { key: 'Qantité Zit', label: 'Qantité Zit',icon: LuRss, url: '/crm/Qteclientzit' },
+  // ],
 },
   { key: 'Fitoura', label: 'Fitoura',icon: LuFolderOpenDot, url: '/crm/fitoura' },
  
@@ -202,7 +200,7 @@ export const menuItems: MenuItemType[] = [
     label: 'Employés',
     icon: LuReceiptText,
     children: [
-      { key: 'Liste des Employés', label: 'Liste des Employés', url: '/users/contacts' },
+      { key: 'Liste des Employés', label: 'Liste des Employés', url: '/crm/employeList' },
       { key: 'suivi présence ', label: 'suivi présence', url: '/crm/employe' },
       { key: 'calcul salire', label: 'calcul salire', url: '/users/roles' },
      

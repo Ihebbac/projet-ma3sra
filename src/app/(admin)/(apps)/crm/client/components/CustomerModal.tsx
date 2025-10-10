@@ -16,7 +16,7 @@ const toNumber = (v: any) => {
   return Number.isNaN(n) ? undefined : n
 }
 
-const CustomerModal = ({ show, onHide, onAdded }: CustomerModalProps) => {
+const CustomerModal = ({ show, onHide, onAdded,onClientSaved }: CustomerModalProps) => {
   const [openOlive, setOpenOlive] = useState(true)
   const [openHuile, setOpenHuile] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -59,6 +59,7 @@ const CustomerModal = ({ show, onHide, onAdded }: CustomerModalProps) => {
       if (onAdded) onAdded(created)
       form.reset()
       onHide()
+      if (typeof onClientSaved === 'function') onClientSaved()
     } catch (err) {
       console.error(err)
       alert('Impossible d’ajouter le client')

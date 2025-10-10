@@ -9,14 +9,16 @@ import {
   SortingState,
   Row as TableRow,
   Table as TableType,
+  Column, 
   useReactTable,
 } from '@tanstack/react-table'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Button, Card, CardFooter, CardHeader, Col, Container, Row } from 'react-bootstrap'
-import { LuGlobe, LuSearch, LuShuffle } from 'react-icons/lu'
-import { TbEdit, TbEye, TbPlus, TbTrash } from 'react-icons/tb'
+import { Button, Card, CardFooter, CardHeader, Col, Container, Row, Form, InputGroup,Dropdown  } from 'react-bootstrap' 
+import { LuSearch } from 'react-icons/lu'
+import { TbEdit, TbEye, TbPlus, TbTrash, TbFileExport } from 'react-icons/tb'
+import { RiAddFill } from "react-icons/ri";
 
 import DataTable from '@/components/table/DataTable'
 import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
@@ -25,6 +27,10 @@ import PageBreadcrumb from '@/components/PageBreadcrumb'
 import FitouraAddModal from './components/FitouraAddModal'
 import FitouraEditModal from './components/FitouraEditModal'
 import FitouraDetailModal from './components/FitouraDetailModal'
+
+// Importation des fonctions d'exportation
+import { exportToXLSX, exportToPDF } from './components/TableExporter' 
+import FitouraEditAllModal from './components/FitouraEditAllModal'
 
 type FitouraType = {
   _id: string
@@ -52,6 +58,9 @@ const FitouraCard = () => {
   const [globalFilter, setGlobalFilter] = useState('')
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
+  
+  const [columnFilters, setColumnFilters] = useState<any[]>([]) 
 
   const fetchData = async () => {
     const res = await fetch('http://localhost:8170/fitoura')
@@ -91,6 +100,22 @@ const FitouraCard = () => {
 
   const toggleDeleteModal = () => setShowDeleteModal(!showDeleteModal)
 
+  const statusValues = ['EN_COURS', 'TERMINE', 'Bloqué']
+
+  const handleStatusFilterChange = (value: string) => {
+    setColumnFilters((prevFilters) => {
+      const newFilters = prevFilters.filter((f) => f.id !== 'status')
+      
+      if (value) {
+        newFilters.push({
+          id: 'status', 
+          value: value, 
+        })
+      }
+      return newFilters
+    })
+  }
+
   const columns = [
     {
       id: 'select',
@@ -121,7 +146,7 @@ const FitouraCard = () => {
     columnHelper.accessor('prixUnitaire', { header: 'Prix Unitaire (DT/kg)' }),
     columnHelper.accessor('montantTotal', { header: 'Montant Total (DT)' }),
     columnHelper.accessor('status', {
-      header: 'Status',
+      header: 'Status', 
       cell: ({ row }) => {
         const color =
           row.original.status === 'Bloqué'
@@ -133,11 +158,23 @@ const FitouraCard = () => {
                 : 'bg-secondary-subtle text-secondary badge-label'
         return <span className={`badge ${color}`}>{row.original.status}</span>
       },
+      filterFn: 'equals', 
+      id: 'status', 
     }),
     {
       header: 'Actions',
       cell: ({ row }: { row: TableRow<FitouraType> }) => (
         <div className="d-flex gap-1">
+          <Button
+            variant="default"
+            size="sm"
+            className="btn-icon"
+            onClick={() => {
+              setCurrentOperation(row.original)
+              setShowEditModal(true)
+            }}>
+            <RiAddFill className="fs-lg" />
+          </Button>
           <Button
             variant="default"
             size="sm"
@@ -154,7 +191,7 @@ const FitouraCard = () => {
             className="btn-icon"
             onClick={() => {
               setCurrentOperation(row.original)
-              setShowEditModal(true)
+              setShowEdit(true)
             }}>
             <TbEdit className="fs-lg" />
           </Button>
@@ -176,23 +213,26 @@ const FitouraCard = () => {
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter, pagination, rowSelection: selectedRowIds },
+    state: { sorting, globalFilter, pagination, rowSelection: selectedRowIds, columnFilters }, 
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
     onRowSelectionChange: setSelectedRowIds,
+    onColumnFiltersChange: setColumnFilters, 
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getFilteredRowModel: getFilteredRowModel(), 
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: 'includesString',
-    enableColumnFilters: true,
+    enableColumnFilters: true, 
     enableRowSelection: true,
   })
 
+  const currentStatusFilter = columnFilters.find((f) => f.id === 'status')?.value || ''
+
   const pageIndex = table.getState().pagination.pageIndex
   const pageSize = table.getState().pagination.pageSize
-  const totalItems = table.getFilteredRowModel().rows.length
+  const totalItems = table.getFilteredRowModel().rows.length 
   const start = pageIndex * pageSize + 1
   const end = Math.min(start + pageSize - 1, totalItems)
 
@@ -207,6 +247,78 @@ const FitouraCard = () => {
                 <Button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
                   <TbPlus /> Ajouter
                 </Button>
+                {Object.keys(selectedRowIds).length > 0 && (
+                  <Button variant="danger" onClick={toggleDeleteModal}>
+                    <TbTrash /> Supprimer ({Object.keys(selectedRowIds).length})
+                  </Button>
+                )}
+                
+               
+                <div className="d-flex gap-2">
+
+ 
+  
+
+  <Dropdown>
+    <Dropdown.Toggle variant="outline-secondary" id="dropdown-export-data">
+      <TbFileExport /> Exporter
+    </Dropdown.Toggle>
+
+    <Dropdown.Menu>
+      <Dropdown.Item 
+        href="#" 
+        onClick={(e) => { 
+          e.preventDefault(); 
+          exportToXLSX(table.getFilteredRowModel().rows, 'fitoura_data');
+        }}>
+        XLSX (Excel)
+      </Dropdown.Item>
+      <Dropdown.Item 
+        href="#" 
+        onClick={(e) => { 
+          e.preventDefault(); 
+          exportToPDF(table.getFilteredRowModel().rows, 'fitoura_data')
+            .catch(console.error);
+        }}>
+        PDF
+      </Dropdown.Item>
+    </Dropdown.Menu>
+  </Dropdown>
+
+
+</div>
+              </div>
+              
+         
+              <div className="d-flex gap-2 align-items-center">
+                
+                {/* 1. Filtre par Statut */}
+                <Form.Select
+                  value={currentStatusFilter as string}
+                  onChange={(e) => handleStatusFilterChange(e.target.value)}
+                  className="form-select-sm"
+                  style={{ width: '150px' }}
+                >
+                  <option value="">Tous les status</option>
+                  {statusValues.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </Form.Select>
+                
+             
+                <InputGroup style={{ maxWidth: '300px' }}>
+                  <InputGroup.Text>
+                    <LuSearch className="fs-lg" />
+                  </InputGroup.Text>
+                  <Form.Control
+                    type="text"
+                    placeholder="Recherche globale..."
+                    value={globalFilter ?? ''}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                  />
+                </InputGroup>
               </div>
             </CardHeader>
 
@@ -237,6 +349,12 @@ const FitouraCard = () => {
       <FitouraAddModal show={showAddModal} onHide={() => setShowAddModal(false)} onSubmit={handleAdd} />
       <FitouraEditModal show={showEditModal} onHide={() => setShowEditModal(false)} operation={currentOperation} onSubmit={handleEdit} />
       <FitouraDetailModal show={showDetailModal} onHide={() => setShowDetailModal(false)} operation={currentOperation} />
+      <FitouraEditAllModal
+  show={showEdit}
+  onHide={() => setShowEdit(false)}
+  operation={currentOperation} 
+/>
+
       <DeleteConfirmationModal
         show={showDeleteModal}
         onHide={toggleDeleteModal}

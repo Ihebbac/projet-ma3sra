@@ -47,7 +47,7 @@ const toNumberOrUndefined = (v: any) => {
   return Number.isNaN(n) ? undefined : n
 }
 
-const CustomerEditModal = ({ show, onHide, customer, onUpdated }: CustomerModalProps) => {
+const CustomerEditModal = ({ show, onHide, customer, onUpdated, onClientSaved }: CustomerModalProps) => {
   const [loading, setLoading] = useState(false)
   const [openOlive, setOpenOlive] = useState(true)
   const [openHuile, setOpenHuile] = useState(true)
@@ -99,6 +99,7 @@ const CustomerEditModal = ({ show, onHide, customer, onUpdated }: CustomerModalP
       alert('Client modifié avec succès')
       if (onUpdated) onUpdated(updated)
       onHide()
+      if (typeof onClientSaved === 'function') onClientSaved()
     } catch (err) {
       console.error(err)
       alert('Impossible de modifier le client')
