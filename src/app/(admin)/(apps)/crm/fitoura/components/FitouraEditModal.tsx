@@ -10,11 +10,11 @@ type FitouraEditModalProps = {
 
 const FitouraEditModal = ({ show, onHide, operation, onSubmit }: FitouraEditModalProps) => {
     const [form, setForm] = useState({
-        poidsSortie: 0
+        poidsSortie: null
     });
 
     useEffect(() => {
-        if (operation) setForm({ poidsSortie: operation.poidsSortie || 0 });
+        if (operation) setForm({ poidsSortie: operation.poidsSortie || null });
     }, [operation]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

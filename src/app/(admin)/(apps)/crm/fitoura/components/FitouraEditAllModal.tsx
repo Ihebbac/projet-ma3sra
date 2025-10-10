@@ -14,9 +14,9 @@ const FitouraEditAllModal = ({ show, onHide, operation, onUpdated }: FitouraEdit
   const [form, setForm] = useState({
     matriculeCamion: "",
     chauffeur: "",
-    poidsEntree: 0,
-    poidsSortie: 0,
-    prixUnitaire: 0,
+    poidsEntree: null,
+    poidsSortie: null,
+    prixUnitaire: null,
     status: "",
     dateSortie: "",
   });
@@ -26,9 +26,9 @@ const FitouraEditAllModal = ({ show, onHide, operation, onUpdated }: FitouraEdit
       setForm({
         matriculeCamion: operation.matriculeCamion || "",
         chauffeur: operation.chauffeur || "",
-        poidsEntree: operation.poidsEntree || 0,
-        poidsSortie: operation.poidsSortie || 0,
-        prixUnitaire: operation.prixUnitaire || 0,
+        poidsEntree: operation.poidsEntree || null,
+        poidsSortie: operation.poidsSortie || null,
+        prixUnitaire: operation.prixUnitaire || null,
         status: operation.status || "EN_COURS",
         dateSortie: operation.dateSortie ? operation.dateSortie.split("T")[0] : "",
       });

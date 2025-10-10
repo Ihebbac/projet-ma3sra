@@ -21,6 +21,9 @@ import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
 import TablePagination from '@/components/table/TablePagination'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { exportToXLSX, exportToPDF } from './components/EmployeExporter' 
+import ViewEmployeModal from './components/ViewEmployeModal'
+import EditEmployeModal from './components/EditEmployeModal'
+import AddEmployeModal from './components/AddEmployeModal'
 
 interface Employe {
   _id: string
@@ -48,7 +51,10 @@ const EmployeCard = () => {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
   const [columnFilters, setColumnFilters] = useState<any[]>([]) 
   const [isClient, setIsClient] = useState(false)
-
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  
   const fetchData = async () => {
     try {
       const res = await fetch(API_BASE_URL)
@@ -127,19 +133,37 @@ const EmployeCard = () => {
       enableColumnFilter: false,
     },
     columnHelper.accessor('nomComplet', { header: 'Nom Complet', filterFn: 'includesString' }),
-    columnHelper.accessor('telephone', { header: 'Téléphone' }),
+    columnHelper.accessor('numTel', { header: 'Téléphone' }),
     columnHelper.accessor('poste', { header: 'Poste' }),
-    columnHelper.accessor('salaireJournalier', { header: 'Salaire/Jour (DT)', cell: info => info.getValue() }),
-    columnHelper.accessor('estActif', {
-      header: 'Statut',
-      cell: ({ row }) => {
-        const isActive = row.original.estActif
-        const color = isActive ? 'bg-success-subtle text-success badge-label' : 'bg-danger-subtle text-danger badge-label'
-        const label = isActive ? 'Actif' : 'Inactif'
-        return <span className={`badge ${color}`}>{label}</span>
-      },
-      filterFn: (row, columnId, filterValue) => row.getValue(columnId) === filterValue,
-      id: 'estActif',
+    columnHelper.accessor('montantJournalier', { header: 'Salaire/Jour (DT)', cell: info => info.getValue() }),
+    columnHelper.accessor('joursTravailles', {
+      header: 'Jours Travaillés',
+      cell: info => {
+        const joursTravailles = info.getValue();
+        if (!joursTravailles || !Array.isArray(joursTravailles)) return '-';
+        
+        return (
+          <div>
+            {joursTravailles.map((dateString, index) => {
+              try {
+                const date = new Date(dateString);
+                // Formater en jj-mm-yyyy
+                const jour = date.getDate().toString().padStart(2, '0');
+                const mois = (date.getMonth() + 1).toString().padStart(2, '0');
+                const annee = date.getFullYear();
+                
+                return (
+                  <div key={index}>
+                    {`${jour}-${mois}-${annee}`}
+                  </div>
+                );
+              } catch (error) {
+                return <div key={index}>Date invalide</div>;
+              }
+            })}
+          </div>
+        );
+      }
     }),
     {
       header: 'Actions',
@@ -150,12 +174,16 @@ const EmployeCard = () => {
               <TbCalendarCheck className="fs-lg" />
             </Button>
           )}
-          <Button variant="info" size="sm" className="btn-icon" onClick={() => { setCurrentEmploye(row.original); console.log('Calcul salaire') }}>
-            <TbCoin className="fs-lg" />
-          </Button>
-          <Button variant="default" size="sm" className="btn-icon" onClick={() => { setCurrentEmploye(row.original) }}>
-            <TbEdit className="fs-lg" />
-          </Button>
+       <Button variant="info" size="sm" className="btn-icon" title="Voir"
+  onClick={() => { setCurrentEmploye(row.original); setShowViewModal(true); }}>
+  <TbEye className="fs-lg" />
+</Button>
+
+<Button variant="warning" size="sm" className="btn-icon" title="Modifier"
+  onClick={() => { setCurrentEmploye(row.original); setShowEditModal(true); }}>
+  <TbEdit className="fs-lg" />
+</Button>
+
           <Button variant="default" size="sm" className="btn-icon" onClick={() => { setSelectedRowIds({ [row.id]: true }); toggleDeleteModal() }}>
             <TbTrash className="fs-lg" />
           </Button>
@@ -200,7 +228,7 @@ const EmployeCard = () => {
           <Card>
             <CardHeader className="border-light justify-content-between d-flex align-items-center">
               <div className="d-flex gap-2">
-                <Button className="btn btn-primary" onClick={() => console.log('Ajouter employé')}>
+                <Button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
                   <TbPlus /> Ajouter Employé
                 </Button>
                 {isClient && Object.keys(selectedRowIds).length > 0 && (
@@ -245,6 +273,39 @@ const EmployeCard = () => {
       </Row>
 
       <DeleteConfirmationModal show={showDeleteModal} onHide={toggleDeleteModal} onConfirm={handleDelete} selectedCount={Object.keys(selectedRowIds).length} itemName="employés" />
+      <AddEmployeModal
+  show={showAddModal}
+  onHide={() => setShowAddModal(false)}
+  onSubmit={async (data) => {
+    await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    fetchData()
+  }}
+/>
+
+<EditEmployeModal
+  show={showEditModal}
+  onHide={() => setShowEditModal(false)}
+  employe={currentEmploye}
+  onSubmit={async (data) => {
+    await fetch(`${API_BASE_URL}/${data._id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    fetchData()
+  }}
+/>
+
+<ViewEmployeModal
+  show={showViewModal}
+  onHide={() => setShowViewModal(false)}
+  employe={currentEmploye}
+/>
+
     </Container>
   )
 }

@@ -11,8 +11,8 @@ const FitouraAddModal = ({ show, onHide, onSubmit }: FitouraAddModalProps) => {
     const [form, setForm] = useState({
         matriculeCamion: "",
         chauffeur: "",
-        poidsEntree: 0,
-        prixUnitaire: 0
+        poidsEntree: null,
+        prixUnitaire: null
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,7 +23,7 @@ const FitouraAddModal = ({ show, onHide, onSubmit }: FitouraAddModalProps) => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit(form);
-        setForm({ matriculeCamion: "", chauffeur: "", poidsEntree: 0, prixUnitaire: 0 });
+        setForm({ matriculeCamion: "", chauffeur: "", poidsEntree: null, prixUnitaire: null });
         onHide();
     };
 
