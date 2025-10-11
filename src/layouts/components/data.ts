@@ -184,6 +184,7 @@ export const menuItems: MenuItemType[] = [
  
   { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
   { key: 'Stock propriétaire', label: 'Stock propriétaire',icon: LuHandshake, url: '/crm/Qteproprietaire' },
+  { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire',icon: LuHandshake, url: '/crm/TransfertStockproprietaire' },
   {
     key: 'Caisse & Financement',
     label: 'Caisse & Financement',
