@@ -7,11 +7,19 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  Row as TableRow,
-  Table as TableType,
   useReactTable,
 } from '@tanstack/react-table'
-import { Modal, ModalHeader, ModalTitle, ModalBody, ModalFooter, Button, Badge, Card, CardHeader } from 'react-bootstrap'
+import {
+  Modal,
+  ModalHeader,
+  ModalTitle,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Badge,
+  Card,
+  CardHeader,
+} from 'react-bootstrap'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
 import { LuSearch } from 'react-icons/lu'
@@ -37,8 +45,9 @@ const formatDateDDMMYYYY = (value?: string | null) => {
 }
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
+const sameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 const isCredit = (t?: string) => (t ? /cred/i.test(t) : false)
-const isDebit = (t?: string) => (t ? /deb/i.test(t) : false)
 const fmtMoney = (v: number) => v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export default function CaissesHistoryModal({
@@ -56,6 +65,7 @@ export default function CaissesHistoryModal({
   const [range, setRange] = useState<Date[]>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
   const [transferLoading, setTransferLoading] = useState(false)
+  const [localTransferred, setLocalTransferred] = useState(false)
 
   // filtre local historique
   const filtered = useMemo(() => {
@@ -133,7 +143,7 @@ export default function CaissesHistoryModal({
         cell: (ctx) => <span className="text-muted">{ctx.getValue()}</span>,
       }),
     ],
-    [],
+    []
   )
 
   const table = useReactTable({
@@ -147,9 +157,44 @@ export default function CaissesHistoryModal({
     getPaginationRowModel: getPaginationRowModel(),
   })
 
+  // Totaux filtrés (sur l’historique affiché)
   const totalCredit = filtered.filter((it) => isCredit(it.type)).reduce((a, b) => a + (b.montant || 0), 0)
-  const totalDebit = filtered.filter((it) => isDebit(it.type)).reduce((a, b) => a + (b.montant || 0), 0)
+  const totalDebit = filtered.filter((it) => !isCredit(it.type)).reduce((a, b) => a + (b.montant || 0), 0)
   const totalNet = totalCredit - totalDebit
+
+  // ✅ Règles de désactivation:
+  // 1) Si total net négatif -> désactivé (demande client)
+  // 2) Si total net = 0 -> inutile
+  // 3) Si un transfert historique existe déjà aujourd’hui -> une seule fois par jour
+  const now = new Date()
+  const hasTodayTransfer = useMemo(
+    () =>
+      data.some((it) => {
+        if (!it.date) return false
+        const dt = new Date(it.date)
+        const motif = (it.motif || '').toLowerCase()
+        const comm = (it.commentaire || '').toLowerCase()
+        return sameDay(dt, now) && (motif.includes('transfert historique') || comm.includes('transfert'))
+      }),
+    [data]
+  )
+
+  const isNegative = totalNet < 0
+  const isZero = totalNet === 0
+  const transferDisabled = transferLoading || localTransferred || isNegative || isZero || hasTodayTransfer
+
+  const disabledReason =
+    isNegative
+      ? 'Le total net est négatif — transfert désactivé.'
+      : isZero
+      ? 'Le total net est nul — rien à transférer.'
+      : hasTodayTransfer
+      ? 'Un transfert a déjà été effectué aujourd’hui.'
+      : transferLoading
+      ? 'Transfert en cours…'
+      : localTransferred
+      ? 'Transfert déjà réalisé.'
+      : ''
 
   const exportCsv = () => {
     const header = ['motif', 'montant', 'type', 'date', 'commentaire']
@@ -172,31 +217,28 @@ export default function CaissesHistoryModal({
     URL.revokeObjectURL(url)
   }
 
-  // 🚀 Transférer le total filtré vers la caisse du jour
+  // 🚀 Transférer le total filtré vers la caisse du jour (si autorisé)
   const transferTotalToToday = async () => {
-    if (!Number.isFinite(totalNet) || totalNet === 0) {
-      alert('Le total net est nul — rien à transférer.')
-      return
-    }
-
-    const now = new Date()
+    if (transferDisabled) return
     const motif =
       range.length === 2
-        ? `Transfert historique (du ${formatDateDDMMYYYY(range[0].toISOString())} au ${formatDateDDMMYYYY(range[1].toISOString())})`
+        ? `Transfert historique (du ${formatDateDDMMYYYY(range[0].toISOString())} au ${formatDateDDMMYYYY(
+            range[1].toISOString()
+          )})`
         : range.length === 1
-          ? `Transfert historique (du ${formatDateDDMMYYYY(range[0].toISOString())})`
-          : 'Transfert historique (global)'
+        ? `Transfert historique (du ${formatDateDDMMYYYY(range[0].toISOString())})`
+        : 'Transfert historique (global)'
 
     const payload = {
       motif,
       montant: Math.abs(totalNet),
-      type: totalNet >= 0 ? 'credit' : 'debit',
+      type: 'credit', // totalNet > 0 seulement, sinon on ne passe pas ici
       date: now.toISOString(),
       commentaire: 'Transfert depuis l’historique',
     }
 
     const ok = window.confirm(
-      `Confirmer le transfert de ${totalNet >= 0 ? '+' : '-'} ${fmtMoney(Math.abs(totalNet))} DT vers la caisse d’aujourd’hui ?`,
+      `Confirmer le transfert de + ${fmtMoney(Math.abs(totalNet))} DT vers la caisse d’aujourd’hui ? (opération unique)`
     )
     if (!ok) return
 
@@ -212,6 +254,7 @@ export default function CaissesHistoryModal({
         throw new Error(text || 'Erreur durant le transfert')
       }
       await res.json().catch(() => null)
+      setLocalTransferred(true)
       alert('Transfert effectué avec succès.')
       onTransferred?.()
     } catch (e) {
@@ -271,7 +314,12 @@ export default function CaissesHistoryModal({
             <Button variant="outline-primary" onClick={exportCsv}>
               Exporter CSV
             </Button>
-            <Button variant="success" onClick={transferTotalToToday} disabled={transferLoading}>
+            <Button
+              variant="success"
+              onClick={transferTotalToToday}
+              disabled={transferDisabled}
+              title={disabledReason || 'Transférer le total vers aujourd’hui'}
+            >
               {transferLoading ? 'Transfert…' : 'Transférer le total vers aujourd’hui'}
             </Button>
           </div>
