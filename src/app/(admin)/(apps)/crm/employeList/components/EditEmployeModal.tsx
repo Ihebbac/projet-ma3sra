@@ -80,7 +80,33 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
     const nouvellesDates = form.joursTravailles.filter((_: any, i: number) => i !== index);
     setForm(prev => ({ ...prev, joursTravailles: nouvellesDates }));
   };
-
+  const payerFunction = async (index: number) => {
+    const datePayee = form.joursTravailles[index];
+  
+    try {
+      const res = await fetch(`http://localhost:8170/employes/${form._id}/payer`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: datePayee })
+      });
+  
+      if (res.ok) {
+        // Mise à jour locale si succès
+        setForm(prev => ({
+          ...prev,
+          joursPayes: [...prev.joursPayes, datePayee]
+        }));
+      } else {
+        console.error("Erreur HTTP :", res.status);
+        alert("Erreur lors de la mise à jour du paiement !");
+      }
+    } catch (error) {
+      console.error("Erreur lors du paiement :", error);
+      alert("Erreur de connexion !");
+    }
+  };
   const getJoursDuMois = () => {
     if (!moisSelectionne) return [];
     const [annee, mois] = moisSelectionne.split('-').map(Number);
@@ -166,41 +192,57 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
               </Row>
 
               {moisSelectionne && (
-                <Row className="mb-3">
-                  <Col xs={12}>
-                    <FormLabel>Sélectionner manuellement les jours travaillés :</FormLabel>
-                    <div className="d-flex flex-wrap gap-1">
-                      {getJoursDuMois().map((date, index) => {
-                        const dateISO = date.toISOString();
-                        const estSelectionne = joursTravaillesManuels.includes(dateISO);
-                        return (
-                          <div
-                            key={index}
-                            onClick={() => toggleJourManuel(dateISO)}
-                            className={`p-2 border rounded text-center cursor-pointer ${
-                              estSelectionne ? 'bg-primary text-white' : 'bg-light'
-                            }`}
-                            style={{ width: '40px', fontSize: '0.8rem', cursor: 'pointer' }}
-                            title={date.toLocaleDateString('fr-FR')}
-                          >
-                            {date.getDate()}
-                          </div>
-                        );
-                      })}
-                    </div>
+  <Row className="mb-3">
+    <Col xs={12}>
+      <FormLabel>Sélectionner manuellement les jours travaillés :</FormLabel>
+      <div className="d-flex flex-wrap gap-1">
+        {getJoursDuMois().map((date, index) => {
+          const dateISO = date.toISOString();
 
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      className="mt-2"
-                      onClick={ajouterJoursManuels}
-                      disabled={joursTravaillesManuels.length === 0}
-                    >
-                      Ajouter les jours sélectionnés
-                    </Button>
-                  </Col>
-                </Row>
-              )}
+          // Vérifie si la date fait déjà partie des jours travaillés
+          const estTravaille = form.joursTravailles?.includes(dateISO);
+          const estSelectionne = joursTravaillesManuels.includes(dateISO);
+
+          return (
+            <div
+              key={index}
+              onClick={() => !estTravaille && toggleJourManuel(dateISO)} // si déjà travaillé => non cliquable
+              className={`p-2 border rounded text-center ${
+                estTravaille
+                  ? "bg-success text-white"
+                  : estSelectionne
+                  ? "bg-primary text-white"
+                  : "bg-light"
+              }`}
+              style={{
+                width: "40px",
+                fontSize: "0.8rem",
+                cursor: estTravaille ? "not-allowed" : "pointer",
+                opacity: estTravaille ? 0.6 : 1,
+              }}
+              title={`${date.toLocaleDateString("fr-FR")} ${
+                estTravaille ? "(déjà travaillé)" : ""
+              }`}
+            >
+              {date.getDate()}
+            </div>
+          );
+        })}
+      </div>
+
+      <Button
+        variant="outline-primary"
+        size="sm"
+        className="mt-2"
+        onClick={ajouterJoursManuels}
+        disabled={joursTravaillesManuels.length === 0}
+      >
+        Ajouter les jours sélectionnés
+      </Button>
+    </Col>
+  </Row>
+)}
+
 
               <Row className="mb-3">
                 <Col xs={12}>
@@ -230,6 +272,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
                         {form.joursTravailles.map((dateStr: string, index: number) => {
                           const date = new Date(dateStr);
                           const jourSemaine = joursSemaine.find(j => j.index === date.getDay());
+                          const estPaye = form.joursPayes.includes(dateStr);
                           return (
                             <tr key={index}>
                               <td>
@@ -243,10 +286,21 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
                                   variant="outline-danger"
                                   size="sm"
                                   onClick={() => supprimerDate(index)}
+                                  disabled={estPaye}
                                 >
                                   Supprimer
                                 </Button>
-                              </td>
+                              
+                           
+                                <Button
+                                  variant={estPaye ? "success" : "outline-success"}
+                                  size="sm"
+                                  onClick={() => payerFunction(index)}
+                                  disabled={estPaye}
+                                >
+                                  {estPaye ? "Payé" : "Payer"}
+                                </Button>
+                                </td>
                             </tr>
                           );
                         })}
