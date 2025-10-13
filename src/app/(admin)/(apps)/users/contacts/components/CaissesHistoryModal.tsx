@@ -41,10 +41,21 @@ const isCredit = (t?: string) => (t ? /cred/i.test(t) : false)
 const isDebit = (t?: string) => (t ? /deb/i.test(t) : false)
 const fmtMoney = (v: number) => v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-export default function CaissesHistoryModal({ show, onHide, data }: { show: boolean; onHide: () => void; data: Caisse[] }) {
+export default function CaissesHistoryModal({
+  show,
+  onHide,
+  data,
+  onTransferred,
+}: {
+  show: boolean
+  onHide: () => void
+  data: Caisse[]
+  onTransferred?: () => void
+}) {
   const [global, setGlobal] = useState('')
   const [range, setRange] = useState<Date[]>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const [transferLoading, setTransferLoading] = useState(false)
 
   // filtre local historique
   const filtered = useMemo(() => {
@@ -140,7 +151,6 @@ export default function CaissesHistoryModal({ show, onHide, data }: { show: bool
   const totalDebit = filtered.filter((it) => isDebit(it.type)).reduce((a, b) => a + (b.montant || 0), 0)
   const totalNet = totalCredit - totalDebit
 
-  // export CSV simple
   const exportCsv = () => {
     const header = ['motif', 'montant', 'type', 'date', 'commentaire']
     const rows = filtered.map((r) => [
@@ -162,7 +172,57 @@ export default function CaissesHistoryModal({ show, onHide, data }: { show: bool
     URL.revokeObjectURL(url)
   }
 
-  // reset pagination on data/filter change
+  // 🚀 Transférer le total filtré vers la caisse du jour
+  const transferTotalToToday = async () => {
+    if (!Number.isFinite(totalNet) || totalNet === 0) {
+      alert('Le total net est nul — rien à transférer.')
+      return
+    }
+
+    const now = new Date()
+    const motif =
+      range.length === 2
+        ? `Transfert historique (du ${formatDateDDMMYYYY(range[0].toISOString())} au ${formatDateDDMMYYYY(range[1].toISOString())})`
+        : range.length === 1
+          ? `Transfert historique (du ${formatDateDDMMYYYY(range[0].toISOString())})`
+          : 'Transfert historique (global)'
+
+    const payload = {
+      motif,
+      montant: Math.abs(totalNet),
+      type: totalNet >= 0 ? 'credit' : 'debit',
+      date: now.toISOString(),
+      commentaire: 'Transfert depuis l’historique',
+    }
+
+    const ok = window.confirm(
+      `Confirmer le transfert de ${totalNet >= 0 ? '+' : '-'} ${fmtMoney(Math.abs(totalNet))} DT vers la caisse d’aujourd’hui ?`,
+    )
+    if (!ok) return
+
+    setTransferLoading(true)
+    try {
+      const res = await fetch('http://localhost:8170/caisse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const text = await res.text().catch(() => null)
+        throw new Error(text || 'Erreur durant le transfert')
+      }
+      await res.json().catch(() => null)
+      alert('Transfert effectué avec succès.')
+      onTransferred?.()
+    } catch (e) {
+      console.error(e)
+      alert("Impossible d'effectuer le transfert.")
+    } finally {
+      setTransferLoading(false)
+    }
+  }
+
+  // reset pagination sur changement filtre/données
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }))
   }, [global, range, data])
@@ -210,6 +270,9 @@ export default function CaissesHistoryModal({ show, onHide, data }: { show: bool
             </Card>
             <Button variant="outline-primary" onClick={exportCsv}>
               Exporter CSV
+            </Button>
+            <Button variant="success" onClick={transferTotalToToday} disabled={transferLoading}>
+              {transferLoading ? 'Transfert…' : 'Transférer le total vers aujourd’hui'}
             </Button>
           </div>
         </div>

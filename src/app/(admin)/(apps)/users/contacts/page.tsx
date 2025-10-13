@@ -30,7 +30,6 @@ import CaisseEditModal from './components/CustomerEditModal'
 import CaisseAddModal from './components/CustomerModal'
 import CaissesHistoryModal from './components/CaissesHistoryModal'
 
-
 type Caisse = {
   _id: string
   motif: string
@@ -50,14 +49,12 @@ const formatDateDDMMYYYY = (value?: string | null) => {
   if (Number.isNaN(d.getTime())) return String(value)
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
 }
-const sameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
 const isCredit = (t?: string) => (t ? /cred/i.test(t) : false)
 const isDebit = (t?: string) => (t ? /deb/i.test(t) : false)
-const fmtMoney = (v: number) =>
-  v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmtMoney = (v: number) => v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const CustomersCard = () => {
   const [data, setData] = useState<Caisse[]>([])
@@ -217,8 +214,7 @@ const CustomersCard = () => {
                 setSelectedCaisse(row.original)
                 setShowView(true)
               }}
-              title="Voir"
-            >
+              title="Voir">
               <TbEye className="fs-lg" />
             </Button>
             <Button
@@ -228,8 +224,7 @@ const CustomersCard = () => {
                 setSelectedCaisse(row.original)
                 setShowEdit(true)
               }}
-              title="Modifier"
-            >
+              title="Modifier">
               <TbEdit className="fs-lg" />
             </Button>
             <Button
@@ -239,8 +234,7 @@ const CustomersCard = () => {
                 setRowSelection({ [row.id]: true })
                 setShowDeleteModal(true)
               }}
-              title="Supprimer"
-            >
+              title="Supprimer">
               <TbTrash className="fs-lg" />
             </Button>
           </div>
@@ -249,7 +243,7 @@ const CustomersCard = () => {
         enableColumnFilter: false,
       },
     ],
-    []
+    [],
   )
 
   const table = useReactTable({
@@ -276,9 +270,7 @@ const CustomersCard = () => {
     const idsToDelete = new Set<string>(selectedRows.map((r) => r.original._id))
 
     // 🔒 API DELETE – décommente si ton backend l’expose:
-    // await Promise.all(
-    //   [...idsToDelete].map((id) => fetch(`http://localhost:8170/caisse/${id}`, { method: 'DELETE' }).catch(() => null))
-    // )
+    await Promise.all([...idsToDelete].map((id) => fetch(`http://localhost:8170/caisse/${id}`, { method: 'DELETE' }).catch(() => null)))
 
     setData((old) => old.filter((item) => !idsToDelete.has(item._id)))
     setRowSelection({})
@@ -288,12 +280,8 @@ const CustomersCard = () => {
   // Totaux du jour (basés sur date == aujourd’hui)
   const today = new Date()
   const todaysItems = data.filter((d) => (d.date ? sameDay(new Date(d.date), today) : false))
-  const totalCreditToday = todaysItems
-    .filter((it) => isCredit(it.type))
-    .reduce((acc, it) => acc + (Number(it.montant) || 0), 0)
-  const totalDebitToday = todaysItems
-    .filter((it) => isDebit(it.type))
-    .reduce((acc, it) => acc + (Number(it.montant) || 0), 0)
+  const totalCreditToday = todaysItems.filter((it) => isCredit(it.type)).reduce((acc, it) => acc + (Number(it.montant) || 0), 0)
+  const totalDebitToday = todaysItems.filter((it) => isDebit(it.type)).reduce((acc, it) => acc + (Number(it.montant) || 0), 0)
   const totalTodayNet = totalCreditToday - totalDebitToday
 
   // Totaux sur le jeu filtré courant (utile pour visu)
@@ -444,11 +432,7 @@ const CustomersCard = () => {
       <CaisseEditModal show={showEdit} onHide={() => setShowEdit(false)} caisse={selectedCaisse} onUpdated={handleRefetchAfterSave} />
 
       {/* Historique complet */}
-      <CaissesHistoryModal
-        show={showHistory}
-        onHide={() => setShowHistory(false)}
-        data={data}
-      />
+      <CaissesHistoryModal show={showHistory} onHide={() => setShowHistory(false)} data={data} />
     </Container>
   )
 }
