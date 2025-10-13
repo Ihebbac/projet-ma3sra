@@ -64,30 +64,30 @@ const Topbar = () => {
             <TbMenu4 className="fs-22" />
           </button>
 
-          <MegaMenu />
+          {/* <MegaMenu /> */}
         </div>
 
         <div className="d-flex align-items-center gap-2">
-          <div className="app-search d-none d-xl-flex me-2">
+          {/* <div className="app-search d-none d-xl-flex me-2">
             <FormControl type="search" className="topbar-search rounded-pill" name="search" placeholder="Quick Search..." />
             <LuSearch className="app-search-icon text-muted" />
-          </div>
+          </div> */}
 
-          <LanguageDropdown />
+          {/* <LanguageDropdown /> */}
 
           <MessageDropdown />
 
-          <ApplicationMenu />
+          {/* <ApplicationMenu /> */}
 
           <ThemeToggler />
 
           <FullscreenToggle />
 
-          <MonochromeThemeModeToggler />
+          {/* <MonochromeThemeModeToggler /> */}
 
           <UserProfile />
 
-          <CustomizerToggler />
+          {/* <CustomizerToggler /> */}
         </div>
       </Container>
     </header>

@@ -316,7 +316,6 @@ const CustomersCard = () => {
                 <Button variant="secondary" size="sm" onClick={() => setSelectedDates([])}>
                   <CgUnavailable />
                 </Button>
-                <LuGlobe className="app-search-icon text-muted" />
               </div>
             </CardHeader>
 

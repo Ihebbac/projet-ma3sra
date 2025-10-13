@@ -165,7 +165,7 @@ const TransfertStockProprietaire = () => {
           <Card className="shadow-sm border-0 h-100">
             <Card.Header className="bg-light fw-semibold d-flex align-items-center justify-content-between">
               <span>👥 Liste des Clients</span>
-              <div className="d-flex align-items-center gap-2">
+              {/* <div className="d-flex align-items-center gap-2">
                 <TbFilter className="text-secondary" />
                 <Form.Control
                   type="text"
@@ -175,7 +175,7 @@ const TransfertStockProprietaire = () => {
                   style={{ maxWidth: 250 }}
                   size="sm"
                 />
-              </div>
+              </div> */}
             </Card.Header>
             <Card.Body>
               <ClientList clients={filteredClients} />
