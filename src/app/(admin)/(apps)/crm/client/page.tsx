@@ -113,7 +113,7 @@ const CustomersCard = () => {
     }
   
     try {
-      const response = await fetch(`http://localhost:8170/clients/${customer._id}`, {
+      const response = await fetch(`http://localhost:8170/clients/${customer._id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
