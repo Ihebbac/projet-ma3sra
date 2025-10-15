@@ -12,7 +12,7 @@ import {
   Row as TableRow,
   Table as TableType,
 } from '@tanstack/react-table'
-import { Button, Card, CardFooter, CardHeader, Col, Container, Row } from 'react-bootstrap'
+import { Badge, Button, Card, CardFooter, CardHeader, Col, Container, Row } from 'react-bootstrap'
 import { LuGlobe, LuSearch } from 'react-icons/lu'
 import { CgUnavailable } from "react-icons/cg";
 
@@ -40,7 +40,16 @@ type CustomerType = {
   quantiteOlive?: number
   quantiteHuile?: number
   kattou3?: number
-  nisba?: number
+  nisba?: number               
+  quantiteOliveNet?: number;
+  nisbaReelle?: number;
+  quantiteHuileTheorique?: number;
+  differenceHuile?: number;
+  nombreWiba?: number;
+  nombreQfza?: number;
+  huileParQfza?: number;
+  prixFinal?: number;
+  prixKg?: number;
 }
 
 const columnHelper = createColumnHelper<CustomerType>()
@@ -132,72 +141,280 @@ const CustomersCard = () => {
   }, [globalFilter, selectedDates, data])
 
   // print ticket PDF
-  const handlePrintTicket = (customer: CustomerType) => {
-    const doc = new jsPDF({ unit: 'mm', format: [80, 150] })
-    const margin = 6
-    let y = margin
-    doc.setFontSize(12)
-    doc.setFont(undefined, 'bold')
-    doc.text('Ma3sra - bouchema', 80 / 2, y, { align: 'center' })
-    y += 6
-    doc.setFontSize(9)
-    doc.setFont(undefined, 'normal')
-    doc.text('Adresse: Rue Principale, Ville', 80 / 2, y, { align: 'center' })
-    y += 5
-    doc.text(`Tel: +216 9X XXX XXX`, 80 / 2, y, { align: 'center' })
-    y += 6
-    doc.setLineWidth(0.3)
-    doc.line(margin, y, 80 - margin, y)
-    y += 4
-    doc.setFontSize(9)
-    doc.text(`Ticket ID: ${customer._id ?? '-'}`, margin, y)
-    y += 5
-    const now = new Date()
-    doc.text(`Date: ${formatDateDDMMYYYY(now.toISOString())} ${now.toLocaleTimeString()}`, margin, y)
-    y += 6
+// Je suppose que ces types, fonctions utilitaires et constantes sont définis ailleurs
+// et les ai incluses ici comme des placeholders pour la complétude du code.
+type CustomerType = {
+  _id?: string
+  nomPrenom: string
+  numCIN?: string | number
+  numTelephone?: string | number
+  nombreCaisses: number
+  quantiteOlive: number
+  quantiteHuile: number
+  quantiteOliveNet?: number
+  nisba?: number
+  kattou3?: number
+  prixKg?: number // Ajout si non inclus
+  prixFinal?: number // Ajout si non inclus
+}
+
+// Placeholder: remplacez par votre implémentation réelle
+const formatDateDDMMYYYY = (isoDate: string) => {
+  if (!isoDate) return '-'
+  return new Date(isoDate).toLocaleDateString('fr-FR')
+}
+
+// Les constantes de vos formules pour plus de clarté sur le ticket
+const POIDS_CAISSE = 30
+const DENSITE_HUILE = 0.916
+
+// La taille du ticket est 80mm de large, la hauteur est ajustée automatiquement
+const TICKET_WIDTH = 80 // mm
+const MARGIN = 6 // mm
+const CONTENT_WIDTH = TICKET_WIDTH - 2 * MARGIN
+const COL_1_X = MARGIN
+const COL_2_X = TICKET_WIDTH / 2 + 5
+
+const handlePrintTicket = (customer: CustomerType) => {
+  // Le format [80, 150] est pour un ticket long
+  const doc = new jsPDF({ unit: 'mm', format: [TICKET_WIDTH, 170] })
+  let y = MARGIN
+
+  // --- Fonction pour imprimer une section de données ---
+  const printDataSection = (
+    title: string, 
+    data: { label: string; value: string | number }[], 
+    docY: number,
+    options?: {
+      highlightImportant?: boolean
+      compact?: boolean
+      showBorders?: boolean
+    }
+  ) => {
+    const {
+      highlightImportant = false,
+      compact = false,
+      showBorders = false
+    } = options || {}
+    
+    const sectionMargin = MARGIN + 2
+    const contentWidth = TICKET_WIDTH - (sectionMargin * 2)
+    const lineHeight = compact ? 3.5 : 4
+    const valueWidth = 40
+    
+    docY += 5
+    
+    // En-tête de section avec fond coloré
+    if (showBorders) {
+      doc.setFillColor(240, 248, 255) // Bleu très clair
+      doc.rect(sectionMargin - 1, docY - 4, contentWidth + 2, 6, 'F')
+    }
+    
     doc.setFontSize(10)
     doc.setFont(undefined, 'bold')
-    doc.text('Client:', margin, y)
-    doc.setFont(undefined, 'normal')
-    doc.text(`${customer.nomPrenom}`, margin + 2, y + 5)
-    y += 9
-    doc.text(`CIN: ${customer.numCIN ?? '-'}`, margin, y)
-    y += 5
-    doc.text(`Tél: ${customer.numTelephone ?? '-'}`, margin, y)
-    y += 6
-    doc.setLineWidth(0.2)
-    doc.line(margin, y, 80 - margin, y)
-    y += 5
+    doc.setTextColor(30, 64, 124) // Bleu foncé
+    doc.text(title, sectionMargin, docY)
+    
+    // Ligne de séparation stylisée
+    docY += 2
+    doc.setDrawColor(100, 149, 237) // Bleu moyen
+    doc.setLineWidth(0.4)
+    doc.line(sectionMargin, docY, TICKET_WIDTH - sectionMargin, docY)
+    
+    docY += 3
+    
+    // Contenu des données
     doc.setFontSize(9)
-    const colX = margin
-    const col2X = 80 / 2
-    doc.text('Nb caisses:', colX, y)
-    doc.text(String(customer.nombreCaisses ?? '-'), col2X, y)
-    y += 5
-    doc.text('Quant Olive (kg):', colX, y)
-    doc.text(String(customer.quantiteOlive ?? '-'), col2X, y)
-    y += 5
-    doc.text('Quant Huile (L):', colX, y)
-    doc.text(String(customer.quantiteHuile ?? '-'), col2X, y)
-    y += 5
-    doc.text('Kattou3 (%):', colX, y)
-    doc.text(String(customer.kattou3 ?? '-'), col2X, y)
-    y += 5
-    doc.text('Nisba (%):', colX, y)
-    doc.text(String(customer.nisba ?? '-'), col2X, y)
-    y += 7
-    for (let i = margin; i < 80 - margin; i += 4) doc.line(i, y, i + 2, y)
-    y += 6
-    doc.setFontSize(9)
-    doc.text('Partie Caisse : veillez passer a la caisse pour payer !', 80 / 2, y, { align: 'center' })
-    y += 6
-    doc.setFontSize(7)
-    doc.text('Merci pour votre confiance !', 80 / 2, y, { align: 'center' })
-    y += 6
-    doc.setFontSize(7)
-    doc.text('Powered by Ma3sra', 80 / 2, y, { align: 'center' })
-    doc.save(`ticket_${customer._id ?? 'client'}.pdf`)
+    doc.setTextColor(60, 60, 60)
+    
+    data.forEach((item, index) => {
+      const isImportant = highlightImportant && index === data.length - 1
+      const label = `${item.label}:`
+      const value = String(item.value ?? '-')
+      
+      // Style pour les éléments importants (dernier élément)
+      if (isImportant) {
+        doc.setFillColor(255, 250, 240) // Fond orange clair
+        doc.rect(sectionMargin, docY - 3, contentWidth, lineHeight, 'F')
+        doc.setFont(undefined, 'bold')
+        doc.setTextColor(210, 105, 30) // Orange foncé
+      } else {
+        // Fond alterné pour meilleure lisibilité
+        if (index % 2 === 0) {
+          doc.setFillColor(250, 250, 250)
+          doc.rect(sectionMargin, docY - 3, contentWidth, lineHeight, 'F')
+        }
+        doc.setFont(undefined, 'bold')
+        doc.setTextColor(80, 80, 80)
+      }
+      
+      // Label
+      doc.text(label, sectionMargin, docY)
+      
+      // Valeur
+      doc.setFont(undefined, isImportant ? 'bold' : 'normal')
+      doc.setTextColor(isImportant ? 210 : 0, isImportant ? 105 : 0, isImportant ? 30 : 0)
+      
+      const lines = doc.splitTextToSize(value, valueWidth)
+      
+      if (lines.length === 1) {
+        doc.text(value, TICKET_WIDTH - sectionMargin, docY, {
+          align: 'right'
+        })
+        docY += lineHeight
+      } else {
+        doc.text(lines[0], TICKET_WIDTH - sectionMargin, docY, {
+          align: 'right'
+        })
+        docY += lineHeight
+        
+        for (let i = 1; i < lines.length; i++) {
+          doc.text(lines[i], TICKET_WIDTH - sectionMargin, docY, {
+            align: 'right'
+          })
+          docY += lineHeight
+        }
+      }
+      
+      // Ligne séparatrice fine entre les éléments
+      if (!compact && index < data.length - 1) {
+        docY += 1
+        doc.setDrawColor(230, 230, 230)
+        doc.setLineWidth(0.1)
+        doc.line(sectionMargin, docY, TICKET_WIDTH - sectionMargin, docY)
+        docY += 2
+      }
+    })
+    
+    return docY
   }
+  
+  // --- Fonction pour dessiner la ligne de coupe ---
+  const drawCutLine = (docY: number) => {
+    docY += 3
+    doc.setLineWidth(0.3)
+    doc.setDrawColor(0)
+    
+    // Ligne pointillée (perforation)
+    const lineLength = 2
+    const gap = 2
+    for (let x = MARGIN; x < TICKET_WIDTH - MARGIN - lineLength; x += lineLength + gap) {
+      doc.line(x, docY, x + lineLength, docY)
+    }
+    docY += 5
+    doc.setFontSize(8)
+    doc.setFont(undefined, 'normal')
+    doc.text('--- Ligne de coupe / Reçu client ---', TICKET_WIDTH / 2, docY, { align: 'center' })
+    docY += 4
+    return docY
+  }
+
+  // Obtenir la date et l'heure actuelles
+  const now = new Date()
+  const ticketId = customer._id ?? 'TEMP_ID'
+
+  // =======================================================
+  //                                 SECTION 1: MA3SRA (GARDE)
+  // =======================================================
+  
+  // 1. En-tête de la ma3sra
+  doc.setFontSize(14).setFont(undefined, 'bold')
+  doc.text('MA3SRA - BOUCHEMA', TICKET_WIDTH / 2, y, { align: 'center' })
+  y += 5
+  doc.setFontSize(8).setFont(undefined, 'normal')
+  doc.text('COPIE INTERNE', TICKET_WIDTH / 2, y, { align: 'center' })
+  y += 4
+  doc.setLineWidth(0.3).line(MARGIN, y, TICKET_WIDTH - MARGIN, y)
+  y += 4
+  
+  // 2. Infos Transaction
+  doc.setFontSize(9)
+  doc.text(`ID Transaction: ${ticketId.slice(-8)}`, MARGIN, y)
+  doc.text(`Date: ${formatDateDDMMYYYY(now.toISOString())}`, TICKET_WIDTH - MARGIN, y, { align: 'right' })
+  y += 4
+  doc.text(`Heure: ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, TICKET_WIDTH - MARGIN, y, { align: 'right' })
+  y += 6
+
+  // 3. Infos Client
+  y = printDataSection('INFORMATIONS CLIENT', [
+    { label: 'Nom & Prénom', value: customer.nomPrenom },
+    { label: 'Téléphone', value: customer.numTelephone ?? '-' },
+  ], y)
+  y += 3
+  
+  // 4. Détails du traitement (MA3SRA)
+  y = printDataSection('DÉTAILS DU TRAITEMENT', [
+    { label: 'Qté Olive NETTE (kg)', value: customer.quantiteOliveNet?.toFixed(2) ?? '-' },
+    { label: 'Qté Huile Obtenue (kg)', value: customer.quantiteHuile },
+    { label: 'Rendement (Nisba %)', value: customer.nisba?.toFixed(2) ?? '-' },
+    { label: 'Kattou3 (L/100kg huile)', value: customer.kattou3?.toFixed(2) ?? '-' },
+  ], y)
+  y += 3
+
+  // 5. Total A Payer (si les prix sont inclus)
+  if (customer.prixFinal && customer.prixKg) {
+    y = printDataSection('RÉSUMÉ CAISSE', [
+      { label: `Prix/kg (DT)`, value: customer.prixKg.toFixed(2) },
+      { label: 'MONTANT TOTAL (DT)', value: customer.prixFinal.toFixed(2) },
+    ], y)
+    y += 3
+  }
+  
+
+
+
+  // =======================================================
+  //                          LIGNE DE COUPE ET SECTION CLIENT
+  // =======================================================
+  y = drawCutLine(y)
+  
+  // 1. En-tête du Reçu Client
+  doc.setFontSize(12).setFont(undefined, 'bold')
+  doc.text('REÇU CLIENT', TICKET_WIDTH / 2, y, { align: 'center' })
+  y += 4
+  doc.setFontSize(8).setFont(undefined, 'normal')
+  doc.text('MA3SRA - BOUCHEMA | Tél: +216 9X XXX XXX', TICKET_WIDTH / 2, y, { align: 'center' })
+  y += 5
+  doc.setLineWidth(0.2).line(MARGIN, y, TICKET_WIDTH - MARGIN, y)
+  y += 4
+  
+  // 2. Infos Client & Transaction (Minimales)
+  doc.setFontSize(9)
+  doc.text(`Client: ${customer.nomPrenom}`, MARGIN, y)
+  doc.text(`ID: ${ticketId.slice(-8)}`, TICKET_WIDTH - MARGIN, y, { align: 'right' })
+  y += 4
+  doc.text(`Date: ${formatDateDDMMYYYY(now.toISOString())} - ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, MARGIN, y)
+  y += 6
+
+  // 3. Détails du Rendement (CLIENT)
+  y = printDataSection('RÉSUMÉ RENDEMENT', [
+    { label: 'Olive Nette (kg)', value: customer.quantiteOliveNet?.toFixed(2) ?? '-' },
+    { label: 'Huile Obtenue (kg)', value: customer.quantiteHuile },
+    { label: 'Rendement (Nisba %)', value: customer.nisba?.toFixed(2) ?? '-' },
+  ], y)
+  y += 3
+  
+  // 4. Montant Final
+  if (customer.prixFinal) {
+     y = printDataSection('MONTANT À RÉGLER', [
+      { label: 'Total Net (DT)', value: customer.prixFinal.toFixed(2) },
+    ], y)
+    y += 3
+  }
+
+  // 5. Bas de page Client
+  doc.setFontSize(8)
+  doc.setFont(undefined, 'bold')
+  doc.text('MERCI POUR VOTRE CONFIANCE !', TICKET_WIDTH / 2, y, { align: 'center' })
+  y += 4
+  doc.setFontSize(7).setFont(undefined, 'normal')
+  doc.text('Ce reçu est votre preuve de dépôt.', TICKET_WIDTH / 2, y, { align: 'center' })
+  y += 4
+  doc.text('Powered by Ma3sra Software', TICKET_WIDTH / 2, y, { align: 'center' })
+
+  // --- Sauvegarde ---
+  doc.save(`ticket_ma3sra_${ticketId}_${formatDateDDMMYYYY(now.toISOString()).replace(/\//g, '-')}.pdf`)
+}
 
   const columns = [
     {
@@ -221,8 +438,39 @@ const CustomersCard = () => {
       enableSorting: false,
       enableColumnFilter: false,
     },
-    columnHelper.accessor('numCIN', { header: 'CIN' }),
+    // columnHelper.accessor('numCIN', { header: 'CIN' }),
     columnHelper.accessor('nomPrenom', { header: 'Nom & Prénom', cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> }),
+    columnHelper.accessor('nombreCaisses', { header: 'nombreCaisses', cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> }),
+    columnHelper.accessor('quantiteOliveNet', { header: 'quantiteOliveNet', cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> }),
+    columnHelper.accessor('quantiteHuile', { header: 'quantiteHuile', cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> }),
+    columnHelper.accessor('kattou3', {
+      header: 'kattou3',
+      cell: (info) => (
+          <Badge bg="warning"> {/* Utilisez une balise Badge ou span */}
+              {/* Arrondi à 3 décimales */}
+              {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
+          </Badge>
+      ),
+  }),
+  
+  columnHelper.accessor('nisbaReelle', {
+      header: 'nisba %',
+      cell: (info) => (
+          <Badge bg="success"> {/* Choisissez la couleur de votre badge */}
+              {/* Arrondi à 3 décimales */}
+              {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
+          </Badge>
+      ),
+  }),
+  columnHelper.accessor('prixFinal', {
+      header: 'prix Dinar',
+      cell: (info) => (
+          <Badge bg="secondary"> {/* Choisissez la couleur de votre badge */}
+              {/* Arrondi à 3 décimales */}
+              {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
+          </Badge>
+      ),
+  }),
     columnHelper.accessor('numTelephone', { header: 'Téléphone' }),
     columnHelper.accessor('dateCreation', { header: 'Date de création', cell: (info) => formatDateDDMMYYYY(info.getValue() as string) }),
     columnHelper.accessor('type', {
@@ -292,7 +540,7 @@ const CustomersCard = () => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="CIN, Tél, Nom ..."
+                    placeholder="Nom, Tél ..."
                     value={globalFilter}
                     onChange={(e) => setGlobalFilter(e.target.value)}
                   />
