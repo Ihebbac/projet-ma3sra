@@ -119,7 +119,18 @@ const EmployeCard = () => {
       return newFilters
     })
   }
-
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return 'Date invalide';
+    }
+  }
   const columns = [
     {
       id: 'select',
@@ -142,25 +153,20 @@ const EmployeCard = () => {
         const joursTravailles = info.getValue();
         if (!joursTravailles || !Array.isArray(joursTravailles)) return '-';
         
+        const sortedDates = [...joursTravailles].sort((a, b) => 
+          new Date(b).getTime() - new Date(a).getTime()
+        );
+    
         return (
-          <div>
-            {joursTravailles.map((dateString, index) => {
-              try {
-                const date = new Date(dateString);
-                // Formater en jj-mm-yyyy
-                const jour = date.getDate().toString().padStart(2, '0');
-                const mois = (date.getMonth() + 1).toString().padStart(2, '0');
-                const annee = date.getFullYear();
-                
-                return (
-                  <div key={index}>
-                    {`${jour}-${mois}-${annee}`}
-                  </div>
-                );
-              } catch (error) {
-                return <div key={index}>Date invalide</div>;
-              }
-            })}
+          <div className="d-flex flex-column align-items-start gap-1">
+            <span className="badge bg-outline-primary">
+              {sortedDates.length} jour{sortedDates.length > 1 ? 's' : ''}
+            </span>
+            {sortedDates.length > 0 && (
+              <small className="text-muted">
+                Dernier: {formatDate(sortedDates[0])}
+              </small>
+            )}
           </div>
         );
       }

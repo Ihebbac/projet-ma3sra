@@ -16,7 +16,7 @@ import { Badge, Button, Card, CardFooter, CardHeader, Col, Container, Row } from
 import { LuGlobe, LuSearch } from 'react-icons/lu'
 import { CgUnavailable } from "react-icons/cg";
 
-import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter } from 'react-icons/tb'
+import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter, TbCash } from 'react-icons/tb'
 import jsPDF from 'jspdf'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
@@ -50,6 +50,7 @@ type CustomerType = {
   huileParQfza?: number;
   prixFinal?: number;
   prixKg?: number;
+  status: 'payé' | 'non payé';
 }
 
 const columnHelper = createColumnHelper<CustomerType>()
@@ -104,7 +105,39 @@ const CustomersCard = () => {
     await fetchClients()
     setPagination({ ...pagination, pageIndex: 0 })
   }
-
+  const handleTogglePaymentStatus = async (customer: CustomerType) => {
+    const newStatus = customer.status === 'payé' ? 'non payé' : 'payé';
+    
+    if (!confirm(`Voulez-vous vraiment marquer ce client comme "${newStatus}" ?`)) {
+      return;
+    }
+  
+    try {
+      const response = await fetch(`http://localhost:8170/clients/${customer._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: newStatus
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour du statut');
+      }
+  
+      // Recharger les données
+      fetchClients();
+      
+      // Message de confirmation
+      alert(`Statut mis à jour : ${newStatus}`);
+      
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors du changement de statut');
+    }
+  };
   // Filtrage global et par date (intervalle ou simple)
   useEffect(() => {
     let result = [...data]
@@ -491,6 +524,23 @@ const handlePrintTicket = (customer: CustomerType) => {
           <Button variant="default" size="sm" onClick={() => { setShowModalEdit(true); setSelectedCustomer(row.original) }}>
             <TbEdit className="fs-lg" />
           </Button>
+          
+          {/* Bouton compact avec statut */}
+          <Button 
+            variant={row.original.status === 'payé' ? "success" : "danger"} 
+            size="sm" 
+            onClick={() => handleTogglePaymentStatus(row.original)}
+            title={`Statut: ${row.original.status}. Cliquer pour changer`}
+            className="position-relative"
+          >
+            <TbCash className="fs-lg" />
+            <span className={`position-absolute top-0 start-100 translate-middle p-1 border border-light rounded-circle ${
+              row.original.status === 'payé' ? 'bg-success' : 'bg-danger'
+            }`}>
+              <span className="visually-hidden">Statut</span>
+            </span>
+          </Button>
+    
           <Button variant="default" size="sm" onClick={() => handlePrintTicket(row.original)}>
             <TbPrinter className="fs-lg" />
           </Button>
@@ -499,7 +549,7 @@ const handlePrintTicket = (customer: CustomerType) => {
           </Button>
         </div>
       ),
-    },
+    }
   ]
 
   const table = useReactTable({
