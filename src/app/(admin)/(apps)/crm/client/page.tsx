@@ -127,20 +127,24 @@ const CustomersCard = () => {
         throw new Error('Erreur lors de la mise à jour du statut')
       }
 
-      const body = {
-        motif: `Payment Client`,
-        montant: customer.prixFinal,
-        type: 'credit',
-        date: new Date().toISOString(),
-        commentaire: `payment de Client : ${customer.nomPrenom} Telephone :${customer?.numTelephone ?? ''} - quantiteHuile : ${customer.quantiteHuile} 
-        quantiteOliveNet : ${customer.quantiteOliveNet} `,
-      }
+      
 
-      await fetch('http://localhost:8170/caisse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+      if (customer.status !== 'payé') {
+        const body = {
+          motif: `Payment Client`,
+          montant: customer.prixFinal,
+          type: 'credit',
+          date: new Date().toISOString(),
+          commentaire: `payment de Client : ${customer.nomPrenom} Telephone :${customer?.numTelephone ?? ''} - quantiteHuile : ${customer.quantiteHuile} 
+        quantiteOliveNet : ${customer.quantiteOliveNet} `,
+        }
+
+        await fetch('http://localhost:8170/caisse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+      }
 
       // Recharger les données
       fetchClients()
