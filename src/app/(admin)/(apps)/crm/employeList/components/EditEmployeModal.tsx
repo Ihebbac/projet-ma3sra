@@ -1,13 +1,14 @@
 'use client'
-import React, { useState, useEffect } from "react";
-import { Modal, Button, Row, Col, Form, FormGroup, FormLabel, FormControl, Table } from "react-bootstrap";
+import { toNumber } from 'lodash'
+import React, { useState, useEffect } from 'react'
+import { Modal, Button, Row, Col, Form, FormGroup, FormLabel, FormControl, Table } from 'react-bootstrap'
 
 type EditEmployeModalProps = {
-  show: boolean;
-  onHide: () => void;
-  employe: any;
-  onSubmit: (data: any) => void;
-};
+  show: boolean
+  onHide: () => void
+  employe: any
+  onSubmit: (data: any) => void
+}
 
 const joursSemaine = [
   { id: 'lundi', nom: 'Lundi', index: 1 },
@@ -16,117 +17,130 @@ const joursSemaine = [
   { id: 'jeudi', nom: 'Jeudi', index: 4 },
   { id: 'vendredi', nom: 'Vendredi', index: 5 },
   { id: 'samedi', nom: 'Samedi', index: 6 },
-  { id: 'dimanche', nom: 'Dimanche', index: 0 }
-];
+  { id: 'dimanche', nom: 'Dimanche', index: 0 },
+]
 
 const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalProps) => {
-  const [form, setForm] = useState(employe);
-  const [moisSelectionne, setMoisSelectionne] = useState<string>('');
-  const [joursTravaillesManuels, setJoursTravaillesManuels] = useState<string[]>([]);
+  const [form, setForm] = useState(employe)
+  const [moisSelectionne, setMoisSelectionne] = useState<string>('')
+  const [joursTravaillesManuels, setJoursTravaillesManuels] = useState<string[]>([])
 
   useEffect(() => {
-    setForm(employe);
-    const aujourdHui = new Date();
-    setMoisSelectionne(`${aujourdHui.getFullYear()}-${(aujourdHui.getMonth() + 1).toString().padStart(2, '0')}`);
-  }, [employe]);
+    setForm(employe)
+    const aujourdHui = new Date()
+    setMoisSelectionne(`${aujourdHui.getFullYear()}-${(aujourdHui.getMonth() + 1).toString().padStart(2, '0')}`)
+  }, [employe])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: name === "montantJournalier" ? parseFloat(value) : value }));
-  };
+    const { name, value } = e.target
+    setForm((prev) => ({ ...prev, [name]: name === 'montantJournalier' ? parseFloat(value) : value }))
+  }
 
   const ajouterDateSpecifique = () => {
-    const dateInput = document.getElementById('dateSpecifique') as HTMLInputElement;
-    const dateValue = dateInput?.value;
+    const dateInput = document.getElementById('dateSpecifique') as HTMLInputElement
+    const dateValue = dateInput?.value
 
     if (dateValue) {
-      const nouvelleDate = new Date(dateValue + 'T00:00:00').toISOString();
-      const datesExistantes = form.joursTravailles || [];
+      const nouvelleDate = new Date(dateValue + 'T00:00:00').toISOString()
+      const datesExistantes = form.joursTravailles || []
 
       if (!datesExistantes.includes(nouvelleDate)) {
-        setForm(prev => ({
+        setForm((prev) => ({
           ...prev,
-          joursTravailles: [...datesExistantes, nouvelleDate]
-        }));
+          joursTravailles: [...datesExistantes, nouvelleDate],
+        }))
       }
-      dateInput.value = '';
+      dateInput.value = ''
     }
-  };
+  }
 
   const toggleJourManuel = (dateISO: string) => {
-    setJoursTravaillesManuels(prev =>
-      prev.includes(dateISO)
-        ? prev.filter(d => d !== dateISO)
-        : [...prev, dateISO]
-    );
-  };
+    setJoursTravaillesManuels((prev) => (prev.includes(dateISO) ? prev.filter((d) => d !== dateISO) : [...prev, dateISO]))
+  }
 
   const ajouterJoursManuels = () => {
-    if (joursTravaillesManuels.length === 0) return;
-    const datesExistantes = form.joursTravailles || [];
-    const nouvellesDates = [...datesExistantes];
+    if (joursTravaillesManuels.length === 0) return
+    const datesExistantes = form.joursTravailles || []
+    const nouvellesDates = [...datesExistantes]
 
-    joursTravaillesManuels.forEach(dateISO => {
+    joursTravaillesManuels.forEach((dateISO) => {
       if (!nouvellesDates.includes(dateISO)) {
-        nouvellesDates.push(dateISO);
+        nouvellesDates.push(dateISO)
       }
-    });
+    })
 
-    setForm(prev => ({ ...prev, joursTravailles: nouvellesDates }));
-    setJoursTravaillesManuels([]);
-  };
+    setForm((prev) => ({ ...prev, joursTravailles: nouvellesDates }))
+    setJoursTravaillesManuels([])
+  }
 
   const supprimerDate = (index: number) => {
-    const nouvellesDates = form.joursTravailles.filter((_: any, i: number) => i !== index);
-    setForm(prev => ({ ...prev, joursTravailles: nouvellesDates }));
-  };
+    const nouvellesDates = form.joursTravailles.filter((_: any, i: number) => i !== index)
+    setForm((prev) => ({ ...prev, joursTravailles: nouvellesDates }))
+  }
   const payerFunction = async (index: number) => {
-    const datePayee = form.joursTravailles[index];
-  
+    const datePayee = form.joursTravailles[index]
+
+    console.log('eeeeeeeeeeeeeeeeeeee', form)
+
     try {
       const res = await fetch(`http://localhost:8170/employes/${form._id}/payer`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ date: datePayee })
-      });
-  
+        body: JSON.stringify({ date: datePayee }),
+      })
+
       if (res.ok) {
         // Mise à jour locale si succès
-        setForm(prev => ({
+        setForm((prev) => ({
           ...prev,
-          joursPayes: [...prev.joursPayes, datePayee]
-        }));
+          joursPayes: [...prev.joursPayes, datePayee],
+        }))
+        //
+
+        const body = {
+          motif: `Payment Employés`,
+          montant: toNumber(form.montantJournalier),
+          type: 'debit',
+          date: new Date().toISOString(),
+          commentaire: `payment de jour : ${form.nom} ${form.prenom} -${new Date(datePayee).toISOString()} `,
+        }
+
+        await fetch('http://localhost:8170/caisse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
       } else {
-        console.error("Erreur HTTP :", res.status);
-        alert("Erreur lors de la mise à jour du paiement !");
+        console.error('Erreur HTTP :', res.status)
+        alert('Erreur lors de la mise à jour du paiement !')
       }
     } catch (error) {
-      console.error("Erreur lors du paiement :", error);
-      alert("Erreur de connexion !");
+      console.error('Erreur lors du paiement :', error)
+      alert('Erreur de connexion !')
     }
-  };
+  }
   const getJoursDuMois = () => {
-    if (!moisSelectionne) return [];
-    const [annee, mois] = moisSelectionne.split('-').map(Number);
-    const dernierJour = new Date(annee, mois, 0);
-    const jours = [];
+    if (!moisSelectionne) return []
+    const [annee, mois] = moisSelectionne.split('-').map(Number)
+    const dernierJour = new Date(annee, mois, 0)
+    const jours = []
 
     for (let jour = 1; jour <= dernierJour.getDate(); jour++) {
-      const date = new Date(annee, mois - 1, jour);
-      jours.push(date);
+      const date = new Date(annee, mois - 1, jour)
+      jours.push(date)
     }
-    return jours;
-  };
+    return jours
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
-    onHide();
-  };
+    e.preventDefault()
+    onSubmit(form)
+    onHide()
+  }
 
-  if (!form) return null;
+  if (!form) return null
 
   return (
     <Modal show={show} onHide={onHide} size="lg">
@@ -166,13 +180,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Salaire Journalier (DT)</FormLabel>
-                <FormControl
-                  name="montantJournalier"
-                  type="number"
-                  value={form.montantJournalier}
-                  onChange={handleChange}
-                  required
-                />
+                <FormControl name="montantJournalier" type="number" value={form.montantJournalier} onChange={handleChange} required />
               </FormGroup>
             </Col>
 
@@ -183,66 +191,53 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
               <Row className="mb-3">
                 <Col md={6}>
                   <FormLabel>Mois :</FormLabel>
-                  <FormControl
-                    type="month"
-                    value={moisSelectionne}
-                    onChange={(e) => setMoisSelectionne(e.target.value)}
-                  />
+                  <FormControl type="month" value={moisSelectionne} onChange={(e) => setMoisSelectionne(e.target.value)} />
                 </Col>
               </Row>
 
               {moisSelectionne && (
-  <Row className="mb-3">
-    <Col xs={12}>
-      <FormLabel>Sélectionner manuellement les jours travaillés :</FormLabel>
-      <div className="d-flex flex-wrap gap-1">
-        {getJoursDuMois().map((date, index) => {
-          const dateISO = date.toISOString();
+                <Row className="mb-3">
+                  <Col xs={12}>
+                    <FormLabel>Sélectionner manuellement les jours travaillés :</FormLabel>
+                    <div className="d-flex flex-wrap gap-1">
+                      {getJoursDuMois().map((date, index) => {
+                        const dateISO = date.toISOString()
 
-          // Vérifie si la date fait déjà partie des jours travaillés
-          const estTravaille = form.joursTravailles?.includes(dateISO);
-          const estSelectionne = joursTravaillesManuels.includes(dateISO);
+                        // Vérifie si la date fait déjà partie des jours travaillés
+                        const estTravaille = form.joursTravailles?.includes(dateISO)
+                        const estSelectionne = joursTravaillesManuels.includes(dateISO)
 
-          return (
-            <div
-              key={index}
-              onClick={() => !estTravaille && toggleJourManuel(dateISO)} // si déjà travaillé => non cliquable
-              className={`p-2 border rounded text-center ${
-                estTravaille
-                  ? "bg-success text-white"
-                  : estSelectionne
-                  ? "bg-primary text-white"
-                  : "bg-light"
-              }`}
-              style={{
-                width: "40px",
-                fontSize: "0.8rem",
-                cursor: estTravaille ? "not-allowed" : "pointer",
-                opacity: estTravaille ? 0.6 : 1,
-              }}
-              title={`${date.toLocaleDateString("fr-FR")} ${
-                estTravaille ? "(déjà travaillé)" : ""
-              }`}
-            >
-              {date.getDate()}
-            </div>
-          );
-        })}
-      </div>
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => !estTravaille && toggleJourManuel(dateISO)} // si déjà travaillé => non cliquable
+                            className={`p-2 border rounded text-center ${
+                              estTravaille ? 'bg-success text-white' : estSelectionne ? 'bg-primary text-white' : 'bg-light'
+                            }`}
+                            style={{
+                              width: '40px',
+                              fontSize: '0.8rem',
+                              cursor: estTravaille ? 'not-allowed' : 'pointer',
+                              opacity: estTravaille ? 0.6 : 1,
+                            }}
+                            title={`${date.toLocaleDateString('fr-FR')} ${estTravaille ? '(déjà travaillé)' : ''}`}>
+                            {date.getDate()}
+                          </div>
+                        )
+                      })}
+                    </div>
 
-      <Button
-        variant="outline-primary"
-        size="sm"
-        className="mt-2"
-        onClick={ajouterJoursManuels}
-        disabled={joursTravaillesManuels.length === 0}
-      >
-        Ajouter les jours sélectionnés
-      </Button>
-    </Col>
-  </Row>
-)}
-
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      className="mt-2"
+                      onClick={ajouterJoursManuels}
+                      disabled={joursTravaillesManuels.length === 0}>
+                      Ajouter les jours sélectionnés
+                    </Button>
+                  </Col>
+                </Row>
+              )}
 
               <Row className="mb-3">
                 <Col xs={12}>
@@ -270,39 +265,30 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
                       </thead>
                       <tbody>
                         {form.joursTravailles.map((dateStr: string, index: number) => {
-                          const date = new Date(dateStr);
-                          const jourSemaine = joursSemaine.find(j => j.index === date.getDay());
-                          const estPaye = form.joursPayes.includes(dateStr);
+                          const date = new Date(dateStr)
+                          const jourSemaine = joursSemaine.find((j) => j.index === date.getDay())
+                          const estPaye = form.joursPayes.includes(dateStr)
                           return (
                             <tr key={index}>
                               <td>
-                                {date.getDate().toString().padStart(2, '0')}/
-                                {(date.getMonth() + 1).toString().padStart(2, '0')}/
-                                {date.getFullYear()}
+                                {date.getDate().toString().padStart(2, '0')}/{(date.getMonth() + 1).toString().padStart(2, '0')}/{date.getFullYear()}
                               </td>
                               <td>{jourSemaine?.nom}</td>
                               <td>
-                                <Button
-                                  variant="outline-danger"
-                                  size="sm"
-                                  onClick={() => supprimerDate(index)}
-                                  disabled={estPaye}
-                                >
+                                <Button variant="outline-danger" size="sm" onClick={() => supprimerDate(index)} disabled={estPaye}>
                                   Supprimer
                                 </Button>
-                              
-                           
+
                                 <Button
-                                  variant={estPaye ? "success" : "outline-success"}
+                                  variant={estPaye ? 'success' : 'outline-success'}
                                   size="sm"
                                   onClick={() => payerFunction(index)}
-                                  disabled={estPaye}
-                                >
-                                  {estPaye ? "Payé" : "Payer"}
+                                  disabled={estPaye}>
+                                  {estPaye ? 'Payé' : 'Payer'}
                                 </Button>
-                                </td>
+                              </td>
                             </tr>
-                          );
+                          )
                         })}
                       </tbody>
                     </Table>
@@ -315,12 +301,16 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
           </Row>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="light" onClick={onHide}>Annuler</Button>
-          <Button type="submit" variant="primary">Enregistrer</Button>
+          <Button variant="light" onClick={onHide}>
+            Annuler
+          </Button>
+          <Button type="submit" variant="primary">
+            Enregistrer
+          </Button>
         </Modal.Footer>
       </Form>
     </Modal>
-  );
-};
+  )
+}
 
-export default EditEmployeModal;
+export default EditEmployeModal
