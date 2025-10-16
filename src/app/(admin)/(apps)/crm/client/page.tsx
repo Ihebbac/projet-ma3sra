@@ -573,7 +573,9 @@ const handlePrintTicket = (customer: CustomerType) => {
 
   const handleDelete = () => {
     const selectedIds = new Set(Object.keys(selectedRowIds))
+    
     setData((old) => old.filter((_, idx) => !selectedIds.has(idx.toString())))
+   
     setSelectedRowIds({})
     setShowDeleteModal(false)
   }
