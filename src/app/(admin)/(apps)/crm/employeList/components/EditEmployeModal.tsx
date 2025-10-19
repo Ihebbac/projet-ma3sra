@@ -3,6 +3,11 @@ import { toNumber } from 'lodash'
 import React, { useState, useEffect } from 'react'
 import { Modal, Button, Row, Col, Form, FormGroup, FormLabel, FormControl, Table } from 'react-bootstrap'
 
+type JourTravaille = {
+  date: string
+  heuresSup?: number
+}
+
 type EditEmployeModalProps = {
   show: boolean
   onHide: () => void
@@ -42,12 +47,12 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
 
     if (dateValue) {
       const nouvelleDate = new Date(dateValue + 'T00:00:00').toISOString()
-      const datesExistantes = form.joursTravailles || []
+      const datesExistantes: JourTravaille[] = form.joursTravailles || []
 
-      if (!datesExistantes.includes(nouvelleDate)) {
+      if (!datesExistantes.some((j: JourTravaille) => j.date === nouvelleDate)) {
         setForm((prev) => ({
           ...prev,
-          joursTravailles: [...datesExistantes, nouvelleDate],
+          joursTravailles: [...datesExistantes, { date: nouvelleDate, heuresSup: 0 }],
         }))
       }
       dateInput.value = ''
@@ -60,12 +65,12 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
 
   const ajouterJoursManuels = () => {
     if (joursTravaillesManuels.length === 0) return
-    const datesExistantes = form.joursTravailles || []
+    const datesExistantes: JourTravaille[] = form.joursTravailles || []
     const nouvellesDates = [...datesExistantes]
 
     joursTravaillesManuels.forEach((dateISO) => {
-      if (!nouvellesDates.includes(dateISO)) {
-        nouvellesDates.push(dateISO)
+      if (!nouvellesDates.some((j) => j.date === dateISO)) {
+        nouvellesDates.push({ date: dateISO, heuresSup: 0 })
       }
     })
 
@@ -77,34 +82,40 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
     const nouvellesDates = form.joursTravailles.filter((_: any, i: number) => i !== index)
     setForm((prev) => ({ ...prev, joursTravailles: nouvellesDates }))
   }
-  const payerFunction = async (index: number) => {
-    const datePayee = form.joursTravailles[index]
 
-    console.log('eeeeeeeeeeeeeeeeeeee', form)
+  const updateHeuresSup = (index: number, value: number) => {
+    setForm((prev) => {
+      const updated = [...prev.joursTravailles]
+      updated[index].heuresSup = value
+      return { ...prev, joursTravailles: updated }
+    })
+  }
+
+  const payerFunction = async (index: number) => {
+    const { date, heuresSup } = form.joursTravailles[index]
 
     try {
       const res = await fetch(`http://localhost:8170/employes/${form._id}/payer`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ date: datePayee }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, heuresSup }),
       })
 
       if (res.ok) {
-        // Mise à jour locale si succès
         setForm((prev) => ({
           ...prev,
-          joursPayes: [...prev.joursPayes, datePayee],
+          joursPayes: [...prev.joursPayes, date],
         }))
-        //
+
+        const montantTotal =
+          toNumber(form.montantJournalier) + (heuresSup ? heuresSup * (form.montantJournalier / 8) * 1.25 : 0)
 
         const body = {
-          motif: `Payment Employés`,
-          montant: toNumber(form.montantJournalier),
+          motif: `Paiement Employé`,
+          montant: montantTotal,
           type: 'debit',
           date: new Date().toISOString(),
-          commentaire: `payment de jour : ${form.nom} ${form.prenom} -${new Date(datePayee).toISOString()} `,
+          commentaire: `Paiement de ${form.nom} ${form.prenom} pour le ${new Date(date).toLocaleDateString('fr-FR')}`,
         }
 
         await fetch('http://localhost:8170/caisse', {
@@ -113,24 +124,20 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
           body: JSON.stringify(body),
         })
       } else {
-        console.error('Erreur HTTP :', res.status)
-        alert('Erreur lors de la mise à jour du paiement !')
+        alert('Erreur lors du paiement !')
       }
     } catch (error) {
-      console.error('Erreur lors du paiement :', error)
+      console.error('Erreur de connexion :', error)
       alert('Erreur de connexion !')
     }
   }
+
   const getJoursDuMois = () => {
     if (!moisSelectionne) return []
     const [annee, mois] = moisSelectionne.split('-').map(Number)
     const dernierJour = new Date(annee, mois, 0)
     const jours = []
-
-    for (let jour = 1; jour <= dernierJour.getDate(); jour++) {
-      const date = new Date(annee, mois - 1, jour)
-      jours.push(date)
-    }
+    for (let jour = 1; jour <= dernierJour.getDate(); jour++) jours.push(new Date(annee, mois - 1, jour))
     return jours
   }
 
@@ -149,6 +156,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
           <Modal.Title>Modifier un employé</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {/* --- Infos Employé --- */}
           <Row className="g-3">
             <Col md={6}>
               <FormGroup>
@@ -163,30 +171,23 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
               </FormGroup>
             </Col>
 
-            <Col md={6}>
-              <FormGroup>
-                <FormLabel>Téléphone</FormLabel>
-                <FormControl name="numTel" value={form.numTel} onChange={handleChange} required />
-              </FormGroup>
-            </Col>
-
-            <Col md={6}>
-              <FormGroup>
-                <FormLabel>Poste</FormLabel>
-                <FormControl name="poste" value={form.poste} onChange={handleChange} required />
-              </FormGroup>
-            </Col>
-
+            {/* --- Salaire & Mois --- */}
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Salaire Journalier (DT)</FormLabel>
-                <FormControl name="montantJournalier" type="number" value={form.montantJournalier} onChange={handleChange} required />
+                <FormControl
+                  name="montantJournalier"
+                  type="number"
+                  value={form.montantJournalier}
+                  onChange={handleChange}
+                  required
+                />
               </FormGroup>
             </Col>
 
             <Col xs={12}>
               <hr />
-              <h6>Jours de travail</h6>
+              <h6>Jours de travail et heures supplémentaires</h6>
 
               <Row className="mb-3">
                 <Col md={6}>
@@ -195,38 +196,29 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
                 </Col>
               </Row>
 
+              {/* --- Sélection jours --- */}
               {moisSelectionne && (
                 <Row className="mb-3">
                   <Col xs={12}>
-                    <FormLabel>Sélectionner manuellement les jours travaillés :</FormLabel>
+                    <FormLabel>Sélectionner manuellement les jours :</FormLabel>
                     <div className="d-flex flex-wrap gap-1">
                       {getJoursDuMois().map((date, index) => {
                         const dateISO = date.toISOString()
-
-                        // Vérifie si la date fait déjà partie des jours travaillés
-                        const estTravaille = form.joursTravailles?.includes(dateISO)
+                        const estTravaille = form.joursTravailles?.some((j: JourTravaille) => j.date === dateISO)
                         const estSelectionne = joursTravaillesManuels.includes(dateISO)
-
                         return (
                           <div
                             key={index}
-                            onClick={() => !estTravaille && toggleJourManuel(dateISO)} // si déjà travaillé => non cliquable
+                            onClick={() => !estTravaille && toggleJourManuel(dateISO)}
                             className={`p-2 border rounded text-center ${
                               estTravaille ? 'bg-success text-white' : estSelectionne ? 'bg-primary text-white' : 'bg-light'
                             }`}
-                            style={{
-                              width: '40px',
-                              fontSize: '0.8rem',
-                              cursor: estTravaille ? 'not-allowed' : 'pointer',
-                              opacity: estTravaille ? 0.6 : 1,
-                            }}
-                            title={`${date.toLocaleDateString('fr-FR')} ${estTravaille ? '(déjà travaillé)' : ''}`}>
+                            style={{ width: '40px', cursor: estTravaille ? 'not-allowed' : 'pointer' }}>
                             {date.getDate()}
                           </div>
                         )
                       })}
                     </div>
-
                     <Button
                       variant="outline-primary"
                       size="sm"
@@ -239,46 +231,43 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
                 </Row>
               )}
 
-              <Row className="mb-3">
-                <Col xs={12}>
-                  <FormLabel>Ajouter une date spécifique :</FormLabel>
-                  <div className="d-flex gap-2">
-                    <FormControl id="dateSpecifique" type="date" style={{ maxWidth: '200px' }} />
-                    <Button variant="outline-secondary" size="sm" onClick={ajouterDateSpecifique}>
-                      Ajouter
-                    </Button>
-                  </div>
-                </Col>
-              </Row>
-
+              {/* --- Liste jours enregistrés --- */}
               <Row>
                 <Col xs={12}>
-                  <FormLabel>Jours travaillés enregistrés :</FormLabel>
+                  <FormLabel>Jours travaillés :</FormLabel>
                   {form.joursTravailles && form.joursTravailles.length > 0 ? (
                     <Table striped bordered size="sm">
                       <thead>
                         <tr>
                           <th>Date</th>
                           <th>Jour</th>
-                          <th>Action</th>
+                          <th>Heures sup.</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {form.joursTravailles.map((dateStr: string, index: number) => {
-                          const date = new Date(dateStr)
+                        {form.joursTravailles.map((jour: JourTravaille, index: number) => {
+                          const date = new Date(jour.date)
                           const jourSemaine = joursSemaine.find((j) => j.index === date.getDay())
-                          const estPaye = form.joursPayes.includes(dateStr)
+                          const estPaye = form.joursPayes.includes(jour.date)
                           return (
                             <tr key={index}>
-                              <td>
-                                {date.getDate().toString().padStart(2, '0')}/{(date.getMonth() + 1).toString().padStart(2, '0')}/{date.getFullYear()}
-                              </td>
+                              <td>{date.toLocaleDateString('fr-FR')}</td>
                               <td>{jourSemaine?.nom}</td>
+                              <td>
+                                <FormControl
+                                  type="number"
+                                  min={0}
+                                  value={jour.heuresSup || 0}
+                                  disabled={estPaye}
+                                  onChange={(e) => updateHeuresSup(index, parseFloat(e.target.value) || 0)}
+                                  style={{ maxWidth: '80px' }}
+                                />
+                              </td>
                               <td>
                                 <Button variant="outline-danger" size="sm" onClick={() => supprimerDate(index)} disabled={estPaye}>
                                   Supprimer
-                                </Button>
-
+                                </Button>{' '}
                                 <Button
                                   variant={estPaye ? 'success' : 'outline-success'}
                                   size="sm"
@@ -293,7 +282,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
                       </tbody>
                     </Table>
                   ) : (
-                    <p className="text-muted">Aucun jour travaillé enregistré</p>
+                    <p className="text-muted">Aucun jour travaillé</p>
                   )}
                 </Col>
               </Row>

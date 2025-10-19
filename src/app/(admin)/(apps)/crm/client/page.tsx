@@ -12,11 +12,10 @@ import {
   Row as TableRow,
   Table as TableType,
 } from '@tanstack/react-table'
-import { Badge, Button, Card, CardFooter, CardHeader, Col, Container, Row } from 'react-bootstrap'
+import { Badge, Button, Card, CardFooter, CardHeader, Col, Container, Row, Dropdown } from 'react-bootstrap'
 import { LuGlobe, LuSearch } from 'react-icons/lu'
 import { CgUnavailable } from 'react-icons/cg'
-
-import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter, TbCash } from 'react-icons/tb'
+import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter, TbCash, TbFileExport } from 'react-icons/tb'
 import jsPDF from 'jspdf'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
@@ -28,6 +27,7 @@ import CustomerModal from './components/CustomerModal'
 import CustomerModalViewDetail from '../client/components/CustomerModalViewDetail'
 import CustomerEditModal from '../client/components/CustomerEditModal'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import { exportToPDF, exportToXLSX } from './components/TableExporter'
 
 type CustomerType = {
   _id: string
@@ -63,6 +63,10 @@ const formatDateDDMMYYYY = (value?: string | null) => {
   if (Number.isNaN(d.getTime())) return String(value)
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
 }
+
+// Les constantes pour le ticket PDF
+const TICKET_WIDTH = 80 // mm
+const MARGIN = 6 // mm
 
 const CustomersCard = () => {
   const [data, setData] = useState<CustomerType[]>([])
@@ -105,6 +109,7 @@ const CustomersCard = () => {
     await fetchClients()
     setPagination({ ...pagination, pageIndex: 0 })
   }
+
   const handleTogglePaymentStatus = async (customer: CustomerType) => {
     const newStatus = customer.status === 'payé' ? 'non payé' : 'payé'
 
@@ -126,8 +131,6 @@ const CustomersCard = () => {
       if (!response.ok) {
         throw new Error('Erreur lors de la mise à jour du statut')
       }
-
-      
 
       if (customer.status !== 'payé') {
         const body = {
@@ -156,6 +159,7 @@ const CustomersCard = () => {
       alert('Erreur lors du changement de statut')
     }
   }
+
   // Filtrage global et par date (intervalle ou simple)
   useEffect(() => {
     let result = [...data]
@@ -192,46 +196,11 @@ const CustomersCard = () => {
   }, [globalFilter, selectedDates, data])
 
   // print ticket PDF
-  // Je suppose que ces types, fonctions utilitaires et constantes sont définis ailleurs
-  // et les ai incluses ici comme des placeholders pour la complétude du code.
-  type CustomerType = {
-    _id?: string
-    nomPrenom: string
-    numCIN?: string | number
-    numTelephone?: string | number
-    nombreCaisses: number
-    quantiteOlive: number
-    quantiteHuile: number
-    quantiteOliveNet?: number
-    nisba?: number
-    kattou3?: number
-    prixKg?: number // Ajout si non inclus
-    prixFinal?: number // Ajout si non inclus
-  }
-
-  // Placeholder: remplacez par votre implémentation réelle
-  const formatDateDDMMYYYY = (isoDate: string) => {
-    if (!isoDate) return '-'
-    return new Date(isoDate).toLocaleDateString('fr-FR')
-  }
-
-  // Les constantes de vos formules pour plus de clarté sur le ticket
-  const POIDS_CAISSE = 30
-  const DENSITE_HUILE = 0.916
-
-  // La taille du ticket est 80mm de large, la hauteur est ajustée automatiquement
-  const TICKET_WIDTH = 80 // mm
-  const MARGIN = 6 // mm
-  const CONTENT_WIDTH = TICKET_WIDTH - 2 * MARGIN
-  const COL_1_X = MARGIN
-  const COL_2_X = TICKET_WIDTH / 2 + 5
-
   const handlePrintTicket = (customer: CustomerType) => {
-    // Le format [80, 150] est pour un ticket long
     const doc = new jsPDF({ unit: 'mm', format: [TICKET_WIDTH, 170] })
     let y = MARGIN
 
-    // --- Fonction pour imprimer une section de données ---
+    // Fonction pour imprimer une section de données
     const printDataSection = (
       title: string,
       data: { label: string; value: string | number }[],
@@ -243,7 +212,6 @@ const CustomersCard = () => {
       },
     ) => {
       const { highlightImportant = false, compact = false, showBorders = false } = options || {}
-
       const sectionMargin = MARGIN + 2
       const contentWidth = TICKET_WIDTH - sectionMargin * 2
       const lineHeight = compact ? 3.5 : 4
@@ -253,18 +221,18 @@ const CustomersCard = () => {
 
       // En-tête de section avec fond coloré
       if (showBorders) {
-        doc.setFillColor(240, 248, 255) // Bleu très clair
+        doc.setFillColor(240, 248, 255)
         doc.rect(sectionMargin - 1, docY - 4, contentWidth + 2, 6, 'F')
       }
 
       doc.setFontSize(10)
       doc.setFont(undefined, 'bold')
-      doc.setTextColor(30, 64, 124) // Bleu foncé
+      doc.setTextColor(30, 64, 124)
       doc.text(title, sectionMargin, docY)
 
       // Ligne de séparation stylisée
       docY += 2
-      doc.setDrawColor(100, 149, 237) // Bleu moyen
+      doc.setDrawColor(100, 149, 237)
       doc.setLineWidth(0.4)
       doc.line(sectionMargin, docY, TICKET_WIDTH - sectionMargin, docY)
 
@@ -279,14 +247,13 @@ const CustomersCard = () => {
         const label = `${item.label}:`
         const value = String(item.value ?? '-')
 
-        // Style pour les éléments importants (dernier élément)
+        // Style pour les éléments importants
         if (isImportant) {
-          doc.setFillColor(255, 250, 240) // Fond orange clair
+          doc.setFillColor(255, 250, 240)
           doc.rect(sectionMargin, docY - 3, contentWidth, lineHeight, 'F')
           doc.setFont(undefined, 'bold')
-          doc.setTextColor(210, 105, 30) // Orange foncé
+          doc.setTextColor(210, 105, 30)
         } else {
-          // Fond alterné pour meilleure lisibilité
           if (index % 2 === 0) {
             doc.setFillColor(250, 250, 250)
             doc.rect(sectionMargin, docY - 3, contentWidth, lineHeight, 'F')
@@ -336,7 +303,7 @@ const CustomersCard = () => {
       return docY
     }
 
-    // --- Fonction pour dessiner la ligne de coupe ---
+    // Fonction pour dessiner la ligne de coupe
     const drawCutLine = (docY: number) => {
       docY += 3
       doc.setLineWidth(0.3)
@@ -360,11 +327,7 @@ const CustomersCard = () => {
     const now = new Date()
     const ticketId = customer._id ?? 'TEMP_ID'
 
-    // =======================================================
-    //                                 SECTION 1: MA3SRA (GARDE)
-    // =======================================================
-
-    // 1. En-tête de la ma3sra
+    // SECTION 1: MA3SRA (GARDE)
     doc.setFontSize(14).setFont(undefined, 'bold')
     doc.text('MA3SRA - BOUCHEMA', TICKET_WIDTH / 2, y, { align: 'center' })
     y += 5
@@ -374,7 +337,7 @@ const CustomersCard = () => {
     doc.setLineWidth(0.3).line(MARGIN, y, TICKET_WIDTH - MARGIN, y)
     y += 4
 
-    // 2. Infos Transaction
+    // Infos Transaction
     doc.setFontSize(9)
     doc.text(`ID Transaction: ${ticketId.slice(-8)}`, MARGIN, y)
     doc.text(`Date: ${formatDateDDMMYYYY(now.toISOString())}`, TICKET_WIDTH - MARGIN, y, { align: 'right' })
@@ -382,7 +345,7 @@ const CustomersCard = () => {
     doc.text(`Heure: ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, TICKET_WIDTH - MARGIN, y, { align: 'right' })
     y += 6
 
-    // 3. Infos Client
+    // Infos Client
     y = printDataSection(
       'INFORMATIONS CLIENT',
       [
@@ -393,7 +356,7 @@ const CustomersCard = () => {
     )
     y += 3
 
-    // 4. Détails du traitement (MA3SRA)
+    // Détails du traitement (MA3SRA)
     y = printDataSection(
       'DÉTAILS DU TRAITEMENT',
       [
@@ -406,7 +369,7 @@ const CustomersCard = () => {
     )
     y += 3
 
-    // 5. Total A Payer (si les prix sont inclus)
+    // Total A Payer (si les prix sont inclus)
     if (customer.prixFinal && customer.prixKg) {
       y = printDataSection(
         'RÉSUMÉ CAISSE',
@@ -419,12 +382,10 @@ const CustomersCard = () => {
       y += 3
     }
 
-    // =======================================================
-    //                          LIGNE DE COUPE ET SECTION CLIENT
-    // =======================================================
+    // LIGNE DE COUPE ET SECTION CLIENT
     y = drawCutLine(y)
 
-    // 1. En-tête du Reçu Client
+    // En-tête du Reçu Client
     doc.setFontSize(12).setFont(undefined, 'bold')
     doc.text('REÇU CLIENT', TICKET_WIDTH / 2, y, { align: 'center' })
     y += 4
@@ -434,7 +395,7 @@ const CustomersCard = () => {
     doc.setLineWidth(0.2).line(MARGIN, y, TICKET_WIDTH - MARGIN, y)
     y += 4
 
-    // 2. Infos Client & Transaction (Minimales)
+    // Infos Client & Transaction (Minimales)
     doc.setFontSize(9)
     doc.text(`Client: ${customer.nomPrenom}`, MARGIN, y)
     doc.text(`ID: ${ticketId.slice(-8)}`, TICKET_WIDTH - MARGIN, y, { align: 'right' })
@@ -442,7 +403,7 @@ const CustomersCard = () => {
     doc.text(`Date: ${formatDateDDMMYYYY(now.toISOString())} - ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, MARGIN, y)
     y += 6
 
-    // 3. Détails du Rendement (CLIENT)
+    // Détails du Rendement (CLIENT)
     y = printDataSection(
       'RÉSUMÉ RENDEMENT',
       [
@@ -454,13 +415,13 @@ const CustomersCard = () => {
     )
     y += 3
 
-    // 4. Montant Final
+    // Montant Final
     if (customer.prixFinal) {
       y = printDataSection('MONTANT À RÉGLER', [{ label: 'Total Net (DT)', value: customer.prixFinal.toFixed(2) }], y)
       y += 3
     }
 
-    // 5. Bas de page Client
+    // Bas de page Client
     doc.setFontSize(8)
     doc.setFont(undefined, 'bold')
     doc.text('MERCI POUR VOTRE CONFIANCE !', TICKET_WIDTH / 2, y, { align: 'center' })
@@ -470,7 +431,7 @@ const CustomersCard = () => {
     y += 4
     doc.text('Powered by Ma3sra Software', TICKET_WIDTH / 2, y, { align: 'center' })
 
-    // --- Sauvegarde ---
+    // Sauvegarde
     doc.save(`ticket_ma3sra_${ticketId}_${formatDateDDMMYYYY(now.toISOString()).replace(/\//g, '-')}.pdf`)
   }
 
@@ -496,30 +457,34 @@ const CustomersCard = () => {
       enableSorting: false,
       enableColumnFilter: false,
     },
-    // columnHelper.accessor('numCIN', { header: 'CIN' }),
-    columnHelper.accessor('nomPrenom', { header: 'Nom & Prénom', cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> }),
-    columnHelper.accessor('nombreCaisses', { header: 'nombreCaisses', cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> }),
-    columnHelper.accessor('quantiteOliveNet', { header: 'quantiteOliveNet', cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> }),
-    columnHelper.accessor('quantiteHuile', { header: 'quantiteHuile', cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> }),
+    columnHelper.accessor('nomPrenom', { 
+      header: 'Nom & Prénom', 
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> 
+    }),
+    columnHelper.accessor('nombreCaisses', { 
+      header: 'nombreCaisses', 
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> 
+    }),
+    columnHelper.accessor('quantiteOliveNet', { 
+      header: 'quantiteOliveNet', 
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> 
+    }),
+    columnHelper.accessor('quantiteHuile', { 
+      header: 'quantiteHuile', 
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> 
+    }),
     columnHelper.accessor('kattou3', {
       header: 'kattou3',
       cell: (info) => (
         <Badge bg="warning">
-          {' '}
-          {/* Utilisez une balise Badge ou span */}
-          {/* Arrondi à 3 décimales */}
           {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
         </Badge>
       ),
     }),
-
     columnHelper.accessor('nisbaReelle', {
       header: 'nisba %',
       cell: (info) => (
         <Badge bg="success">
-          {' '}
-          {/* Choisissez la couleur de votre badge */}
-          {/* Arrondi à 3 décimales */}
           {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
         </Badge>
       ),
@@ -528,15 +493,15 @@ const CustomersCard = () => {
       header: 'prix Dinar',
       cell: (info) => (
         <Badge bg="secondary">
-          {' '}
-          {/* Choisissez la couleur de votre badge */}
-          {/* Arrondi à 3 décimales */}
           {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
         </Badge>
       ),
     }),
     columnHelper.accessor('numTelephone', { header: 'Téléphone' }),
-    columnHelper.accessor('dateCreation', { header: 'Date de création', cell: (info) => formatDateDDMMYYYY(info.getValue() as string) }),
+    columnHelper.accessor('dateCreation', { 
+      header: 'Date de création', 
+      cell: (info) => formatDateDDMMYYYY(info.getValue() as string) 
+    }),
     columnHelper.accessor('type', {
       header: 'Type',
       cell: (info) => (
@@ -629,6 +594,9 @@ const CustomersCard = () => {
     setShowDeleteModal(false)
   }
 
+  // Utiliser selectedRows APRÈS l'initialisation de table
+  const selectedRows = table.getSelectedRowModel().rows
+
   return (
     <Container fluid>
       <PageBreadcrumb title="Clients" subtitle="CRM" />
@@ -637,35 +605,78 @@ const CustomersCard = () => {
           <Card>
             <CardHeader className="border-light d-flex flex-wrap justify-content-between align-items-center gap-2">
               <div className="d-flex gap-2 align-items-center">
-                <div className="app-search">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Nom, Tél ..."
-                    value={globalFilter}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
-                  />
-                  <LuSearch className="app-search-icon text-muted" />
-                </div>
-
                 <Button className="btn btn-primary" onClick={() => setShowModal(true)}>
                   <TbPlus className="fs-lg" /> Ajouter un client
                 </Button>
                 <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} />
+                <Dropdown>
+                  <Dropdown.Toggle variant="outline-secondary" id="dropdown-export-data">
+                    <TbFileExport /> Exporter
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        const rows = table.getFilteredRowModel().rows
+                        if (rows.length === 0) {
+                          alert('Aucune donnée à exporter.')
+                          return
+                        }
+                        exportToXLSX(rows, 'fitoura_data')
+                      }}>
+                      📊 Exporter en XLSX (Excel)
+                    </Dropdown.Item>
+                    <Dropdown.Item
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        const rows = selectedRows.length > 0 ? selectedRows : table.getFilteredRowModel().rows
+                        if (rows.length === 0) {
+                          alert('Aucune donnée à exporter.')
+                          return
+                        }
+                        exportToPDF(rows, 'fitoura_data')
+                      }}>
+                      🧾 Exporter en PDF
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
               </div>
-
-              <div className="d-flex align-items-center gap-2">
-                <span className="fw-semibold">Filtrer par date :</span>
-                <Flatpickr
-                  className="form-control"
-                  options={{ mode: 'range', dateFormat: 'Y-m-d' }}
-                  value={selectedDates}
-                  onChange={(dates: Date[]) => setSelectedDates(dates)}
-                />
-                <Button variant="secondary" size="sm" onClick={() => setSelectedDates([])}>
-                  <CgUnavailable />
-                </Button>
-              </div>
+              <Row>
+                <Col>
+                  <div className="app-search">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Nom, Tél ..."
+                      value={globalFilter}
+                      onChange={(e) => setGlobalFilter(e.target.value)}
+                    />
+                    <LuSearch className="app-search-icon text-muted" />
+                  </div>
+                </Col>
+                <Col>
+                  <div className="d-flex gap-2 align-items-center">
+                    <span className="app-search">Filtrer:</span>
+                    <Flatpickr
+                      className="form-control"
+                      options={{ 
+                        mode: 'range', 
+                        dateFormat: 'Y-m-d',
+                        // Ajout pour éviter les problèmes d'hydratation
+                        defaultDate: selectedDates,
+                        static: true
+                      }}
+                      value={selectedDates}
+                      onChange={(dates: Date[]) => setSelectedDates(dates)}
+                    />
+                    <Button variant="secondary" size="sm" onClick={() => setSelectedDates([])}>
+                      <CgUnavailable />
+                    </Button>
+                  </div>
+                </Col>
+              </Row>
             </CardHeader>
 
             <DataTable<CustomerType> table={table} emptyMessage="Aucun client trouvé" />
@@ -698,8 +709,17 @@ const CustomersCard = () => {
         </Col>
       </Row>
 
-      <CustomerModalViewDetail show={showModalDetail} onHide={() => setShowModalDetail(false)} customer={selectedCustomer} />
-      <CustomerEditModal show={showModalEdit} onHide={() => setShowModalEdit(false)} customer={selectedCustomer} onClientSaved={handleClientSaved} />
+      <CustomerModalViewDetail 
+        show={showModalDetail} 
+        onHide={() => setShowModalDetail(false)} 
+        customer={selectedCustomer} 
+      />
+      <CustomerEditModal 
+        show={showModalEdit} 
+        onHide={() => setShowModalEdit(false)} 
+        customer={selectedCustomer} 
+        onClientSaved={handleClientSaved} 
+      />
     </Container>
   )
 }
