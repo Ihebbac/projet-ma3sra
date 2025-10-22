@@ -1,8 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-import logoDark from '@/assets/images/logo-black.png'
-import logo from '@/assets/images/logo.png'
+import logoDark from '@/assets/images/logo-black.jpg'
+import logo from '@/assets/images/logo.jpg'
 
 const AppLogo = ({ height }: { height?: number }) => {
   return (

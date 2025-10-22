@@ -112,17 +112,17 @@ export const menuItems: MenuItemType[] = [
     key: 'dashboards',
     label: 'Dashboards',
     icon: LuCircleGauge,
-    badge: { variant: 'success', text: '02' },
-    children: [
-      { key: 'dashboard-v1', label: 'Dashboard 1', url: '/dashboard' },
-      // { key: 'dashboard-v2', label: 'Dashboard 2', url: '/dashboard2' },
-    ],
+    url: '/dashboard',
+    // children: [
+    //   { key: 'dashboard-v1', label: 'Dashboard 1', url: '/dashboard' },
+    //   // { key: 'dashboard-v2', label: 'Dashboard 2', url: '/dashboard2' },
+    // ],
   },
   // { key: 'landing', label: 'Landing Page', icon: LuEarth, url: '/landing' },
   { key: 'apps', label: 'Apps', isTitle: true },
   // { key: 'chat', label: 'Chat', icon: LuMessageSquareDot, url: '/chat' },
-  { key: 'calendar', label: 'Calendar', icon: LuCalendar, url: '/calendar' },
-  { key: 'file-manager', label: 'File Manager', icon: LuFolderOpenDot, url: '/file-manager' },
+  // { key: 'calendar', label: 'Calendar', icon: LuCalendar, url: '/calendar' },
+  // { key: 'file-manager', label: 'File Manager', icon: LuFolderOpenDot, url: '/file-manager' },
 
   // {
   //   key: 'ecommerce',
@@ -182,30 +182,32 @@ export const menuItems: MenuItemType[] = [
 },
   { key: 'Fitoura', label: 'Fitoura',icon: LuFolderOpenDot, url: '/crm/fitoura' },
  
-  { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
+  // { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
   { key: 'Stock propriétaire', label: 'Stock propriétaire',icon: LuHandshake, url: '/crm/Qteproprietaire' },
   { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire',icon: LuHandshake, url: '/crm/TransfertStockproprietaire' },
   {
     key: 'Caisse & Financement',
     label: 'Caisse & Financement',
     icon: LuLifeBuoy,
-    children: [
-      { key: 'Caisse', label: 'Caisse', url: '/users/contacts' },
-      { key: 'Saisie dépenses', label: 'Saisie dépenses', url: '/users/profile' },
-      { key: 'Saisie recettes', label: 'Saisie recettes', url: '/users/roles' },
-      { key: 'Historique transactions', label: 'Historique transactions', url: '/users/roles-details' },
-    ],
+    url: '/users/contacts',
+    // children: [
+    //   { key: 'Caisse', label: 'Caisse', url: '/users/contacts' },
+    //   { key: 'Saisie dépenses', label: 'Saisie dépenses', url: '/users/profile' },
+    //   { key: 'Saisie recettes', label: 'Saisie recettes', url: '/users/roles' },
+    //   { key: 'Historique transactions', label: 'Historique transactions', url: '/users/roles-details' },
+    // ],
   },
   {
     key: 'Employés',
-    label: 'Employés',
+    label: 'Liste des Employés',
     icon: LuReceiptText,
-    children: [
-      { key: 'Liste des Employés', label: 'Liste des Employés', url: '/crm/employeList' },
-      { key: 'suivi présence ', label: 'suivi présence', url: '/crm/employe' },
-      { key: 'calcul salire', label: 'calcul salire', url: '/users/roles' },
+    url: '/crm/employeList',
+    // children: [
+    //   { key: 'Liste des Employés', label: 'Liste des Employés', url: '/crm/employeList' },
+    //   { key: 'suivi présence ', label: 'suivi présence', url: '/crm/employe' },
+    //   { key: 'calcul salire', label: 'calcul salire', url: '/users/roles' },
      
-    ],
+    // ],
   },
   {
     key: 'users',
@@ -234,35 +236,35 @@ export const menuItems: MenuItemType[] = [
 
   // { key: 'api-key', label: 'API Keys', url: '/api-key', icon: LuKey },
 
-  { key: 'custom', label: 'Custom Pages', isTitle: true },
-  {
-    key: 'crm',
-    label: 'CRM',
-    icon: LuHandshake,
-    children: [
-      { key: 'crm-contacts', label: 'Contacts', url: '/crm/contacts' },
-      { key: 'crm-opportunities', label: 'Opportunities', url: '/crm/opportunities' },
-      { key: 'crm-deals', label: 'Deals', url: '/crm/deals' },
-      { key: 'crm-leads', label: 'Leads', url: '/crm/leads' },
-      { key: 'crm-pipeline', label: 'Pipeline', url: '/crm/pipeline' },
-      { key: 'crm-campaign', label: 'Campaign', url: '/crm/campaign' },
-      { key: 'crm-proposals', label: 'Proposals', url: '/crm/proposals' },
-      { key: 'crm-estimations', label: 'Estimations', url: '/crm/estimations' },
-      { key: 'crm-customers', label: 'Customers', url: '/crm/customers' },
-      { key: 'crm-activities', label: 'Activities', url: '/crm/activities' },
-    ],
-  },
+  // { key: 'custom', label: 'Custom Pages', isTitle: true },
+  // {
+  //   key: 'crm',
+  //   label: 'CRM',
+  //   icon: LuHandshake,
+  //   children: [
+  //     { key: 'crm-contacts', label: 'Contacts', url: '/crm/contacts' },
+  //     { key: 'crm-opportunities', label: 'Opportunities', url: '/crm/opportunities' },
+  //     { key: 'crm-deals', label: 'Deals', url: '/crm/deals' },
+  //     { key: 'crm-leads', label: 'Leads', url: '/crm/leads' },
+  //     { key: 'crm-pipeline', label: 'Pipeline', url: '/crm/pipeline' },
+  //     { key: 'crm-campaign', label: 'Campaign', url: '/crm/campaign' },
+  //     { key: 'crm-proposals', label: 'Proposals', url: '/crm/proposals' },
+  //     { key: 'crm-estimations', label: 'Estimations', url: '/crm/estimations' },
+  //     { key: 'crm-customers', label: 'Customers', url: '/crm/customers' },
+  //     { key: 'crm-activities', label: 'Activities', url: '/crm/activities' },
+  //   ],
+  // },
 
-  {
-    key: 'invoice',
-    label: 'Invoice',
-    icon: LuReceiptText,
-    children: [
-      { key: 'invoice-list', label: 'Invoice', url: '/invoices' },
-      { key: 'invoice-details', label: 'Single Invoice', url: '/invoices/1' },
-      { key: 'add-invoice', label: 'New Invoice', url: '/add-invoice' },
-    ],
-  },
+  // {
+  //   key: 'invoice',
+  //   label: 'Invoice',
+  //   icon: LuReceiptText,
+  //   children: [
+  //     { key: 'invoice-list', label: 'Invoice', url: '/invoices' },
+  //     { key: 'invoice-details', label: 'Single Invoice', url: '/invoices/1' },
+  //     { key: 'add-invoice', label: 'New Invoice', url: '/add-invoice' },
+  //   ],
+  // },
   // {
   //   key: 'pages',
   //   label: 'Pages',
@@ -326,235 +328,235 @@ export const menuItems: MenuItemType[] = [
       },
     ],
   },
-  {
-    key: 'error',
-    label: 'Error Pages',
-    icon: LuShieldAlert,
-    children: [
-      { key: 'error-400', label: '400', url: '/error/400' },
-      { key: 'error-401', label: '401', url: '/error/401' },
-      { key: 'error-403', label: '403', url: '/error/403' },
-      { key: 'error-404', label: '404', url: '/error/404' },
-      { key: 'error-408', label: '408', url: '/error/408' },
-      { key: 'error-500', label: '500', url: '/error/500' },
-      { key: 'maintenance', label: 'Maintenance', url: '/maintenance' },
-    ],
-  },
-  { key: 'layouts', label: 'Layouts', isTitle: true },
-  {
-    key: 'layout-options',
-    label: 'Layout Options',
-    icon: LuProportions,
-    children: [
-      { key: 'scrollable', label: 'Scrollable', url: '/layouts/scrollable' },
-      { key: 'compact', label: 'Compact', url: '/layouts/compact' },
-      { key: 'boxed', label: 'Boxed', url: '/layouts/boxed' },
-      { key: 'horizontal', label: 'Horizontal', url: '/layouts/horizontal' },
-    ],
-  },
-  {
-    key: 'sidebars',
-    label: 'Sidebars',
-    icon: LuPanelRightClose,
-    children: [
-      { key: 'compact-menu', label: 'Compact Menu', url: '/layouts/sidebars/compact' },
-      { key: 'icon-view-menu', label: 'Icon View Menu', url: '/layouts/sidebars/icon-view' },
-      { key: 'on-hover-menu', label: 'On Hover Menu', url: '/layouts/sidebars/on-hover' },
-      {
-        key: 'on-hover-active-menu',
-        label: 'On Hover Active Menu',
-        url: '/layouts/sidebars/on-hover-active',
-      },
-      { key: 'offcanvas-menu', label: 'Offcanvas Menu', url: '/layouts/sidebars/offcanvas' },
-      {
-        key: 'no-icons-with-lines-menu',
-        label: 'No Icons With Lines',
-        url: '/layouts/sidebars/no-icons-with-lines',
-      },
-      {
-        key: 'with-lines-menu',
-        label: 'Sidebar With Lines',
-        url: '/layouts/sidebars/with-lines',
-      },
-      { key: 'light-menu', label: 'Light Menu', url: '/layouts/sidebars/light' },
-      { key: 'gradient-menu', label: 'Gradient Menu', url: '/layouts/sidebars/gradient' },
-      { key: 'gray-menu', label: 'Gray Menu', url: '/layouts/sidebars/gray' },
-      { key: 'image-menu', label: 'Image Menu', url: '/layouts/sidebars/image' },
-    ],
-  },
-  {
-    key: 'topbars',
-    label: 'Topbars',
-    icon: LuPanelTop,
-    children: [
-      { key: 'dark-topbar', label: 'Dark Topbar', url: '/layouts/topbars/dark' },
-      { key: 'gray-topbar', label: 'Gray Topbar', url: '/layouts/topbars/gray' },
-      { key: 'gradient-topbar', label: 'Gradient Topbar', url: '/layouts/topbars/gradient' },
-    ],
-  },
+  // {
+  //   key: 'error',
+  //   label: 'Error Pages',
+  //   icon: LuShieldAlert,
+  //   children: [
+  //     { key: 'error-400', label: '400', url: '/error/400' },
+  //     { key: 'error-401', label: '401', url: '/error/401' },
+  //     { key: 'error-403', label: '403', url: '/error/403' },
+  //     { key: 'error-404', label: '404', url: '/error/404' },
+  //     { key: 'error-408', label: '408', url: '/error/408' },
+  //     { key: 'error-500', label: '500', url: '/error/500' },
+  //     { key: 'maintenance', label: 'Maintenance', url: '/maintenance' },
+  //   ],
+  // },
+  // { key: 'layouts', label: 'Layouts', isTitle: true },
+  // {
+  //   key: 'layout-options',
+  //   label: 'Layout Options',
+  //   icon: LuProportions,
+  //   children: [
+  //     { key: 'scrollable', label: 'Scrollable', url: '/layouts/scrollable' },
+  //     { key: 'compact', label: 'Compact', url: '/layouts/compact' },
+  //     { key: 'boxed', label: 'Boxed', url: '/layouts/boxed' },
+  //     { key: 'horizontal', label: 'Horizontal', url: '/layouts/horizontal' },
+  //   ],
+  // },
+  // {
+  //   key: 'sidebars',
+  //   label: 'Sidebars',
+  //   icon: LuPanelRightClose,
+  //   children: [
+  //     { key: 'compact-menu', label: 'Compact Menu', url: '/layouts/sidebars/compact' },
+  //     { key: 'icon-view-menu', label: 'Icon View Menu', url: '/layouts/sidebars/icon-view' },
+  //     { key: 'on-hover-menu', label: 'On Hover Menu', url: '/layouts/sidebars/on-hover' },
+  //     {
+  //       key: 'on-hover-active-menu',
+  //       label: 'On Hover Active Menu',
+  //       url: '/layouts/sidebars/on-hover-active',
+  //     },
+  //     { key: 'offcanvas-menu', label: 'Offcanvas Menu', url: '/layouts/sidebars/offcanvas' },
+  //     {
+  //       key: 'no-icons-with-lines-menu',
+  //       label: 'No Icons With Lines',
+  //       url: '/layouts/sidebars/no-icons-with-lines',
+  //     },
+  //     {
+  //       key: 'with-lines-menu',
+  //       label: 'Sidebar With Lines',
+  //       url: '/layouts/sidebars/with-lines',
+  //     },
+  //     { key: 'light-menu', label: 'Light Menu', url: '/layouts/sidebars/light' },
+  //     { key: 'gradient-menu', label: 'Gradient Menu', url: '/layouts/sidebars/gradient' },
+  //     { key: 'gray-menu', label: 'Gray Menu', url: '/layouts/sidebars/gray' },
+  //     { key: 'image-menu', label: 'Image Menu', url: '/layouts/sidebars/image' },
+  //   ],
+  // },
+  // {
+  //   key: 'topbars',
+  //   label: 'Topbars',
+  //   icon: LuPanelTop,
+  //   children: [
+  //     { key: 'dark-topbar', label: 'Dark Topbar', url: '/layouts/topbars/dark' },
+  //     { key: 'gray-topbar', label: 'Gray Topbar', url: '/layouts/topbars/gray' },
+  //     { key: 'gradient-topbar', label: 'Gradient Topbar', url: '/layouts/topbars/gradient' },
+  //   ],
+  // },
   { key: 'components', label: 'Components', isTitle: true },
-  {
-    key: 'ui',
-    label: 'Base UI',
-    icon: LuPencilRuler,
-    children: [
-      {
-        key: 'accordions',
-        label: 'Accordions',
-        url: '/ui/accordions',
-      },
-      {
-        key: 'alerts',
-        label: 'Alerts',
-        url: '/ui/alerts',
-      },
-      {
-        key: 'images',
-        label: 'Images',
-        url: '/ui/images',
-      },
-      {
-        key: 'badges',
-        label: 'Badges',
-        url: '/ui/badges',
-      },
-      {
-        key: 'breadcrumb',
-        label: 'Breadcrumb',
-        url: '/ui/breadcrumb',
-      },
-      {
-        key: 'buttons',
-        label: 'Buttons',
-        url: '/ui/buttons',
-      },
-      {
-        key: 'cards',
-        label: 'Cards',
-        url: '/ui/cards',
-      },
-      {
-        key: 'carousel',
-        label: 'Carousel',
-        url: '/ui/carousel',
-      },
-      {
-        key: 'collapse',
-        label: 'Collapse',
-        url: '/ui/collapse',
-      },
-      {
-        key: 'colors',
-        label: 'Colors',
-        url: '/ui/colors',
-      },
-      {
-        key: 'dropdowns',
-        label: 'Dropdowns',
-        url: '/ui/dropdowns',
-      },
-      {
-        key: 'videos',
-        label: 'Videos',
-        url: '/ui/videos',
-      },
-      {
-        key: 'grid',
-        label: 'Grid Options',
-        url: '/ui/grid',
-      },
-      {
-        key: 'links',
-        label: 'Links',
-        url: '/ui/links',
-      },
-      {
-        key: 'list-group',
-        label: 'List Group',
-        url: '/ui/list-group',
-      },
-      {
-        key: 'modals',
-        label: 'Modals',
-        url: '/ui/modals',
-      },
-      {
-        key: 'notifications',
-        label: 'Notifications',
-        url: '/ui/notifications',
-      },
-      {
-        key: 'offcanvas',
-        label: 'Offcanvas',
-        url: '/ui/offcanvas',
-      },
-      {
-        key: 'placeholders',
-        label: 'Placeholders',
-        url: '/ui/placeholders',
-      },
-      {
-        key: 'pagination',
-        label: 'Pagination',
-        url: '/ui/pagination',
-      },
-      {
-        key: 'popovers',
-        label: 'Popovers',
-        url: '/ui/popovers',
-      },
-      {
-        key: 'progress',
-        label: 'Progress',
-        url: '/ui/progress',
-      },
-      {
-        key: 'spinners',
-        label: 'Spinners',
-        url: '/ui/spinners',
-      },
-      {
-        key: 'tabs',
-        label: 'Tabs',
-        url: '/ui/tabs',
-      },
-      {
-        key: 'tooltips',
-        label: 'Tooltips',
-        url: '/ui/tooltips',
-      },
-      {
-        key: 'typography',
-        label: 'Typography',
-        url: '/ui/typography',
-      },
-      {
-        key: 'utilities',
-        label: 'Utilities',
-        url: '/ui/utilities',
-      },
-    ],
-  },
-  {
-    key: 'miscellaneous',
-    label: 'Miscellaneous',
-    icon: LuHousePlug,
-    children: [
-      { key: 'nestable-list', label: 'Nestable List', url: '/miscellaneous/nestable-list' },
-      { key: 'pdf-viewer', label: 'PDF Viewer', url: '/miscellaneous/pdf-viewer' },
-      { key: 'sweet-alert', label: 'Sweet Alert', url: '/miscellaneous/sweet-alert' },
-      { key: 'password-meter', label: 'Password Meter', url: '/miscellaneous/password-meter' },
-      { key: 'clipboard', label: 'Clipboard', url: '/miscellaneous/clipboard' },
-      { key: 'tree-view', label: 'Tree View', url: '/miscellaneous/tree-view' },
-      { key: 'tour', label: 'Tour', url: '/miscellaneous/tour' },
-    ],
-  },
-  {
-    key: 'widgets',
-    label: 'Widgets',
-    icon: LuDessert,
-    url: '/widgets',
-  },
+  // {
+  //   key: 'ui',
+  //   label: 'Base UI',
+  //   icon: LuPencilRuler,
+  //   children: [
+  //     {
+  //       key: 'accordions',
+  //       label: 'Accordions',
+  //       url: '/ui/accordions',
+  //     },
+  //     {
+  //       key: 'alerts',
+  //       label: 'Alerts',
+  //       url: '/ui/alerts',
+  //     },
+  //     {
+  //       key: 'images',
+  //       label: 'Images',
+  //       url: '/ui/images',
+  //     },
+  //     {
+  //       key: 'badges',
+  //       label: 'Badges',
+  //       url: '/ui/badges',
+  //     },
+  //     {
+  //       key: 'breadcrumb',
+  //       label: 'Breadcrumb',
+  //       url: '/ui/breadcrumb',
+  //     },
+  //     {
+  //       key: 'buttons',
+  //       label: 'Buttons',
+  //       url: '/ui/buttons',
+  //     },
+  //     {
+  //       key: 'cards',
+  //       label: 'Cards',
+  //       url: '/ui/cards',
+  //     },
+  //     {
+  //       key: 'carousel',
+  //       label: 'Carousel',
+  //       url: '/ui/carousel',
+  //     },
+  //     {
+  //       key: 'collapse',
+  //       label: 'Collapse',
+  //       url: '/ui/collapse',
+  //     },
+  //     {
+  //       key: 'colors',
+  //       label: 'Colors',
+  //       url: '/ui/colors',
+  //     },
+  //     {
+  //       key: 'dropdowns',
+  //       label: 'Dropdowns',
+  //       url: '/ui/dropdowns',
+  //     },
+  //     {
+  //       key: 'videos',
+  //       label: 'Videos',
+  //       url: '/ui/videos',
+  //     },
+  //     {
+  //       key: 'grid',
+  //       label: 'Grid Options',
+  //       url: '/ui/grid',
+  //     },
+  //     {
+  //       key: 'links',
+  //       label: 'Links',
+  //       url: '/ui/links',
+  //     },
+  //     {
+  //       key: 'list-group',
+  //       label: 'List Group',
+  //       url: '/ui/list-group',
+  //     },
+  //     {
+  //       key: 'modals',
+  //       label: 'Modals',
+  //       url: '/ui/modals',
+  //     },
+  //     {
+  //       key: 'notifications',
+  //       label: 'Notifications',
+  //       url: '/ui/notifications',
+  //     },
+  //     {
+  //       key: 'offcanvas',
+  //       label: 'Offcanvas',
+  //       url: '/ui/offcanvas',
+  //     },
+  //     {
+  //       key: 'placeholders',
+  //       label: 'Placeholders',
+  //       url: '/ui/placeholders',
+  //     },
+  //     {
+  //       key: 'pagination',
+  //       label: 'Pagination',
+  //       url: '/ui/pagination',
+  //     },
+  //     {
+  //       key: 'popovers',
+  //       label: 'Popovers',
+  //       url: '/ui/popovers',
+  //     },
+  //     {
+  //       key: 'progress',
+  //       label: 'Progress',
+  //       url: '/ui/progress',
+  //     },
+  //     {
+  //       key: 'spinners',
+  //       label: 'Spinners',
+  //       url: '/ui/spinners',
+  //     },
+  //     {
+  //       key: 'tabs',
+  //       label: 'Tabs',
+  //       url: '/ui/tabs',
+  //     },
+  //     {
+  //       key: 'tooltips',
+  //       label: 'Tooltips',
+  //       url: '/ui/tooltips',
+  //     },
+  //     {
+  //       key: 'typography',
+  //       label: 'Typography',
+  //       url: '/ui/typography',
+  //     },
+  //     {
+  //       key: 'utilities',
+  //       label: 'Utilities',
+  //       url: '/ui/utilities',
+  //     },
+  //   ],
+  // },
+  // {
+  //   key: 'miscellaneous',
+  //   label: 'Miscellaneous',
+  //   icon: LuHousePlug,
+  //   children: [
+  //     { key: 'nestable-list', label: 'Nestable List', url: '/miscellaneous/nestable-list' },
+  //     { key: 'pdf-viewer', label: 'PDF Viewer', url: '/miscellaneous/pdf-viewer' },
+  //     { key: 'sweet-alert', label: 'Sweet Alert', url: '/miscellaneous/sweet-alert' },
+  //     { key: 'password-meter', label: 'Password Meter', url: '/miscellaneous/password-meter' },
+  //     { key: 'clipboard', label: 'Clipboard', url: '/miscellaneous/clipboard' },
+  //     { key: 'tree-view', label: 'Tree View', url: '/miscellaneous/tree-view' },
+  //     { key: 'tour', label: 'Tour', url: '/miscellaneous/tour' },
+  //   ],
+  // },
+  // {
+  //   key: 'widgets',
+  //   label: 'Widgets',
+  //   icon: LuDessert,
+  //   url: '/widgets',
+  // },
   {
     key: 'charts',
     label: 'Charts',
@@ -603,203 +605,203 @@ export const menuItems: MenuItemType[] = [
       },
     ],
   },
-  {
-    key: 'forms',
-    label: 'Forms',
-    icon: LuFileInput,
-    children: [
-      {
-        key: 'form-basic-elements',
-        label: 'Basic Elements',
-        url: '/forms/basic',
-      },
-      {
-        key: 'form-pickers',
-        label: 'Pickers',
-        url: '/forms/pickers',
-      },
-      {
-        key: 'form-select',
-        label: 'Select',
-        url: '/forms/select',
-      },
-      {
-        key: 'form-validation',
-        label: 'Validation',
-        url: '/forms/validation',
-      },
-      {
-        key: 'form-wizard',
-        label: 'Wizard',
-        url: '/forms/wizard',
-      },
-      {
-        key: 'form-file-uploads',
-        label: 'File Uploads',
-        url: '/forms/file-uploads',
-      },
-      {
-        key: 'form-text-editors',
-        label: 'Text Editors',
-        url: '/forms/editors',
-      },
-      {
-        key: 'form-slider',
-        label: 'Slider',
-        url: '/forms/slider',
-      },
-      {
-        key: 'form-layouts',
-        label: 'Layouts',
-        url: '/forms/layouts',
-      },
-      {
-        key: 'form-other-plugins',
-        label: 'Other Plugins',
-        url: '/forms/other-plugins',
-      },
-    ],
-  },
-  {
-    key: 'tables',
-    label: 'Tables',
-    icon: LuTable,
-    children: [
-      {
-        key: 'static-tables',
-        label: 'Static Tables',
-        url: '/tables/static',
-      },
-      {
-        key: 'tanstack-tables',
-        label: 'Tanstack Tables',
-        url: '/tables/tanstack',
-      },
-      {
-        key: 'data-tables',
-        label: 'DataTables',
-        badge: { variant: 'success', text: '13' },
-        children: [
-          { key: 'data-tables-basic', label: 'Basic', url: '/tables/data-tables/basic' },
-          { key: 'data-tables-export-data', label: 'Export Data', url: '/tables/data-tables/export-data' },
-          { key: 'data-tables-select', label: 'Select', url: '/tables/data-tables/select' },
-          { key: 'data-tables-ajax', label: 'Ajax', url: '/tables/data-tables/ajax' },
-          {
-            key: 'data-tables-javascript-source',
-            label: 'Javascript Source',
-            url: '/tables/data-tables/javascript-source',
-          },
-          {
-            key: 'data-tables-data-rendering',
-            label: 'Data Rendering',
-            url: '/tables/data-tables/data-rendering',
-          },
-          { key: 'data-tables-scroll', label: 'Scroll', url: '/tables/data-tables/scroll' },
-          { key: 'data-tables-columns', label: 'Show & Hide Column', url: '/tables/data-tables/columns' },
-          { key: 'data-tables-child-rows', label: 'Child Rows', url: '/tables/data-tables/child-rows' },
-          {
-            key: 'data-tables-column-searching',
-            label: 'Column Searching',
-            url: '/tables/data-tables/column-searching',
-          },
-          {
-            key: 'data-tables-fixed-header',
-            label: 'Fixed Header',
-            url: '/tables/data-tables/fixed-header',
-          },
-          {
-            key: 'data-tables-add-rows',
-            label: 'Add Rows',
-            url: '/tables/data-tables/add-rows',
-          },
-          {
-            key: 'data-tables-checkbox-select',
-            label: 'Checkbox Select',
-            url: '/tables/data-tables/checkbox-select',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'icons',
-    label: 'Icons',
-    icon: LuSparkles,
-    children: [
-      {
-        key: 'tabler-icons',
-        label: 'Tabler',
-        url: '/icons/tabler',
-      },
-      {
-        key: 'lucide-icons',
-        label: 'Lucide',
-        url: '/icons/lucide',
-      },
-      {
-        key: 'flags',
-        label: 'Flags',
-        url: '/icons/flags',
-      },
-    ],
-  },
-  {
-    key: 'maps',
-    label: 'Maps',
-    icon: LuMapPinned,
-    children: [
-      {
-        key: 'vector-maps',
-        label: 'Vector Maps',
-        url: '/maps/vector',
-      },
-      {
-        key: 'leaflet-maps',
-        label: 'Leaflet Maps',
-        url: '/maps/leaflet',
-      },
-    ],
-  },
-  { key: 'items', label: 'Menu Items', isTitle: true },
-  {
-    key: 'menu-levels',
-    label: 'Menu Levels',
-    icon: LuListTree,
-    children: [
-      {
-        key: 'second-level',
-        label: 'Second Level',
-        children: [
-          { key: 'item-2-1', label: 'Item 2.1', url: '' },
-          { key: 'item-2-2', label: 'Item 2.2', url: '' },
-        ],
-      },
-      {
-        key: 'third-level',
-        label: 'Third Level',
-        children: [
-          { key: 'item-3-1', label: 'Item 1', url: '' },
-          {
-            key: 'fourth-level',
-            label: 'Item 2',
-            children: [
-              {
-                key: 'item-4-1',
-                label: 'Item 3.1',
-                url: '',
-              },
-              {
-                key: 'item-4-2',
-                label: 'Item 3.2',
-                url: '',
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  { key: 'disabled-menu', label: 'Disabled Menu', icon: LuEyeOff, url: '#!', isDisabled: true },
+  // {
+  //   key: 'forms',
+  //   label: 'Forms',
+  //   icon: LuFileInput,
+  //   children: [
+  //     {
+  //       key: 'form-basic-elements',
+  //       label: 'Basic Elements',
+  //       url: '/forms/basic',
+  //     },
+  //     {
+  //       key: 'form-pickers',
+  //       label: 'Pickers',
+  //       url: '/forms/pickers',
+  //     },
+  //     {
+  //       key: 'form-select',
+  //       label: 'Select',
+  //       url: '/forms/select',
+  //     },
+  //     {
+  //       key: 'form-validation',
+  //       label: 'Validation',
+  //       url: '/forms/validation',
+  //     },
+  //     {
+  //       key: 'form-wizard',
+  //       label: 'Wizard',
+  //       url: '/forms/wizard',
+  //     },
+  //     {
+  //       key: 'form-file-uploads',
+  //       label: 'File Uploads',
+  //       url: '/forms/file-uploads',
+  //     },
+  //     {
+  //       key: 'form-text-editors',
+  //       label: 'Text Editors',
+  //       url: '/forms/editors',
+  //     },
+  //     {
+  //       key: 'form-slider',
+  //       label: 'Slider',
+  //       url: '/forms/slider',
+  //     },
+  //     {
+  //       key: 'form-layouts',
+  //       label: 'Layouts',
+  //       url: '/forms/layouts',
+  //     },
+  //     {
+  //       key: 'form-other-plugins',
+  //       label: 'Other Plugins',
+  //       url: '/forms/other-plugins',
+  //     },
+  //   ],
+  // },
+  // {
+  //   key: 'tables',
+  //   label: 'Tables',
+  //   icon: LuTable,
+  //   children: [
+  //     {
+  //       key: 'static-tables',
+  //       label: 'Static Tables',
+  //       url: '/tables/static',
+  //     },
+  //     {
+  //       key: 'tanstack-tables',
+  //       label: 'Tanstack Tables',
+  //       url: '/tables/tanstack',
+  //     },
+  //     {
+  //       key: 'data-tables',
+  //       label: 'DataTables',
+  //       badge: { variant: 'success', text: '13' },
+  //       children: [
+  //         { key: 'data-tables-basic', label: 'Basic', url: '/tables/data-tables/basic' },
+  //         { key: 'data-tables-export-data', label: 'Export Data', url: '/tables/data-tables/export-data' },
+  //         { key: 'data-tables-select', label: 'Select', url: '/tables/data-tables/select' },
+  //         { key: 'data-tables-ajax', label: 'Ajax', url: '/tables/data-tables/ajax' },
+  //         {
+  //           key: 'data-tables-javascript-source',
+  //           label: 'Javascript Source',
+  //           url: '/tables/data-tables/javascript-source',
+  //         },
+  //         {
+  //           key: 'data-tables-data-rendering',
+  //           label: 'Data Rendering',
+  //           url: '/tables/data-tables/data-rendering',
+  //         },
+  //         { key: 'data-tables-scroll', label: 'Scroll', url: '/tables/data-tables/scroll' },
+  //         { key: 'data-tables-columns', label: 'Show & Hide Column', url: '/tables/data-tables/columns' },
+  //         { key: 'data-tables-child-rows', label: 'Child Rows', url: '/tables/data-tables/child-rows' },
+  //         {
+  //           key: 'data-tables-column-searching',
+  //           label: 'Column Searching',
+  //           url: '/tables/data-tables/column-searching',
+  //         },
+  //         {
+  //           key: 'data-tables-fixed-header',
+  //           label: 'Fixed Header',
+  //           url: '/tables/data-tables/fixed-header',
+  //         },
+  //         {
+  //           key: 'data-tables-add-rows',
+  //           label: 'Add Rows',
+  //           url: '/tables/data-tables/add-rows',
+  //         },
+  //         {
+  //           key: 'data-tables-checkbox-select',
+  //           label: 'Checkbox Select',
+  //           url: '/tables/data-tables/checkbox-select',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
+  // {
+  //   key: 'icons',
+  //   label: 'Icons',
+  //   icon: LuSparkles,
+  //   children: [
+  //     {
+  //       key: 'tabler-icons',
+  //       label: 'Tabler',
+  //       url: '/icons/tabler',
+  //     },
+  //     {
+  //       key: 'lucide-icons',
+  //       label: 'Lucide',
+  //       url: '/icons/lucide',
+  //     },
+  //     {
+  //       key: 'flags',
+  //       label: 'Flags',
+  //       url: '/icons/flags',
+  //     },
+  //   ],
+  // },
+  // {
+  //   key: 'maps',
+  //   label: 'Maps',
+  //   icon: LuMapPinned,
+  //   children: [
+  //     {
+  //       key: 'vector-maps',
+  //       label: 'Vector Maps',
+  //       url: '/maps/vector',
+  //     },
+  //     {
+  //       key: 'leaflet-maps',
+  //       label: 'Leaflet Maps',
+  //       url: '/maps/leaflet',
+  //     },
+  //   ],
+  // },
+  // { key: 'items', label: 'Menu Items', isTitle: true },
+  // {
+  //   key: 'menu-levels',
+  //   label: 'Menu Levels',
+  //   icon: LuListTree,
+  //   children: [
+  //     {
+  //       key: 'second-level',
+  //       label: 'Second Level',
+  //       children: [
+  //         { key: 'item-2-1', label: 'Item 2.1', url: '' },
+  //         { key: 'item-2-2', label: 'Item 2.2', url: '' },
+  //       ],
+  //     },
+  //     {
+  //       key: 'third-level',
+  //       label: 'Third Level',
+  //       children: [
+  //         { key: 'item-3-1', label: 'Item 1', url: '' },
+  //         {
+  //           key: 'fourth-level',
+  //           label: 'Item 2',
+  //           children: [
+  //             {
+  //               key: 'item-4-1',
+  //               label: 'Item 3.1',
+  //               url: '',
+  //             },
+  //             {
+  //               key: 'item-4-2',
+  //               label: 'Item 3.2',
+  //               url: '',
+  //             },
+  //           ],
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
+  // { key: 'disabled-menu', label: 'Disabled Menu', icon: LuEyeOff, url: '#!', isDisabled: true },
 ]
 
 export const horizontalMenuItems: MenuItemType[] = [
@@ -868,22 +870,22 @@ export const horizontalMenuItems: MenuItemType[] = [
           { key: 'email-templates', label: 'Email Templates', url: '/email-templates' },
         ],
       },
-      {
-        key: 'crm',
-        label: 'CRM',
-        icon: LuHandshake,
-        children: [
-          { key: 'crm-contacts', label: 'Contacts', url: '/crm/contacts' },
-          { key: 'crm-opportunities', label: 'Opportunities', url: '/crm/opportunities' },
-          { key: 'crm-deals', label: 'Deals', url: '/crm/deals' },
-          { key: 'crm-leads', label: 'Leads', url: '/crm/leads' },
-          { key: 'crm-campaign', label: 'Campaign', url: '/crm/campaign' },
-          { key: 'crm-proposals', label: 'Proposals', url: '/crm/proposals' },
-          { key: 'crm-estimations', label: 'Estimations', url: '/crm/estimations' },
-          { key: 'crm-customers', label: 'Customers', url: '/crm/customers' },
-          { key: 'crm-activities', label: 'Activities', url: '/crm/activities' },
-        ],
-      },
+      // {
+      //   key: 'crm',
+      //   label: 'CRM',
+      //   icon: LuHandshake,
+      //   children: [
+      //     { key: 'crm-contacts', label: 'Contacts', url: '/crm/contacts' },
+      //     { key: 'crm-opportunities', label: 'Opportunities', url: '/crm/opportunities' },
+      //     { key: 'crm-deals', label: 'Deals', url: '/crm/deals' },
+      //     { key: 'crm-leads', label: 'Leads', url: '/crm/leads' },
+      //     { key: 'crm-campaign', label: 'Campaign', url: '/crm/campaign' },
+      //     { key: 'crm-proposals', label: 'Proposals', url: '/crm/proposals' },
+      //     { key: 'crm-estimations', label: 'Estimations', url: '/crm/estimations' },
+      //     { key: 'crm-customers', label: 'Customers', url: '/crm/customers' },
+      //     { key: 'crm-activities', label: 'Activities', url: '/crm/activities' },
+      //   ],
+      // },
       {
         key: 'users',
         label: 'Users',

@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { Modal, Button, Row, Col, Form, Container, Card, Spinner } from 'react-bootstrap'
 import Flatpickr from 'react-flatpickr'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-
+import Swal, { SweetAlertOptions } from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
 // === CONSTANTES ===
 const POIDS_CAISSE = 30
 const WIBA_PAR_QFIZ = 16
@@ -118,7 +119,15 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
     poidsWiba,
     prixKg
   ])
+  const ReactSwal = withReactContent(Swal)
 
+  const showAlert = (options: SweetAlertOptions) => {
+    ReactSwal.fire({
+      buttonsStyling: false,
+      customClass: { confirmButton: 'btn btn-primary mt-2' },
+      ...options,
+    })
+  }
   // === CHANGEMENTS INPUT ===
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -161,7 +170,13 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
 
       if (!res.ok) throw new Error(await res.text())
       const created = await res.json()
-      alert('✅ Client ajouté avec succès')
+        showAlert({
+          icon: 'success',
+          text: 'client ajouté avec succées!',
+          showConfirmButton: false,
+          timer: 1500,
+          position: 'top-end',
+        })
       onAdded?.(created)
       onClientSaved?.()
       onHide()
