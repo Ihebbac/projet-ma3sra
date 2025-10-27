@@ -160,7 +160,7 @@ const EmployeCard = () => {
             <span className="badge bg-outline-primary">
               {sortedDates.length} jour{sortedDates.length > 1 ? 's' : ''}
             </span>
-            {sortedDates.length > 0 && <small className="text-muted">Dernier: {formatDate(sortedDates[0])}</small>}
+            {sortedDates.length > 0 && <small className="text-muted">Dernier: {formatDate(sortedDates[0]?.date)}</small>}
           </div>
         )
       },

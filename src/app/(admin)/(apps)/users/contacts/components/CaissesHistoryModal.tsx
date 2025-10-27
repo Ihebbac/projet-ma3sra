@@ -314,14 +314,14 @@ export default function CaissesHistoryModal({
             <Button variant="outline-primary" onClick={exportCsv}>
               Exporter CSV
             </Button>
-            <Button
+            {/* <Button
               variant="success"
               onClick={transferTotalToToday}
               disabled={transferDisabled}
               title={disabledReason || 'Transférer le total vers aujourd’hui'}
             >
               {transferLoading ? 'Transfert…' : 'Transférer le total vers aujourd’hui'}
-            </Button>
+            </Button> */}
           </div>
         </div>
 
