@@ -285,7 +285,7 @@ const EmployeCard = () => {
                 )}
               </div>
               <div className="d-flex gap-2 align-items-center">
-                <Form.Select
+                {/* <Form.Select
                   value={currentStatusFilter}
                   onChange={(e) => handleStatusFilterChange(e.target.value)}
                   className="form-select-sm"
@@ -296,7 +296,7 @@ const EmployeCard = () => {
                       {status.label}
                     </option>
                   ))}
-                </Form.Select>
+                </Form.Select> */}
                 <InputGroup style={{ maxWidth: '300px' }}>
                   <InputGroup.Text>
                     <LuSearch className="fs-lg" />
