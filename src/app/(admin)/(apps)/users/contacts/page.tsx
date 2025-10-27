@@ -15,7 +15,7 @@ import {
 import { Button, Card, CardFooter, CardHeader, Col, Container, Row, Badge, ButtonGroup } from 'react-bootstrap'
 import { LuSearch } from 'react-icons/lu'
 import { CgUnavailable } from 'react-icons/cg'
-import { TbEdit, TbEye, TbPlus, TbTrash, TbHistory } from 'react-icons/tb'
+import { TbEdit, TbEye, TbPlus, TbTrash, TbHistory, TbFileExport } from 'react-icons/tb'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
 
@@ -29,6 +29,7 @@ import CaisseViewModal from './components/CustomerModalViewDetail'
 import CaisseEditModal from './components/CustomerEditModal'
 import CaisseAddModal from './components/CustomerModal'
 import CaissesHistoryModal from './components/CaissesHistoryModal'
+import { exportToExcel, exportToPDF } from './components/exportUtils'
 
 type Caisse = {
   _id: string
@@ -61,7 +62,7 @@ const CustomersCard = () => {
   const [filteredData, setFilteredData] = useState<Caisse[]>([])
   const [globalFilter, setGlobalFilter] = useState('')
 
-  // ✅ Par défaut: on filtre sur AUJOURD’HUI
+  // ✅ Par défaut: on filtre sur AUJOURD'HUI
   const [selectedDates, setSelectedDates] = useState<Date[]>([new Date()])
 
   const [sorting, setSorting] = useState<SortingState>([])
@@ -89,7 +90,7 @@ const CustomersCard = () => {
         commentaire: String(c.commentaire ?? ''),
       }))
       setData(normalized)
-      // ⚠️ on ne force plus filteredData ici : c’est l’effet de filtre qui pilote
+      // ⚠️ on ne force plus filteredData ici : c'est l'effet de filtre qui pilote
     } catch (err) {
       console.error('Error fetching caisses:', err)
       setData([])
@@ -140,6 +141,58 @@ const CustomersCard = () => {
     setFilteredData(result)
     setPagination((p) => ({ ...p, pageIndex: 0 }))
   }, [globalFilter, selectedDates, data])
+
+  // Fonctions d'export
+  const handleExportPDF = useCallback(() => {
+    const exportData = filteredData.map((item) => ({
+      Motif: item.motif,
+      Montant: `${isCredit(item.type) ? '+' : '-'} ${fmtMoney(Math.abs(item.montant))} DT`,
+      Type: isCredit(item.type) ? 'Crédit' : 'Débit',
+      Date: formatDateDDMMYYYY(item.date),
+      Commentaire: item.commentaire,
+    }))
+
+    const totals = {
+      'Total Crédit': `${fmtMoney(filteredData.filter((it) => isCredit(it.type)).reduce((a, b) => a + (b.montant || 0), 0))} DT`,
+      'Total Débit': `${fmtMoney(filteredData.filter((it) => isDebit(it.type)).reduce((a, b) => a + (b.montant || 0), 0))} DT`,
+      'Total Net': `${filteredNet >= 0 ? '+' : '-'} ${fmtMoney(Math.abs(filteredNet))} DT`,
+    }
+
+    exportToPDF(
+      exportData,
+      'Rapport_Caisses',
+      `Caisses - ${
+        selectedDates.length === 1
+          ? formatDateDDMMYYYY(selectedDates[0].toISOString())
+          : selectedDates.length === 2
+            ? `${formatDateDDMMYYYY(selectedDates[0].toISOString())} à ${formatDateDDMMYYYY(selectedDates[1].toISOString())}`
+            : 'Toutes les dates'
+      }`,
+      totals,
+    )
+  }, [filteredData, selectedDates])
+
+  const handleExportExcel = useCallback(() => {
+    const exportData = filteredData.map((item) => ({
+      Motif: item.motif,
+      Montant: item.montant,
+      Type: isCredit(item.type) ? 'Crédit' : 'Débit',
+      Date: item.date ? new Date(item.date) : null,
+      Commentaire: item.commentaire,
+      Signe: isCredit(item.type) ? '+' : '-',
+    }))
+
+    const totals = [
+      {
+        Motif: 'TOTAUX',
+        'Total Crédit': filteredData.filter((it) => isCredit(it.type)).reduce((a, b) => a + (b.montant || 0), 0),
+        'Total Débit': filteredData.filter((it) => isDebit(it.type)).reduce((a, b) => a + (b.montant || 0), 0),
+        'Total Net': filteredNet,
+      },
+    ]
+
+    exportToExcel(exportData, 'Caisses', `Rapport_Caisses_${new Date().toISOString().split('T')[0]}`, totals)
+  }, [filteredData])
 
   const columns = useMemo(
     () => [
@@ -269,7 +322,7 @@ const CustomersCard = () => {
     const selectedRows = table.getSelectedRowModel().flatRows
     const idsToDelete = new Set<string>(selectedRows.map((r) => r.original._id))
 
-    // 🔒 API DELETE – décommente si ton backend l’expose:
+    // 🔒 API DELETE – décommente si ton backend l'expose:
     await Promise.all([...idsToDelete].map((id) => fetch(`http://localhost:8170/caisse/${id}`, { method: 'DELETE' }).catch(() => null)))
 
     setData((old) => old.filter((item) => !idsToDelete.has(item._id)))
@@ -277,7 +330,7 @@ const CustomersCard = () => {
     setShowDeleteModal(false)
   }
 
-  // Totaux du jour (basés sur date == aujourd’hui)
+  // Totaux du jour (basés sur date == aujourd'hui)
   const today = new Date()
   const todaysItems = data.filter((d) => (d.date ? sameDay(new Date(d.date), today) : false))
   const totalCreditToday = todaysItems.filter((it) => isCredit(it.type)).reduce((acc, it) => acc + (Number(it.montant) || 0), 0)
@@ -367,6 +420,16 @@ const CustomersCard = () => {
               </div>
 
               <div className="d-flex flex-wrap align-items-center gap-2">
+                {/* Boutons d'export */}
+                <ButtonGroup aria-label="Export buttons">
+                  <Button variant="outline-success" size="sm" onClick={handleExportExcel} title="Exporter en Excel">
+                    <TbFileExport className="me-1" /> Excel
+                  </Button>
+                  <Button variant="outline-danger" size="sm" onClick={handleExportPDF} title="Exporter en PDF">
+                    <TbFileExport className="me-1" /> PDF
+                  </Button>
+                </ButtonGroup>
+
                 <ButtonGroup aria-label="Quick ranges">
                   <Button variant="outline-dark" size="sm" onClick={() => applyQuickRange('today')}>
                     Aujourd'hui
