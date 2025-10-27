@@ -165,7 +165,7 @@ const CustomersCard = () => {
   // fetch clients
   const fetchClients = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:8170/clients')
+      const res = await fetch('http://192.168.1.15:8170/clients')
       if (!res.ok) throw new Error('Fetch clients failed')
       const json = await res.json()
       const normalized = json.map((c: any) => ({
@@ -275,6 +275,23 @@ const CustomersCard = () => {
     setPagination((p) => ({ ...p, pageIndex: 0 }))
   }, [globalFilter, selectedDates, data])
 
+
+  const today = new Date()
+  const isToday = (dateStr?: string | null) => {
+    if (!dateStr) return false
+    const d = new Date(dateStr)
+    return (
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    )
+  }
+
+  const clientsToday = data.filter((c) => isToday(c.dateCreation))
+  const clientsPayes = clientsToday.filter((c) => c.status === 'payé').length
+  const clientsNonPayes = clientsToday.filter((c) => c.status !== 'payé').length
+  const totalClientsToday = clientsToday.length
+  console.log("clientsToday,,clientsPayes,,clientsNonPayes,,totalClientsToday",clientsToday,clientsPayes,clientsNonPayes,totalClientsToday)
   // =========================================================================
   // CORRIGÉ: Fonction pour imprimer un ticket texte pour imprimante thermique
   // =========================================================================
@@ -477,7 +494,7 @@ const CustomersCard = () => {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   })
-
+console.log("data",data)
   const pageIndex = table.getState().pagination.pageIndex
   const pageSize = table.getState().pagination.pageSize
   const totalItems = filteredData.length
@@ -499,6 +516,30 @@ const CustomersCard = () => {
   return (
     <Container fluid>
       <PageBreadcrumb title="Clients" subtitle="CRM" />
+      
+      <Row className="g-3">
+        <Col xl={3} md={6}>
+          <Card className="h-100 text-center">
+            <CardHeader className="border-light">
+              <h6>Clients payés / total (Aujourd'hui)</h6>
+              <h4 className="mb-0 text-success">
+                {clientsPayes} / {totalClientsToday}
+              </h4>
+            </CardHeader>
+          </Card>
+        </Col>
+
+        <Col xl={3} md={6}>
+          <Card className="h-100 text-center">
+            <CardHeader className="border-light">
+              <h6>Clients non payés / total (Aujourd'hui)</h6>
+              <h4 className="mb-0 text-danger">
+                {clientsNonPayes} / {totalClientsToday}
+              </h4>
+            </CardHeader>
+          </Card>
+        </Col>
+      </Row>
       <Row>
         <Col xs={12}>
           <Card>
