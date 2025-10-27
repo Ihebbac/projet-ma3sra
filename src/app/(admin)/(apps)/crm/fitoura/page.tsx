@@ -23,6 +23,7 @@ import {
   Form,
   InputGroup,
   Dropdown,
+  Badge,
 } from 'react-bootstrap'
 import { LuSearch, LuGlobe } from 'react-icons/lu'
 import { TbEdit, TbEye, TbPlus, TbTrash, TbFileExport } from 'react-icons/tb'
@@ -144,7 +145,13 @@ const FitouraCard = () => {
       return newFilters
     })
   }, [selectedDates])
-
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`)
+  const formatDateDDMMYYYY = (value?: string | null) => {
+    if (!value) return '-'
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return String(value)
+    return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
+  }
   const dateFilterFn = (row: any, columnId: string, filterValue: { start: string; end: string }) => {
     const rowDate = row.getValue(columnId)
     if (!rowDate) return true
@@ -179,9 +186,21 @@ const FitouraCard = () => {
     },
     columnHelper.accessor('matriculeCamion', { header: 'Matricule Camion' }),
     columnHelper.accessor('chauffeur', { header: 'Chauffeur' }),
-    columnHelper.accessor('poidsEntree', { header: 'Poids Entrée (kg)' }),
-    columnHelper.accessor('poidsSortie', { header: 'Poids Sortie (kg)' }),
-    columnHelper.accessor('poidsNet', { header: 'Poids Net (kg)' }),
+    columnHelper.accessor('poidsEntree', { header: 'Poids Entrée (kg)',cell: (info) => (
+      <Badge bg="warning">
+        {info.getValue() != null ? info.getValue().toFixed(2) : 'N/A'}
+      </Badge>
+    ), }),
+    columnHelper.accessor('poidsSortie', { header: 'Poids Sortie (kg)',cell: (info) => (
+      <Badge bg="success">
+        {info.getValue() != null ? info.getValue().toFixed(2) : 'N/A'}
+      </Badge>
+    ), }),
+    columnHelper.accessor('poidsNet', { header: 'Poids Net (kg)',cell: (info) => (
+      <Badge bg="danger">
+        {info.getValue() != null ? info.getValue().toFixed(2) : 'N/A'}
+      </Badge>
+    ), }),
     columnHelper.accessor('prixUnitaire', { header: 'Prix Unitaire (DT/kg)' }),
     columnHelper.accessor('montantTotal', { header: 'Montant Total (DT)' }),
     columnHelper.accessor('status', {
@@ -202,7 +221,7 @@ const FitouraCard = () => {
     }),
     columnHelper.accessor('dateSortie', {
       header: 'Date Sortie',
-      filterFn: dateFilterFn,
+      cell: (info) => formatDateDDMMYYYY(info.getValue() as string) 
     }),
     {
       header: 'Actions',

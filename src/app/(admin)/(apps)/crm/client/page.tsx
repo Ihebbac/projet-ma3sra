@@ -20,7 +20,7 @@ import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter, TbCash, TbFileExport } from 
 // import jsPDF from 'jspdf' 
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
-
+import logo from '@/assets/images/logo.jpg'
 import DataTable from '@/components/table/DataTable'
 import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
 import TablePagination from '@/components/table/TablePagination'
@@ -73,80 +73,178 @@ const formatDateDDMMYYYY = (value?: string | null) => {
  * Generates the raw text content for a thermal printer ticket.
  * This is a minimal, plain text representation for fast printing.
  */
+// const generateThermalTicketContent = (customer: CustomerType): string => {
+//   const now = new Date()
+//   const ticketId = customer._id ?? 'TEMP_ID'
+// const now1 = customer.dateCreation
+//   const line = '--------------------------------' // 32 حرفًا لعرض 80 ملم
+//   const separator = '********************************'
+//   const tel = '+216 9X XXX XXX' // رقم هاتف مؤقت
+
+//   const content: string[] = []
+
+//   // --- الرأس ---
+
+//   content.push('      معصرة - بوشامة         ')
+//   content.push(line)
+//   content.push(`الرقم: ${ticketId.slice(-8).padEnd(14)}   السحب تاريخ:  ${formatDateDDMMYYYY(now.toISOString())}`)
+//   content.push(` التاريخ: ${formatDateDDMMYYYY(now1.toString())}`)
+//   content.push(`الوقت: ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`)
+//   content.push(line)
+
+//   // --- معلومات الزبون ---
+//   content.push('   :معلومات الزبون          ')
+
+//   content.push(`الاسم واللقب : ${customer.nomPrenom}`)
+//   content.push(`الهاتف: ${customer.numTelephone ?? '-'}`)
+//   content.push(line)
+
+//   // --- تفاصيل المعالجة ---
+//   content.push('   تفاصيل المعالجة        ')
+//   content.push(line)
+//   content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
+//   content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
+
+
+//   // --- ملخص الدفع (إذا كان مطبقًا) ---
+//   if (customer.prixFinal && customer.prixKg) {
+//     content.push('      ملخص الدفع             ')
+//     content.push(separator)
+//     content.push(`المبلغ الإجمالي (د.ت): ${customer.prixFinal.toFixed(2)}`)
+//     content.push(separator)
+ 
+//   }
+
+//   // --- خط القص ---
+//   content.push('')
+//   content.push('- - - - - - - - إيصال الزبون - - - - - - - -')
+//   content.push('')
+
+//   // --- إيصال الزبون ---
+
+
+//   content.push(`الزبون: ${customer.nomPrenom}`)
+//   content.push(`التاريخ: ${formatDateDDMMYYYY(now.toISOString())}`)
+//   content.push(line)
+//   content.push('   :ملحص المردودية             ')
+
+//   content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
+//   content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
+ 
+
+//   // --- المبلغ الواجب تسديده (إذا كان مطبقًا) ---
+//   if (customer.prixFinal) {
+//     content.push(separator)
+//     content.push(`الصافي الإجمالي (د.ت): ${customer.prixFinal.toFixed(2)}`)
+//     content.push(separator)
+//   }
+
+//   // --- التذييل ---
+//   content.push('')
+//   content.push(' هذا الإيصال هو دليل السحب الخاص بك')
+
+//   content.push('') // إضافة أسطر إضافية لقص الورق (قد تتطلب أوامر خاصة بالطابعة)
+
+//   return content.join('\n')
+// }
+const formatDateDDMMYYYY1 = (dateString: string): string => {
+  try {
+    const d = new Date(dateString);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    return 'DD/MM/YYYY';
+  }
+};
+const LINE_LENGTH = 32; // 32 caractères pour un affichage thermique de 80mm
+const LINE = '-'.repeat(LINE_LENGTH);
+const SEPARATOR = '*'.repeat(LINE_LENGTH);
+const TEL = '+216 9X XXX XXX'; // Numéro de téléphone temporaire
+const LOGO_PLACEHOLDER = '     🌿 معصرة - بوشامة 🌿      ';
 const generateThermalTicketContent = (customer: CustomerType): string => {
-  const now = new Date()
-  const ticketId = customer._id ?? 'TEMP_ID'
-const now1 = customer.dateCreation
-  const line = '--------------------------------' // 32 حرفًا لعرض 80 ملم
-  const separator = '********************************'
-  const tel = '+216 9X XXX XXX' // رقم هاتف مؤقت
+  const now = new Date();
+  const ticketId = customer._id ?? 'TEMP_ID';
+  const creationDate = customer.dateCreation;
+  
+  const content: string[] = [];
 
-  const content: string[] = []
+  // --- COPIE CLIENT ---
+  
+  // --- Section En-tête (Inspiré du Saphir Bleu) ---
+  content.push(   LOGO_PLACEHOLDER);
+  content.push('      مرحبا بكم -  معصرة بوشامة      ');
+  content.push(LINE);
+  content.push(`وصل رقم: ${ticketId.slice(-8).padStart(14)}   تاريخ: ${formatDateDDMMYYYY1(creationDate)}`);
+  content.push(`الوقت: ${new Date(creationDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+  content.push(`المستخرج: Caissier N°1             `); // Exemple d'opérateur
+  content.push(LINE);
 
-  // --- الرأس ---
+  // --- Informations Client ---
+  content.push('       :معلومات الزبون          ');
+  content.push(`الاسم: ${customer.nomPrenom}`);
+  content.push(`الهاتف: ${customer.numTelephone ?? '-'}`);
+  content.push(LINE);
 
-  content.push('      معصرة - بوشامة         ')
-  content.push(line)
-  content.push(`الرقم: ${ticketId.slice(-8).padEnd(14)}   السحب تاريخ:  ${formatDateDDMMYYYY(now.toISOString())}`)
-  content.push(` التاريخ: ${formatDateDDMMYYYY(now1.toString())}`)
-  content.push(`الوقت: ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`)
-  content.push(line)
-
-  // --- معلومات الزبون ---
-  content.push('   :معلومات الزبون          ')
-
-  content.push(`الاسم واللقب : ${customer.nomPrenom}`)
-  content.push(`الهاتف: ${customer.numTelephone ?? '-'}`)
-  content.push(line)
-
-  // --- تفاصيل المعالجة ---
-  content.push('   تفاصيل المعالجة        ')
-  content.push(line)
-  content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
-  content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
+  // --- Détails de la Prestation (Désignation / Montant) ---
+  
+  content.push(` ${customer.quantiteOliveNet?.toFixed(2).padEnd(5)}   زيتون صافي (كلغ)          `);
+  content.push(` ${customer.quantiteHuile?.toFixed(2).padEnd(5)}   زيت مستخرج (كلغ)          `);
+  
+  // --- Section Récapitulatif Huile ---
 
 
-  // --- ملخص الدفع (إذا كان مطبقًا) ---
   if (customer.prixFinal && customer.prixKg) {
-    content.push('      ملخص الدفع             ')
-    content.push(separator)
-    content.push(`المبلغ الإجمالي (د.ت): ${customer.prixFinal.toFixed(2)}`)
-    content.push(separator)
- 
+    content.push(SEPARATOR);
+    content.push(`المبلغ الإجمالي: **${customer.prixFinal.toFixed(2).padStart(10)} **د.ت`);
+    content.push(SEPARATOR);
+  } else {
+    content.push('         *معالجة مجانية*        ');
+    content.push(SEPARATOR);
   }
 
-  // --- خط القص ---
-  content.push('')
-  content.push('- - - - - - - - إيصال الزبون - - - - - - - -')
-  content.push('')
-
-  // --- إيصال الزبون ---
-
-
-  content.push(`الزبون: ${customer.nomPrenom}`)
-  content.push(`التاريخ: ${formatDateDDMMYYYY(now.toISOString())}`)
-  content.push(line)
-  content.push('   :ملحص المردودية             ')
-
-  content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
-  content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
+  // --- Pied de page Client ---
  
+  content.push('         شكرا لزيارتكم          ');
+  content.push(`         الهاتف: ${TEL}          `);
 
-  // --- المبلغ الواجب تسديده (إذا كان مطبقًا) ---
+
+  content.push('');
+
+
+  // --- Indicateur de Coupe et Séparation ---
+  content.push('-'.repeat(12) + ' [قص/Coupure] ' + '-'.repeat(8));
+  content.push('');
+
+
+
+  // --- COPIE CAISSE (Version Simplifiée pour la Caisse) ---
+
+  content.push(LOGO_PLACEHOLDER);
+  content.push(LINE);
+  content.push(`وصل رقم: ${ticketId.slice(-8).padStart(14)}   تاريخ: ${formatDateDDMMYYYY(now.toISOString())}`);
+  content.push(`الاسم: ${customer.nomPrenom}`);
+  content.push(LINE);
+
+  content.push('         :تفاصيل المعالجة            ');
+  content.push(`صافي الزيتون: ${customer.quantiteOliveNet?.toFixed(2).padStart(10)} كلغ`);
+  content.push(`زيت مستخرج: ${customer.quantiteHuile?.toFixed(2).padStart(10)} كلغ`);
+
+  
   if (customer.prixFinal) {
-    content.push(separator)
-    content.push(`الصافي الإجمالي (د.ت): ${customer.prixFinal.toFixed(2)}`)
-    content.push(separator)
+    content.push(SEPARATOR);
+    content.push(`المبلغ الإجمالي: ${customer.prixFinal.toFixed(3).padStart(10)} د.ت`);
+    content.push(SEPARATOR);
+  } else {
+     content.push('         ******       ');
   }
 
-  // --- التذييل ---
-  content.push('')
-  content.push(' هذا الإيصال هو دليل السحب الخاص بك')
+  content.push(''); // Lignes vides pour la coupe physique par l'imprimante
 
-  content.push('') // إضافة أسطر إضافية لقص الورق (قد تتطلب أوامر خاصة بالطابعة)
 
-  return content.join('\n')
-}
+  return content.join('\n');
+};
 
 const CustomersCard = () => {
   const [data, setData] = useState<CustomerType[]>([])
@@ -165,7 +263,7 @@ const CustomersCard = () => {
   // fetch clients
   const fetchClients = useCallback(async () => {
     try {
-      const res = await fetch('http://192.168.1.15:8170/clients')
+      const res = await fetch('http://192.168.1.14:8170/clients')
       if (!res.ok) throw new Error('Fetch clients failed')
       const json = await res.json()
       const normalized = json.map((c: any) => ({
