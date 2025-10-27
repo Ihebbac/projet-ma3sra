@@ -17,7 +17,7 @@ import { LuGlobe, LuSearch } from 'react-icons/lu'
 import { CgUnavailable } from 'react-icons/cg'
 import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter, TbCash, TbFileExport } from 'react-icons/tb'
 // NOTE: jsPDF is no longer needed for thermal print text
-// import jsPDF from 'jspdf' 
+// import jsPDF from 'jspdf'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
 
@@ -76,7 +76,7 @@ const formatDateDDMMYYYY = (value?: string | null) => {
 const generateThermalTicketContent = (customer: CustomerType): string => {
   const now = new Date()
   const ticketId = customer._id ?? 'TEMP_ID'
-const now1 = customer.dateCreation
+  const now1 = customer.dateCreation
   const line = '--------------------------------' // 32 حرفًا لعرض 80 ملم
   const separator = '********************************'
   const tel = '+216 9X XXX XXX' // رقم هاتف مؤقت
@@ -105,14 +105,12 @@ const now1 = customer.dateCreation
   content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
   content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
 
-
   // --- ملخص الدفع (إذا كان مطبقًا) ---
   if (customer.prixFinal && customer.prixKg) {
     content.push('      ملخص الدفع             ')
     content.push(separator)
     content.push(`المبلغ الإجمالي (د.ت): ${customer.prixFinal.toFixed(2)}`)
     content.push(separator)
- 
   }
 
   // --- خط القص ---
@@ -122,7 +120,6 @@ const now1 = customer.dateCreation
 
   // --- إيصال الزبون ---
 
-
   content.push(`الزبون: ${customer.nomPrenom}`)
   content.push(`التاريخ: ${formatDateDDMMYYYY(now.toISOString())}`)
   content.push(line)
@@ -130,7 +127,6 @@ const now1 = customer.dateCreation
 
   content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
   content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
- 
 
   // --- المبلغ الواجب تسديده (إذا كان مطبقًا) ---
   if (customer.prixFinal) {
@@ -161,11 +157,12 @@ const CustomersCard = () => {
   const [showModalDetail, setShowModalDetail] = useState(false)
   const [showModalEdit, setShowModalEdit] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showMultiDeleteModal, setShowMultiDeleteModal] = useState(false)
 
   // fetch clients
   const fetchClients = useCallback(async () => {
     try {
-      const res = await fetch('http://192.168.1.15:8170/clients')
+      const res = await fetch('http://localhost:8170/clients')
       if (!res.ok) throw new Error('Fetch clients failed')
       const json = await res.json()
       const normalized = json.map((c: any) => ({
@@ -275,23 +272,18 @@ const CustomersCard = () => {
     setPagination((p) => ({ ...p, pageIndex: 0 }))
   }, [globalFilter, selectedDates, data])
 
-
   const today = new Date()
   const isToday = (dateStr?: string | null) => {
     if (!dateStr) return false
     const d = new Date(dateStr)
-    return (
-      d.getDate() === today.getDate() &&
-      d.getMonth() === today.getMonth() &&
-      d.getFullYear() === today.getFullYear()
-    )
+    return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
   }
 
   const clientsToday = data.filter((c) => isToday(c.dateCreation))
   const clientsPayes = clientsToday.filter((c) => c.status === 'payé').length
   const clientsNonPayes = clientsToday.filter((c) => c.status !== 'payé').length
   const totalClientsToday = clientsToday.length
-  console.log("clientsToday,,clientsPayes,,clientsNonPayes,,totalClientsToday",clientsToday,clientsPayes,clientsNonPayes,totalClientsToday)
+  console.log('clientsToday,,clientsPayes,,clientsNonPayes,,totalClientsToday', clientsToday, clientsPayes, clientsNonPayes, totalClientsToday)
   // =========================================================================
   // CORRIGÉ: Fonction pour imprimer un ticket texte pour imprimante thermique
   // =========================================================================
@@ -373,50 +365,38 @@ const CustomersCard = () => {
       enableSorting: false,
       enableColumnFilter: false,
     },
-    columnHelper.accessor('nomPrenom', { 
-      header: 'Nom & Prénom', 
-      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> 
+    columnHelper.accessor('nomPrenom', {
+      header: 'Nom & Prénom',
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
     }),
-    columnHelper.accessor('nombreCaisses', { 
-      header: 'nombreCaisses', 
-      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> 
+    columnHelper.accessor('nombreCaisses', {
+      header: 'nombreCaisses',
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
     }),
-    columnHelper.accessor('quantiteOliveNet', { 
-      header: 'quantiteOliveNet', 
-      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> 
+    columnHelper.accessor('quantiteOliveNet', {
+      header: 'quantiteOliveNet',
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
     }),
-    columnHelper.accessor('quantiteHuile', { 
-      header: 'quantiteHuile', 
-      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5> 
+    columnHelper.accessor('quantiteHuile', {
+      header: 'quantiteHuile',
+      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
     }),
     columnHelper.accessor('kattou3', {
       header: 'kattou3',
-      cell: (info) => (
-        <Badge bg="warning">
-          {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
-        </Badge>
-      ),
+      cell: (info) => <Badge bg="warning">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
     }),
     columnHelper.accessor('nisbaReelle', {
       header: 'nisba %',
-      cell: (info) => (
-        <Badge bg="success">
-          {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
-        </Badge>
-      ),
+      cell: (info) => <Badge bg="success">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
     }),
     columnHelper.accessor('prixFinal', {
       header: 'prix Dinar',
-      cell: (info) => (
-        <Badge bg="secondary">
-          {info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}
-        </Badge>
-      ),
+      cell: (info) => <Badge bg="secondary">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
     }),
     columnHelper.accessor('numTelephone', { header: 'Téléphone' }),
-    columnHelper.accessor('dateCreation', { 
-      header: 'Date de création', 
-      cell: (info) => formatDateDDMMYYYY(info.getValue() as string) 
+    columnHelper.accessor('dateCreation', {
+      header: 'Date de création',
+      cell: (info) => formatDateDDMMYYYY(info.getValue() as string),
     }),
     columnHelper.accessor('type', {
       header: 'Type',
@@ -473,7 +453,7 @@ const CustomersCard = () => {
             size="sm"
             onClick={() => {
               setShowDeleteModal(true)
-              setSelectedRowIds({ [row.id]: true })
+              setSelectedRowIds({ [row.original._id]: true })
             }}>
             <TbTrash className="fs-lg" />
           </Button>
@@ -494,29 +474,39 @@ const CustomersCard = () => {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   })
-console.log("data",data)
+  console.log('data', data)
   const pageIndex = table.getState().pagination.pageIndex
   const pageSize = table.getState().pagination.pageSize
   const totalItems = filteredData.length
   const start = pageIndex * pageSize + 1
   const end = Math.min((pageIndex + 1) * pageSize, totalItems)
 
-  const handleDelete = () => {
-    const selectedIds = new Set(Object.keys(selectedRowIds))
-    
-    setData((old) => old.filter((_, idx) => !selectedIds.has(idx.toString())))
-    
+  const handleDelete = async () => {
+    const selectedIds = Object.keys(selectedRowIds)
+    await Promise.all(selectedIds.map((id) => fetch(`http://localhost:8170/clients/${id}`, { method: 'DELETE' })))
     setSelectedRowIds({})
     setShowDeleteModal(false)
+    setShowMultiDeleteModal(false)
+    await fetchClients() // Refresh data after deletion
+  }
+
+  const handleMultiDelete = () => {
+    const selectedCount = Object.keys(selectedRowIds).length
+    if (selectedCount === 0) {
+      alert('Veuillez sélectionner au moins un client à supprimer.')
+      return
+    }
+    setShowMultiDeleteModal(true)
   }
 
   // Utiliser selectedRows APRÈS l'initialisation de table
   const selectedRows = table.getSelectedRowModel().rows
+  const selectedCount = Object.keys(selectedRowIds).length
 
   return (
     <Container fluid>
       <PageBreadcrumb title="Clients" subtitle="CRM" />
-      
+
       <Row className="g-3">
         <Col xl={3} md={6}>
           <Card className="h-100 text-center">
@@ -549,6 +539,14 @@ console.log("data",data)
                   <TbPlus className="fs-lg" /> Ajouter un client
                 </Button>
                 <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} />
+
+                {/* Multi-delete button - only show when rows are selected */}
+                {selectedCount > 0 && (
+                  <Button variant="danger" onClick={handleMultiDelete}>
+                    <TbTrash className="fs-lg" /> Supprimer ({selectedCount})
+                  </Button>
+                )}
+
                 <Dropdown>
                   <Dropdown.Toggle variant="outline-secondary" id="dropdown-export-data">
                     <TbFileExport /> Exporter
@@ -601,12 +599,12 @@ console.log("data",data)
                     <span className="app-search">Filtrer:</span>
                     <Flatpickr
                       className="form-control"
-                      options={{ 
-                        mode: 'range', 
+                      options={{
+                        mode: 'range',
                         dateFormat: 'Y-m-d',
                         // Ajout pour éviter les problèmes d'hydratation
                         defaultDate: selectedDates,
-                        static: true
+                        static: true,
                       }}
                       value={selectedDates}
                       onChange={(dates: Date[]) => setSelectedDates(dates)}
@@ -638,6 +636,7 @@ console.log("data",data)
               />
             </CardFooter>
 
+            {/* Single Delete Confirmation Modal */}
             <DeleteConfirmationModal
               show={showDeleteModal}
               onHide={() => setShowDeleteModal(false)}
@@ -645,21 +644,21 @@ console.log("data",data)
               selectedCount={Object.keys(selectedRowIds).length}
               itemName="clients"
             />
+
+            {/* Multi Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+              show={showMultiDeleteModal}
+              onHide={() => setShowMultiDeleteModal(false)}
+              onConfirm={handleDelete}
+              selectedCount={selectedCount}
+              itemName="clients"
+            />
           </Card>
         </Col>
       </Row>
 
-      <CustomerModalViewDetail 
-        show={showModalDetail} 
-        onHide={() => setShowModalDetail(false)} 
-        customer={selectedCustomer} 
-      />
-      <CustomerEditModal 
-        show={showModalEdit} 
-        onHide={() => setShowModalEdit(false)} 
-        customer={selectedCustomer} 
-        onClientSaved={handleClientSaved} 
-      />
+      <CustomerModalViewDetail show={showModalDetail} onHide={() => setShowModalDetail(false)} customer={selectedCustomer} />
+      <CustomerEditModal show={showModalEdit} onHide={() => setShowModalEdit(false)} customer={selectedCustomer} onClientSaved={handleClientSaved} />
     </Container>
   )
 }
