@@ -102,13 +102,11 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
       })
 
       if (res.ok) {
-        setForm((prev) => ({
+        setForm((prev: any) => ({
           ...prev,
           joursPayes: [...prev.joursPayes, date],
         }))
-
-        const montantTotal =
-          toNumber(form.montantJournalier) + (heuresSup ? heuresSup * (form.montantJournalier / 8) * 1.25 : 0)
+        const montantTotal = toNumber(form.montantJournalier) + heuresSup * form.montantHeure
 
         const body = {
           motif: `Paiement Employé`,
@@ -175,13 +173,14 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Salaire Journalier (DT)</FormLabel>
-                <FormControl
-                  name="montantJournalier"
-                  type="number"
-                  value={form.montantJournalier}
-                  onChange={handleChange}
-                  required
-                />
+                <FormControl name="montantJournalier" type="number" value={form.montantJournalier} onChange={handleChange} required />
+              </FormGroup>
+            </Col>
+
+            <Col md={6}>
+              <FormGroup>
+                <FormLabel>Salaire Heure (DT)</FormLabel>
+                <FormControl name="montantHeure" type="number" value={form.montantHeure} onChange={handleChange} />
               </FormGroup>
             </Col>
 

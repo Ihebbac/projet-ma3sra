@@ -1,32 +1,33 @@
 'use client'
-import React, { useState } from "react";
-import { Modal, Button, Row, Col, Form, FormGroup, FormLabel, FormControl } from "react-bootstrap";
+import React, { useState } from 'react'
+import { Modal, Button, Row, Col, Form, FormGroup, FormLabel, FormControl } from 'react-bootstrap'
 
 type AddEmployeModalProps = {
-  show: boolean;
-  onHide: () => void;
-  onSubmit: (data: any) => void;
-};
+  show: boolean
+  onHide: () => void
+  onSubmit: (data: any) => void
+}
 
 const AddEmployeModal = ({ show, onHide, onSubmit }: AddEmployeModalProps) => {
   const [form, setForm] = useState({
-    nom: "",
-    prenom: "",
-    numTel: "",
-    poste: "",
+    nom: '',
+    prenom: '',
+    numTel: '',
+    poste: '',
+    montantHeure: null,
     montantJournalier: null,
-  });
+  })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: name === "salaireJournalier" ? parseFloat(value) : value }));
-  };
+    const { name, value } = e.target
+    setForm((prev) => ({ ...prev, [name]: name === 'salaireJournalier' ? parseFloat(value) : value }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
-    onHide();
-  };
+    e.preventDefault()
+    onSubmit(form)
+    onHide()
+  }
 
   return (
     <Modal show={show} onHide={onHide} size="lg">
@@ -63,25 +64,29 @@ const AddEmployeModal = ({ show, onHide, onSubmit }: AddEmployeModalProps) => {
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Salaire Journalier (DT)</FormLabel>
-                <FormControl
-                  name="montantJournalier"
-                  type="number"
-                  value={form.montantJournalier}
-                  onChange={handleChange}
-                  required
-                />
+                <FormControl name="montantJournalier" type="number" value={form.montantJournalier} onChange={handleChange} required />
               </FormGroup>
             </Col>
-            
+
+            <Col md={6}>
+              <FormGroup>
+                <FormLabel>Salaire Heure (DT)</FormLabel>
+                <FormControl name="montantHeure" type="number" value={form.montantHeure} onChange={handleChange} />
+              </FormGroup>
+            </Col>
           </Row>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="light" onClick={onHide}>Annuler</Button>
-          <Button type="submit" variant="primary">Ajouter</Button>
+          <Button variant="light" onClick={onHide}>
+            Annuler
+          </Button>
+          <Button type="submit" variant="primary">
+            Ajouter
+          </Button>
         </Modal.Footer>
       </Form>
     </Modal>
-  );
-};
+  )
+}
 
-export default AddEmployeModal;
+export default AddEmployeModal
