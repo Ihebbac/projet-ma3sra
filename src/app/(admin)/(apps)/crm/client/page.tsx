@@ -76,112 +76,113 @@ const formatDateDDMMYYYY = (value?: string | null) => {
 
 const formatDateDDMMYYYY1 = (dateString: string): string => {
   try {
-    const d = new Date(dateString);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    const d = new Date(dateString)
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    return `${day}/${month}/${year}`
   } catch (error) {
-    return 'DD/MM/YYYY';
+    return 'DD/MM/YYYY'
   }
-};
+}
 
-const LINE_LENGTH = 32;
-const LINE = '-'.repeat(LINE_LENGTH);
-const SEPARATOR = '*'.repeat(LINE_LENGTH);
-const TEL = '+216 9X XXX XXX';
-const LOGO_PLACEHOLDER = '     🌿 معصرة - بوشامة 🌿      ';
+const LINE_LENGTH = 32
+const LINE = '-'.repeat(LINE_LENGTH)
+const SEPARATOR = '*'.repeat(LINE_LENGTH)
+const TEL = '+216 9X XXX XXX'
+const LOGO_PLACEHOLDER = '     🌿 معصرة - بوشامة 🌿      '
 
 const generateThermalTicketContent = (customer: CustomerType): string => {
-  const ticketId = customer._id ?? 'TEMP_ID';
-  const creationDate = customer.dateCreation;
-  const content: string[] = [];
-  const W = 32;
+  const ticketId = customer._id ?? 'TEMP_ID'
+  const creationDate = customer.dateCreation
+  const content: string[] = []
+  const W = 32
 
-  const LINE = '-'.repeat(W);
-  const SEP = '*'.repeat(W);
+  const LINE = '-'.repeat(W)
+  const SEP = '*'.repeat(W)
 
   // Helper corrigé pour centrer (compte les caractères unicode correctement)
   const center = (text: string): string => {
-    const len = [...text].length; // Utilise spread pour compter correctement
-    const padding = Math.max(0, Math.floor((W - len) / 2));
-    return ' '.repeat(padding) + text;
-  };
+    const len = [...text].length // Utilise spread pour compter correctement
+    const padding = Math.max(0, Math.floor((W - len) / 2))
+    return ' '.repeat(padding) + text
+  }
 
   // Ligne bilingue optimisée
   const bi = (fr: string, ar: string): string => {
-    const frLen = [...fr].length;
-    const arLen = [...ar].length;
-    const total = frLen + arLen;
-    if (total >= W) return fr.slice(0, W);
-    return fr + ' '.repeat(W - total) + ar;
-  };
+    const frLen = [...fr].length
+    const arLen = [...ar].length
+    const total = frLen + arLen
+    if (total >= W) return fr.slice(0, W)
+    return fr + ' '.repeat(W - total) + ar
+  }
 
   // Données
-  const date = formatDateDDMMYYYY1(creationDate); 
-  const time = new Date(creationDate).toLocaleTimeString('fr-FR', { 
-    hour: '2-digit', minute: '2-digit' 
-  });
-  const num = `#${ticketId.slice(-6)}`;
-  const olive = customer.quantiteOliveNet?.toFixed(2) ?? '-';
-  const huile = customer.quantiteHuile?.toFixed(2) ?? '-';
-  const nom = customer.nomPrenom.slice(0, W);
-  const tel = (customer.numTelephone ?? '-');
+  const date = formatDateDDMMYYYY1(creationDate)
+  const time = new Date(creationDate).toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const num = `#${ticketId.slice(-6)}`
+  const olive = customer.quantiteOliveNet?.toFixed(2) ?? '-'
+  const huile = customer.quantiteHuile?.toFixed(2) ?? '-'
+  const nom = customer.nomPrenom.slice(0, W)
+  const tel = customer.numTelephone ?? '-'
 
   // === TICKET PRINCIPAL ===
-  content.push(center('معصرة بوشامة')); 
-  content.push(center('MAASSRA BOUCHAMA')); 
-  content.push(LINE);
-  content.push(`${num} ${date} ${time}`);
-  content.push(bi('Client', 'زبون'));
-  content.push(nom);
-  content.push(tel);
-  content.push(LINE);
-  content.push(bi(`Olive: ${olive} Kg`, 'زيتون'));
-  content.push(bi(`Huile: ${huile} Kg`, 'زيت'));
-  content.push(LINE);
+  content.push(center('معصرة بوشامة'))
+  content.push(center('MAASSRA BOUCHAMA'))
+  content.push(LINE)
+  content.push(`${num} ${date} ${time}`)
+  content.push(bi('Client', 'زبون'))
+  content.push(nom)
+  content.push(tel)
+  content.push(LINE)
+  content.push(bi(`Olive: ${olive} Kg`, 'زيتون'))
+  content.push(bi(`Huile: ${huile} Kg`, 'زيت'))
+  content.push(LINE)
 
   // Montant
   if (customer.prixFinal && customer.prixKg) {
-    content.push(SEP);
-    content.push(center(`${customer.prixFinal.toFixed(2)} D.T`));
-    content.push(SEP);
+    content.push(SEP)
+    content.push(center(`${customer.prixFinal.toFixed(2)} D.T`))
+    content.push(SEP)
   } else {
-    content.push(center('GRATUIT / مجاني'));
-    content.push(LINE);
+    content.push(center('GRATUIT / مجاني'))
+    content.push(LINE)
   }
 
-  content.push(center('شكرا - MERCI'));
-  content.push(center('+216 9X XXX XXX')); 
-  content.push(LINE);
-  
+  content.push(center('شكرا - MERCI'))
+  content.push(center('+216 9X XXX XXX'))
+  content.push(LINE)
+
   // === COPIE CLIENT ===
-  content.push(center('✂ CLIENT / زبون ✂'));
-  content.push(nom);
-  const mnt = customer.prixFinal ? `${customer.prixFinal.toFixed(2)} D.T` : 'Gratuit';
-  content.push(center(mnt));
-  content.push(LINE);
-  
-  // === COPIE CAISSE ===
-  content.push(center('✂ CAISSE / صندوق ✂'));
-  content.push(`${num} ${date}`);
-  content.push(nom);
-  content.push(`Olive: ${olive} Kg`);
-  
-  if (customer.prixFinal && customer.prixKg) {
-    const pk = customer.prixKg.toFixed(2);
-    content.push(`${pk} D.T/Kg x ${olive}`);
-    content.push(SEP);
-    content.push(center(`${customer.prixFinal.toFixed(2)} D.T`));
-    content.push(SEP);
-  } else {
-    content.push(center('GRATUIT'));
-  }
-  
-  content.push('');
+  content.push(center('✂ CLIENT / زبون ✂'))
+  content.push(nom)
+  const mnt = customer.prixFinal ? `${customer.prixFinal.toFixed(2)} D.T` : 'Gratuit'
+  content.push(center(mnt))
+  content.push(LINE)
 
-  return content.join('\n');
-};
+  // === COPIE CAISSE ===
+  content.push(center('✂ CAISSE / صندوق ✂'))
+  content.push(`${num} ${date}`)
+  content.push(nom)
+  content.push(`Olive: ${olive} Kg`)
+
+  if (customer.prixFinal && customer.prixKg) {
+    const pk = customer.prixKg.toFixed(2)
+    content.push(`${pk} D.T/Kg x ${olive}`)
+    content.push(SEP)
+    content.push(center(`${customer.prixFinal.toFixed(2)} D.T`))
+    content.push(SEP)
+  } else {
+    content.push(center('GRATUIT'))
+  }
+
+  content.push('')
+
+  return content.join('\n')
+}
 const CustomersCard = () => {
   const [data, setData] = useState<CustomerType[]>([])
   const [filteredData, setFilteredData] = useState<CustomerType[]>([])
@@ -201,63 +202,64 @@ const CustomersCard = () => {
 
   // Fonction pour calculer les statistiques quotidiennes
   const calculateDailyStats = useCallback((customers: CustomerType[], dateFilter: Date[] = []) => {
-    let clientsToCalculate = customers;
-    
+    let clientsToCalculate = customers
+
     // Appliquer le filtre de date si sélectionné
     if (dateFilter.length > 0) {
       if (dateFilter.length === 1) {
-        const d = dateFilter[0];
+        const d = dateFilter[0]
         clientsToCalculate = clientsToCalculate.filter((item) => {
-          if (!item.dateCreation) return false;
-          const dt = new Date(item.dateCreation);
-          return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() && dt.getDate() === d.getDate();
-        });
+          if (!item.dateCreation) return false
+          const dt = new Date(item.dateCreation)
+          return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() && dt.getDate() === d.getDate()
+        })
       } else if (dateFilter.length === 2) {
-        const start = dateFilter[0];
-        const end = dateFilter[1];
+        const start = dateFilter[0]
+        const end = dateFilter[1]
         clientsToCalculate = clientsToCalculate.filter((item) => {
-          if (!item.dateCreation) return false;
-          const dt = new Date(item.dateCreation);
-          return dt >= start && dt <= end;
-        });
+          if (!item.dateCreation) return false
+          const dt = new Date(item.dateCreation)
+          return dt >= start && dt <= end
+        })
       }
     }
 
-    const totalQuantiteHuile = clientsToCalculate.reduce((sum, client) => sum + (client.quantiteHuile || 0), 0);
-    const totalQuantiteOlive = clientsToCalculate.reduce((sum, client) => sum + (client.quantiteOliveNet || 0), 0);
-    const totalPrixFinal = clientsToCalculate.reduce((sum, client) => sum + (client.prixFinal || 0), 0);
-    const clientCount = clientsToCalculate.length;
-    const clientsPayes = clientsToCalculate.filter(client => client.status === 'payé').length;
-    const clientsNonPayes = clientCount - clientsPayes;
+    const totalQuantiteHuile = clientsToCalculate.reduce((sum, client) => sum + (client.quantiteHuile || 0), 0)
+    const totalQuantiteOlive = clientsToCalculate.reduce((sum, client) => sum + (client.quantiteOliveNet || 0), 0)
+    const totalPrixFinal = clientsToCalculate.reduce((sum, client) => sum + (client.prixFinal || 0), 0)
+    const clientCount = clientsToCalculate.length
+    const clientsPayes = clientsToCalculate.filter((client) => client.status === 'payé').length
+    const clientsNonPayes = clientCount - clientsPayes
     const totalPrixpayer = clientsToCalculate.reduce((sum, client) => {
       // S'assurer que sum est un nombre et que prixFinal existe
-      const prixFinal = client.prixFinal ?? 0;
-      
+      const prixFinal = client.prixFinal ?? 0
+
       // N'ajouter le prix que si le statut est 'payé'
       if (client.status === 'payé') {
-        return sum + prixFinal;
+        return sum + prixFinal
       }
-      
+
       // Retourner la somme actuelle si le statut n'est pas 'payé'
-      return sum;
-    }, 0); // L'initialisation à 0 est crucialeconsole.log('clientsPayes',clientsPayes)
+      return sum
+    }, 0) // L'initialisation à 0 est crucialeconsole.log('clientsPayes',clientsPayes)
     const totalPrixnonpayer = clientsToCalculate.reduce((sum, client) => {
       // S'assurer que sum est un nombre et que prixFinal existe
-      const prixFinal = client.prixFinal ?? 0;
-      
+      const prixFinal = client.prixFinal ?? 0
+
       // N'ajouter le prix que si le statut est 'payé'
       if (client.status != 'payé') {
-        return sum + prixFinal;
+        return sum + prixFinal
       }
-      
+
       // Retourner la somme actuelle si le statut n'est pas 'payé'
-      return sum;
-    }, 0); // L'initialisation à 0 est crucialeconsole.log('clientsPayes',clientsPayes)
-    const dateLabel = dateFilter.length === 0 
-      ? "Aujourd'hui" 
-      : dateFilter.length === 1 
-        ? `Le ${formatDateDDMMYYYY(dateFilter[0].toISOString())}`
-        : `Du ${formatDateDDMMYYYY(dateFilter[0].toISOString())} au ${formatDateDDMMYYYY(dateFilter[1].toISOString())}`;
+      return sum
+    }, 0) // L'initialisation à 0 est crucialeconsole.log('clientsPayes',clientsPayes)
+    const dateLabel =
+      dateFilter.length === 0
+        ? "Aujourd'hui"
+        : dateFilter.length === 1
+          ? `Le ${formatDateDDMMYYYY(dateFilter[0].toISOString())}`
+          : `Du ${formatDateDDMMYYYY(dateFilter[0].toISOString())} au ${formatDateDDMMYYYY(dateFilter[1].toISOString())}`
 
     return {
       date: dateLabel,
@@ -268,9 +270,9 @@ const CustomersCard = () => {
       clientsPayes,
       clientsNonPayes,
       totalPrixpayer,
-      totalPrixnonpayer
-    };
-  }, []);
+      totalPrixnonpayer,
+    }
+  }, [])
 
   // fetch clients
   const fetchClients = useCallback(async () => {
@@ -284,15 +286,15 @@ const CustomersCard = () => {
       }))
       setData(normalized)
       setFilteredData(normalized)
-      
+
       // Calculer les stats pour aujourd'hui par défaut
-      const todayStats = calculateDailyStats(normalized, []);
-      setDailyStats(todayStats);
+      const todayStats = calculateDailyStats(normalized, [])
+      setDailyStats(todayStats)
     } catch (err) {
       console.error('Error fetching clients:', err)
       setData([])
       setFilteredData([])
-      setDailyStats(null);
+      setDailyStats(null)
     }
   }, [calculateDailyStats])
 
@@ -303,10 +305,10 @@ const CustomersCard = () => {
   // Mettre à jour les stats quand les dates changent
   useEffect(() => {
     if (data.length > 0) {
-      const stats = calculateDailyStats(data, selectedDates);
-      setDailyStats(stats);
+      const stats = calculateDailyStats(data, selectedDates)
+      setDailyStats(stats)
     }
-  }, [selectedDates, data, calculateDailyStats]);
+  }, [selectedDates, data, calculateDailyStats])
 
   const handleClientSaved = async () => {
     await fetchClients()
@@ -335,9 +337,15 @@ const CustomersCard = () => {
         throw new Error('Erreur lors de la mise à jour du statut')
       }
 
-      if (customer.status !== 'payé') {
+      if (newStatus !== 'payé') {
+        await fetch(`http://localhost:8170/caisse/removeByUniqueId/${customer._id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      } else {
         const body = {
           motif: `Payment Client`,
+          uniqueId: customer._id,
           montant: customer.prixFinal,
           type: 'credit',
           date: new Date().toISOString(),
@@ -353,7 +361,6 @@ const CustomersCard = () => {
       }
 
       fetchClients()
-      alert(`Statut mis à jour : ${newStatus}`)
     } catch (error) {
       console.error('Erreur:', error)
       alert('Erreur lors du changement de statut')
@@ -607,7 +614,7 @@ const CustomersCard = () => {
 
   return (
     <Container fluid>
-      <PageBreadcrumb title="Clients"  />
+      <PageBreadcrumb title="Clients" />
 
       {/* Section Statistiques */}
       {showStats && dailyStats && (
@@ -655,43 +662,35 @@ const CustomersCard = () => {
 
       <Row className="justify-content-md-center">
         <Col xs>
-          
-            <Card className="border-light">
-              <h6>Clients payés / total (Aujourd'hui)</h6>
-              <h4 className="mb-0 text-success">
-                {dailyStats?.clientsPayes || 0} / {dailyStats?.clientCount || 0} = {dailyStats?.totalPrixpayer.toFixed(2)}DT
-              </h4>
-            </Card>
-       
+          <Card className="border-light">
+            <h6>Clients payés / total (Aujourd'hui)</h6>
+            <h4 className="mb-0 text-success">
+              {dailyStats?.clientsPayes || 0} / {dailyStats?.clientCount || 0} = {dailyStats?.totalPrixpayer.toFixed(2)}DT
+            </h4>
+          </Card>
         </Col>
 
         <Col xs>
-         
-            <Card className="border-light">
-              <h6>Clients non payés / total (Aujourd'hui)</h6>
-              <h4 className="mb-0 text-danger">
-                {dailyStats?.clientsNonPayes || 0} / {dailyStats?.clientCount || 0}= {dailyStats?.totalPrixnonpayer.toFixed(2)}DT
-              </h4>
-            </Card>
-         
+          <Card className="border-light">
+            <h6>Clients non payés / total (Aujourd'hui)</h6>
+            <h4 className="mb-0 text-danger">
+              {dailyStats?.clientsNonPayes || 0} / {dailyStats?.clientCount || 0}= {dailyStats?.totalPrixnonpayer.toFixed(2)}DT
+            </h4>
+          </Card>
         </Col>
 
         <Col xs>
-         
-            <Card className="border-light">
-              <h6>Quantité Huile (kg)</h6>
-              <h4 className="mb-0 text-primary">{dailyStats?.totalQuantiteHuile.toFixed(2) || '0.00'} KG</h4>
-            </Card>
-       
+          <Card className="border-light">
+            <h6>Quantité Huile (kg)</h6>
+            <h4 className="mb-0 text-primary">{dailyStats?.totalQuantiteHuile.toFixed(2) || '0.00'} KG</h4>
+          </Card>
         </Col>
 
         <Col xs>
-         
-            <Card className="border-light">
-              <h6>Total Paiements (DT)</h6>
-              <h4 className="mb-0 text-warning">{dailyStats?.totalPrixFinal.toFixed(2) || '0.00'} DT</h4>
-            </Card>
-         
+          <Card className="border-light">
+            <h6>Total Paiements (DT)</h6>
+            <h4 className="mb-0 text-warning">{dailyStats?.totalPrixFinal.toFixed(2) || '0.00'} DT</h4>
+          </Card>
         </Col>
       </Row>
 
@@ -701,7 +700,7 @@ const CustomersCard = () => {
             <CardHeader className="border-light d-flex flex-wrap justify-content-between align-items-center gap-2">
               <div className="d-flex gap-2 align-items-center">
                 <Button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                  <TbPlus className="fs-lg" /> Ajouter 
+                  <TbPlus className="fs-lg" /> Ajouter
                 </Button>
                 <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} />
 
