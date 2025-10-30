@@ -216,7 +216,7 @@ function useThemeColors() {
 // ===== Component =====
 export default function DashboardClient() {
   // Quick ranges
-  const [quick, setQuick] = useState<'all' | 'today' | 'month' | 'year'>('all')
+  const [quick, setQuick] = useState<'all' | 'today' | 'month' | 'year'>('month')
   const now = new Date()
   const todayISO = format(now, 'yyyy-MM-dd')
   const thisYear = now.getFullYear()
@@ -934,8 +934,8 @@ export default function DashboardClient() {
 
       <Row className="mt-3 g-3">
         <Col lg={4}>
-          <Card className="h-100">
-            <CardBody style={{ height: 300, position: 'relative' }}>
+          <Card className="h-200">
+            <CardBody style={{ height: 500, position: 'relative' }}>
               <h5 className="mb-3">Répartition clients</h5>
               <Doughnut
                 data={(() => {
