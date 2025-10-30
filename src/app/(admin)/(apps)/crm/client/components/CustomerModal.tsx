@@ -6,6 +6,7 @@ import Flatpickr from 'react-flatpickr'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import Swal, { SweetAlertOptions } from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
+
 // === CONSTANTES ===
 const POIDS_CAISSE = 30
 const WIBA_PAR_QFIZ = 16
@@ -29,21 +30,21 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
   const [openOlive, setOpenOlive] = useState(true)
   const [openHuile, setOpenHuile] = useState(true)
   const [loading, setLoading] = useState(false)
-  const [poidsWiba, setPoidsWiba] = useState<number>(27)
-  const [prixKg, setPrixKilo] = useState<number>(0) // 💵 Prix du kilo modifiable à tout moment
+  const [poidsWiba, setPoidsWiba] = useState<number>(POIDS_WIBA_DEFAUT)
+  const [prixKg, setPrixKilo] = useState<number>(0)
 
-  // Get today's date in YYYY-MM-DD format without timezone issues
   const getTodayDate = () => {
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   }
 
-  const [formValues, setFormValues] = useState({
+  // État initial du formulaire
+  const getInitialFormData = () => ({
     nomPrenom: '',
     prixKg: 0,
     numTelephone: '',
     type: '',
-    dateCreation: getTodayDate(), // Set today as default
+    dateCreation: getTodayDate(),
     nombreCaisses: 0,
     quantiteOlive: 0,
     quantiteHuile: 0,
@@ -58,6 +59,20 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
     huileParQfza: 0,
     prixFinal: 0,
   })
+
+  const [formValues, setFormValues] = useState(getInitialFormData())
+
+  // Reset complet quand le modal s'ouvre ou se ferme
+  useEffect(() => {
+    if (show) {
+      // Réinitialiser tous les états quand le modal s'ouvre
+      setFormValues(getInitialFormData())
+      setPoidsWiba(POIDS_WIBA_DEFAUT)
+      setPrixKilo(0)
+      setOpenOlive(true)
+      setOpenHuile(true)
+    }
+  }, [show])
 
   // === FORMULES ===
   const calculateNetQuantity = (olive: number, caisses: number) => Math.max(0, olive - caisses * POIDS_CAISSE)
@@ -138,12 +153,11 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
 
   const handleDateChange = (dates: Date[]) => {
     if (dates[0]) {
-      // Simple solution - use the date as selected without timezone conversion
       const date = new Date(dates[0])
       const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
-      setFormValues((p) => ({
-        ...p,
+      setFormValues((prev) => ({
+        ...prev,
         dateCreation: formattedDate,
       }))
     }
@@ -158,7 +172,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
         ...formValues,
         numTelephone: toNumber(formValues.numTelephone),
         prixKg: toNumber(formValues.prixKg),
-        dateCreation: formValues.dateCreation, // Already in YYYY-MM-DD format
+        dateCreation: formValues.dateCreation,
       }
 
       const res = await fetch('http://localhost:8170/clients', {
@@ -171,7 +185,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
       const created = await res.json()
       showAlert({
         icon: 'success',
-        text: 'client ajouté avec succées!',
+        text: 'Client ajouté avec succès!',
         showConfirmButton: false,
         timer: 1500,
         position: 'top-end',
@@ -181,7 +195,11 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
       onHide()
     } catch (err) {
       console.error(err)
-      alert('❌ Erreur : impossible d’ajouter le client')
+      showAlert({
+        icon: 'error',
+        text: 'Erreur : impossible d\'ajouter le client',
+        confirmButtonText: 'OK'
+      })
     } finally {
       setLoading(false)
     }
@@ -194,7 +212,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
     <Modal show={show} onHide={onHide} size="lg" centered>
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title> Ajouter un client</Modal.Title>
+          <Modal.Title>Ajouter un client</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
@@ -205,13 +223,23 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Nom & Prénom</Form.Label>
-                  <Form.Control name="nomPrenom" value={formValues.nomPrenom} onChange={handleChange} placeholder="Ex: Ahmed Trabelsi" />
+                  <Form.Control 
+                    name="nomPrenom" 
+                    value={formValues.nomPrenom} 
+                    onChange={handleChange} 
+                    placeholder="Ex: Ahmed Trabelsi" 
+                  />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Téléphone</Form.Label>
-                  <Form.Control name="numTelephone" value={formValues.numTelephone} onChange={handleChange} placeholder="Ex: 96 458 362" />
+                  <Form.Control 
+                    name="numTelephone" 
+                    value={formValues.numTelephone} 
+                    onChange={handleChange} 
+                    placeholder="Ex: 96 458 362" 
+                  />
                 </Form.Group>
               </Col>
               <Col md={6}>
@@ -254,20 +282,35 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nombre de caisses</Form.Label>
-                    <Form.Control type="number" name="nombreCaisses" value={formValues.nombreCaisses || ''} onChange={handleChange} />
+                    <Form.Control 
+                      type="number" 
+                      name="nombreCaisses" 
+                      value={formValues.nombreCaisses || ''} 
+                      onChange={handleChange} 
+                    />
                     <Form.Text className="text-muted">olive net = olive - (caisses × 30)</Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive (kg)</Form.Label>
-                    <Form.Control type="number" name="quantiteOlive" value={formValues.quantiteOlive || ''} onChange={handleChange} />
+                    <Form.Control 
+                      type="number" 
+                      name="quantiteOlive" 
+                      value={formValues.quantiteOlive || ''} 
+                      onChange={handleChange} 
+                    />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Quantité Olive(Net kg )الزيتون </Form.Label>
-                    <Form.Control type="number" name="quantiteOliveNet" value={format(formValues.quantiteOliveNet)} onChange={handleChange} />
+                    <Form.Label>Quantité Olive(Net kg) الزيتون</Form.Label>
+                    <Form.Control 
+                      type="number" 
+                      name="quantiteOliveNet" 
+                      value={format(formValues.quantiteOliveNet)} 
+                      readOnly 
+                    />
                   </Form.Group>
                 </Col>
               </Row>
@@ -286,40 +329,63 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
               <Row className="g-3 mb-3">
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Quantité Huile (NET kg) الزيت </Form.Label>
-                    <Form.Control type="number" name="quantiteHuile" value={formValues.quantiteHuile || ''} onChange={handleChange} />
+                    <Form.Label>Quantité Huile (NET kg) الزيت</Form.Label>
+                    <Form.Control 
+                      type="number" 
+                      name="quantiteHuile" 
+                      value={formValues.quantiteHuile || ''} 
+                      onChange={handleChange} 
+                    />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Nisba % (النسبة) </Form.Label>
-                    <Form.Control type="number" name="nisba" value={format(formValues.nisba)} onChange={handleChange} />
+                    <Form.Label>Nisba % (النسبة)</Form.Label>
+                    <Form.Control 
+                      type="number" 
+                      name="nisba" 
+                      value={format(formValues.nisba)} 
+                      readOnly 
+                    />
                     <Form.Text className="text-muted">= (huile / olive net) × 100</Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Ktou3(القطوع)</Form.Label>
-                    <Form.Control type="number" name="kattou3" value={format(formValues.kattou3)} onChange={handleChange} />
+                    <Form.Label>Ktou3 (القطوع)</Form.Label>
+                    <Form.Control 
+                      type="number" 
+                      name="kattou3" 
+                      value={format(formValues.kattou3)} 
+                      readOnly 
+                    />
                   </Form.Group>
                 </Col>
               </Row>
             )}
 
-            {/* --- Prix du kilo --- */}
+            {/* --- Prix du kilo et Wiba --- */}
             <Row className="g-3 mb-4">
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>💵 Prix du kilo (DT/kg)</Form.Label>
-                  <Form.Control type="number" value={prixKg} onChange={(e) => setPrixKilo(parseFloat(e.target.value) || 0)} />
-                  <Form.Text className="text-muted">Modifiable à tout moment. Le prix total est recalculé automatiquement.</Form.Text>
+                  <Form.Control 
+                    type="number" 
+                    value={prixKg} 
+                    onChange={(e) => setPrixKilo(parseFloat(e.target.value) || 0)} 
+                  />
+                  <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>🪣 Quantité Wiba (KG)</Form.Label>
-                  <Form.Control type="number" value={poidsWiba} onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || 0)} />
-                  <Form.Text className="text-muted">Modifiable à tout moment. La quantité total est recalculé automatiquement.</Form.Text>
+                  <Form.Control 
+                    type="number" 
+                    value={poidsWiba} 
+                    onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)} 
+                  />
+                  <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
                 </Form.Group>
               </Col>
             </Row>
@@ -329,7 +395,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
               <Row className="text-center">
                 <Col>
                   <h6>Nom et prénom</h6>
-                  <p className="fw-bold text-success">{formValues.nomPrenom}</p>
+                  <p className="fw-bold text-success">{formValues.nomPrenom || '-'}</p>
                 </Col>
                 <Col>
                   <h6>Olive Net</h6>

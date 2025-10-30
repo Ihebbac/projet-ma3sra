@@ -96,25 +96,25 @@ const Qteclient = () => {
     columnHelper.accessor('quantiteOlive', {
       header: 'Quantité Olive (kg)',
       cell: ({ row }) => (
-        <span>{row.original.quantiteOlive || 0}</span>
+        <span>{(row.original.quantiteOlive?.toFixed(2)) || 0}</span>
       ),
     }),
     columnHelper.accessor('quantiteHuile', {
       header: 'Quantité Huile (L)',
       cell: ({ row }) => (
-        <span>{row.original.quantiteHuile || 0}</span>
+        <span>{(row.original.quantiteHuile?.toFixed(2)) || 0}</span>
       ),
     }),
     columnHelper.accessor('kattou3', {
       header: 'Kattou3 (%)',
       cell: ({ row }) => (
-        <span>{row.original.kattou3 || 0}%</span>
+        <span>{(row.original.kattou3)?.toFixed(2) || 0}%</span>
       ),
     }),
     columnHelper.accessor('nisba', {
       header: 'Nisba (%)',
       cell: ({ row }) => (
-        <span>{row.original.nisba || 0}%</span>
+        <span>{(row.original.nisba)?.toFixed(2) || 0}%</span>
       ),
     }),
     columnHelper.accessor('dateCreation', {

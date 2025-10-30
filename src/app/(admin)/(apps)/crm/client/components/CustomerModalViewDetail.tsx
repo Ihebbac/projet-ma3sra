@@ -109,43 +109,31 @@ const CustomerModalViewDetail = ({ show, onHide, customer }: CustomerModalProps)
             </Card.Header>
             <Card.Body>
               <Row className="g-3">
-                <Col md={6} lg={4}>
+                <Col xs>
                   <div className="d-flex align-items-center p-3 bg-light rounded">
                     <div className="bg-primary rounded-circle p-2 me-3">
                       <User size={16} className="text-white" />
                     </div>
                     <div>
                       <small className="text-muted d-block">Nom & Prénom</small>
-                      <strong className="text-dark">{customer.nomPrenom}</strong>
+                      <h5 className="mb-0">{customer.nomPrenom}</h5>
                     </div>
                   </div>
                 </Col>
-{/*                 
-                <Col md={6} lg={4}>
-                  <div className="d-flex align-items-center p-3 bg-light rounded">
-                    <div className="bg-success rounded-circle p-2 me-3">
-                      <Hash size={16} className="text-white" />
-                    </div>
-                    <div>
-                      <small className="text-muted d-block">CIN</small>
-                      <strong className="text-dark">{customer.numCIN}</strong>
-                    </div>
-                  </div>
-                </Col>
-                 */}
-                <Col md={6} lg={4}>
+
+                <Col xs>
                   <div className="d-flex align-items-center p-3 bg-light rounded">
                     <div className="bg-info rounded-circle p-2 me-3">
                       <Phone size={16} className="text-white" />
                     </div>
                     <div>
                       <small className="text-muted d-block">Téléphone</small>
-                      <strong className="text-dark">{customer.numTelephone}</strong>
+                      <h5 className="mb-0">{customer.numTelephone}</h5>
                     </div>
                   </div>
                 </Col>
                 
-                <Col md={6} lg={4}>
+                <Col xs>
                   <div className="d-flex align-items-center p-3 bg-light rounded">
                     <div className="bg-warning rounded-circle p-2 me-3">
                       <Box size={16} className="text-white" />
@@ -159,14 +147,14 @@ const CustomerModalViewDetail = ({ show, onHide, customer }: CustomerModalProps)
                   </div>
                 </Col>
                 
-                <Col md={6} lg={4}>
+                <Col xs>
                   <div className="d-flex align-items-center p-3 bg-light rounded">
                     <div className="bg-secondary rounded-circle p-2 me-3">
                       <Calendar size={16} className="text-white" />
                     </div>
                     <div>
                       <small className="text-muted d-block">Date de Création</small>
-                      <strong className="text-dark">{formatDate(customer.dateCreation)}</strong>
+                      <h5 className="mb-0">{formatDate(customer.dateCreation)}</h5>
                     </div>
                   </div>
                 </Col>

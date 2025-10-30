@@ -12,12 +12,10 @@ import {
   Row as TableRow,
   Table as TableType,
 } from '@tanstack/react-table'
-import { Badge, Button, Card, CardFooter, CardHeader, Col, Container, Row, Dropdown } from 'react-bootstrap'
+import { Badge, Button, Card, CardFooter, CardHeader, Col, Container, Row, Dropdown, CardBody } from 'react-bootstrap'
 import { LuGlobe, LuSearch } from 'react-icons/lu'
 import { CgUnavailable } from 'react-icons/cg'
-import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter, TbCash, TbFileExport } from 'react-icons/tb'
-// NOTE: jsPDF is no longer needed for thermal print text
-// import jsPDF from 'jspdf'
+import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter, TbCash, TbFileExport, TbChartBar } from 'react-icons/tb'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
 import logo from '@/assets/images/logo.jpg'
@@ -54,6 +52,17 @@ type CustomerType = {
   status: 'payé' | 'non payé'
 }
 
+// Nouveau type pour les statistiques
+type DailyStatsType = {
+  date: string
+  totalQuantiteHuile: number
+  totalQuantiteOlive: number
+  totalPrixFinal: number
+  clientCount: number
+  clientsPayes: number
+  clientsNonPayes: number
+}
+
 const columnHelper = createColumnHelper<CustomerType>()
 
 // helper date format dd-mm-yyyy
@@ -65,88 +74,6 @@ const formatDateDDMMYYYY = (value?: string | null) => {
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
 }
 
-// Les constantes pour le ticket PDF (not used anymore)
-// const TICKET_WIDTH = 80 // mm
-// const MARGIN = 6 // mm
-
-/**
- * Generates the raw text content for a thermal printer ticket.
- * This is a minimal, plain text representation for fast printing.
- */
-// const generateThermalTicketContent = (customer: CustomerType): string => {
-//   const now = new Date()
-//   const ticketId = customer._id ?? 'TEMP_ID'
-// const now1 = customer.dateCreation
-//   const line = '--------------------------------' // 32 حرفًا لعرض 80 ملم
-//   const separator = '********************************'
-//   const tel = '+216 9X XXX XXX' // رقم هاتف مؤقت
-
-//   const content: string[] = []
-
-//   // --- الرأس ---
-
-//   content.push('      معصرة - بوشامة         ')
-//   content.push(line)
-//   content.push(`الرقم: ${ticketId.slice(-8).padEnd(14)}   السحب تاريخ:  ${formatDateDDMMYYYY(now.toISOString())}`)
-//   content.push(` التاريخ: ${formatDateDDMMYYYY(now1.toString())}`)
-//   content.push(`الوقت: ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`)
-//   content.push(line)
-
-//   // --- معلومات الزبون ---
-//   content.push('   :معلومات الزبون          ')
-
-//   content.push(`الاسم واللقب : ${customer.nomPrenom}`)
-//   content.push(`الهاتف: ${customer.numTelephone ?? '-'}`)
-//   content.push(line)
-
-//   // --- تفاصيل المعالجة ---
-//   content.push('   تفاصيل المعالجة        ')
-//   content.push(line)
-//   content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
-//   content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
-
-
-//   // --- ملخص الدفع (إذا كان مطبقًا) ---
-//   if (customer.prixFinal && customer.prixKg) {
-//     content.push('      ملخص الدفع             ')
-//     content.push(separator)
-//     content.push(`المبلغ الإجمالي (د.ت): ${customer.prixFinal.toFixed(2)}`)
-//     content.push(separator)
- 
-//   }
-
-//   // --- خط القص ---
-//   content.push('')
-//   content.push('- - - - - - - - إيصال الزبون - - - - - - - -')
-//   content.push('')
-
-//   // --- إيصال الزبون ---
-
-
-//   content.push(`الزبون: ${customer.nomPrenom}`)
-//   content.push(`التاريخ: ${formatDateDDMMYYYY(now.toISOString())}`)
-//   content.push(line)
-//   content.push('   :ملحص المردودية             ')
-
-//   content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
-//   content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
- 
-
-//   // --- المبلغ الواجب تسديده (إذا كان مطبقًا) ---
-//   if (customer.prixFinal) {
-//     content.push(separator)
-//     content.push(`الصافي الإجمالي (د.ت): ${customer.prixFinal.toFixed(2)}`)
-//     content.push(separator)
-//   }
-
-//   // --- التذييل ---
-//   content.push('')
-//   content.push(' هذا الإيصال هو دليل السحب الخاص بك')
-
-//   content.push('') // إضافة أسطر إضافية لقص الورق (قد تتطلب أوامر خاصة بالطابعة)
-
-//   return content.join('\n')
-// }
 const formatDateDDMMYYYY1 = (dateString: string): string => {
   try {
     const d = new Date(dateString);
@@ -158,121 +85,103 @@ const formatDateDDMMYYYY1 = (dateString: string): string => {
     return 'DD/MM/YYYY';
   }
 };
-const LINE_LENGTH = 32; // 32 caractères pour un affichage thermique de 80mm
+
+const LINE_LENGTH = 32;
 const LINE = '-'.repeat(LINE_LENGTH);
 const SEPARATOR = '*'.repeat(LINE_LENGTH);
-const TEL = '+216 9X XXX XXX'; // Numéro de téléphone temporaire
+const TEL = '+216 9X XXX XXX';
 const LOGO_PLACEHOLDER = '     🌿 معصرة - بوشامة 🌿      ';
+
 const generateThermalTicketContent = (customer: CustomerType): string => {
-  const now = new Date();
   const ticketId = customer._id ?? 'TEMP_ID';
   const creationDate = customer.dateCreation;
-  
   const content: string[] = [];
+  const W = 32;
 
-  const now1 = customer.dateCreation
-  const line = '--------------------------------' // 32 حرفًا لعرض 80 ملم
-  const separator = '********************************'
-  const tel = '+216 9X XXX XXX' // رقم هاتف مؤقت
+  const LINE = '-'.repeat(W);
+  const SEP = '*'.repeat(W);
 
-  // --- COPIE CLIENT ---
-  
-  // --- Section En-tête (Inspiré du Saphir Bleu) ---
-  content.push(   LOGO_PLACEHOLDER);
-  content.push('      مرحبا بكم -  معصرة بوشامة      ');
+  // Helper corrigé pour centrer (compte les caractères unicode correctement)
+  const center = (text: string): string => {
+    const len = [...text].length; // Utilise spread pour compter correctement
+    const padding = Math.max(0, Math.floor((W - len) / 2));
+    return ' '.repeat(padding) + text;
+  };
+
+  // Ligne bilingue optimisée
+  const bi = (fr: string, ar: string): string => {
+    const frLen = [...fr].length;
+    const arLen = [...ar].length;
+    const total = frLen + arLen;
+    if (total >= W) return fr.slice(0, W);
+    return fr + ' '.repeat(W - total) + ar;
+  };
+
+  // Données
+  const date = formatDateDDMMYYYY1(creationDate); 
+  const time = new Date(creationDate).toLocaleTimeString('fr-FR', { 
+    hour: '2-digit', minute: '2-digit' 
+  });
+  const num = `#${ticketId.slice(-6)}`;
+  const olive = customer.quantiteOliveNet?.toFixed(2) ?? '-';
+  const huile = customer.quantiteHuile?.toFixed(2) ?? '-';
+  const nom = customer.nomPrenom.slice(0, W);
+  const tel = (customer.numTelephone ?? '-');
+
+  // === TICKET PRINCIPAL ===
+  content.push(center('معصرة بوشامة')); 
+  content.push(center('MAASSRA BOUCHAMA')); 
   content.push(LINE);
-  content.push(`وصل رقم: ${ticketId.slice(-8).padStart(14)}   تاريخ: ${formatDateDDMMYYYY1(creationDate)}`);
-  content.push(`الوقت: ${new Date(creationDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
-  content.push(`المستخرج: Caissier N°1             `); // Exemple d'opérateur
+  content.push(`${num} ${date} ${time}`);
+  content.push(bi('Client', 'زبون'));
+  content.push(nom);
+  content.push(tel);
+  content.push(LINE);
+  content.push(bi(`Olive: ${olive} Kg`, 'زيتون'));
+  content.push(bi(`Huile: ${huile} Kg`, 'زيت'));
   content.push(LINE);
 
-  // --- Informations Client ---
-  content.push('       :معلومات الزبون          ');
-  content.push(`الاسم: ${customer.nomPrenom}`);
-  content.push(`الهاتف: ${customer.numTelephone ?? '-'}`);
-  content.push(LINE);
-
-  // --- Détails de la Prestation (Désignation / Montant) ---
-  
-  content.push(` ${customer.quantiteOliveNet?.toFixed(2).padEnd(5)}   زيتون صافي (كلغ)          `);
-  content.push(` ${customer.quantiteHuile?.toFixed(2).padEnd(5)}   زيت مستخرج (كلغ)          `);
-  
-  // --- Section Récapitulatif Huile ---
-
-
+  // Montant
   if (customer.prixFinal && customer.prixKg) {
-    content.push(SEPARATOR);
-    content.push(`المبلغ الإجمالي: **${customer.prixFinal.toFixed(2).padStart(10)} **د.ت`);
-    content.push(SEPARATOR);
+    content.push(SEP);
+    content.push(center(`${customer.prixFinal.toFixed(2)} D.T`));
+    content.push(SEP);
   } else {
-    content.push('         *معالجة مجانية*        ');
-    content.push(SEPARATOR);
+    content.push(center('GRATUIT / مجاني'));
+    content.push(LINE);
   }
 
-  // --- Pied de page Client ---
- 
-  content.push('         شكرا لزيارتكم          ');
-  content.push(`         الهاتف: ${TEL}          `);
-  // --- ملخص الدفع (إذا كان مطبقًا) ---
-  if (customer.prixFinal && customer.prixKg) {
-    content.push('      ملخص الدفع             ')
-    content.push(separator)
-    content.push(`المبلغ الإجمالي (د.ت): ${customer.prixFinal.toFixed(2)}`)
-    content.push(separator)
-  }
-
-  // --- خط القص ---
-  content.push('')
-  content.push('- - - - - - - - إيصال الزبون - - - - - - - -')
-  content.push('')
-
-  // --- إيصال الزبون ---
-
-  content.push(`الزبون: ${customer.nomPrenom}`)
-  content.push(`التاريخ: ${formatDateDDMMYYYY(now.toISOString())}`)
-  content.push(line)
-  content.push('   :ملحص المردودية             ')
-
-  content.push(`الزيتون الصافي (كلغ): ${customer.quantiteOliveNet?.toFixed(2) ?? '-'}`)
-  content.push(`الزيت المستخرج (كلغ): ${customer.quantiteHuile ?? '-'}`)
-
-
-  content.push('');
-
-
-  // --- Indicateur de Coupe et Séparation ---
-  content.push('-'.repeat(12) + ' [قص/Coupure] ' + '-'.repeat(8));
-  content.push('');
-
-
-
-  // --- COPIE CAISSE (Version Simplifiée pour la Caisse) ---
-
-  content.push(LOGO_PLACEHOLDER);
+  content.push(center('شكرا - MERCI'));
+  content.push(center('+216 9X XXX XXX')); 
   content.push(LINE);
-  content.push(`وصل رقم: ${ticketId.slice(-8).padStart(14)}   تاريخ: ${formatDateDDMMYYYY(now.toISOString())}`);
-  content.push(`الاسم: ${customer.nomPrenom}`);
-  content.push(LINE);
-
-  content.push('         :تفاصيل المعالجة            ');
-  content.push(`صافي الزيتون: ${customer.quantiteOliveNet?.toFixed(2).padStart(10)} كلغ`);
-  content.push(`زيت مستخرج: ${customer.quantiteHuile?.toFixed(2).padStart(10)} كلغ`);
-
   
-  if (customer.prixFinal) {
-    content.push(SEPARATOR);
-    content.push(`المبلغ الإجمالي: ${customer.prixFinal.toFixed(3).padStart(10)} د.ت`);
-    content.push(SEPARATOR);
+  // === COPIE CLIENT ===
+  content.push(center('✂ CLIENT / زبون ✂'));
+  content.push(nom);
+  const mnt = customer.prixFinal ? `${customer.prixFinal.toFixed(2)} D.T` : 'Gratuit';
+  content.push(center(mnt));
+  content.push(LINE);
+  
+  // === COPIE CAISSE ===
+  content.push(center('✂ CAISSE / صندوق ✂'));
+  content.push(`${num} ${date}`);
+  content.push(nom);
+  content.push(`Olive: ${olive} Kg`);
+  
+  if (customer.prixFinal && customer.prixKg) {
+    const pk = customer.prixKg.toFixed(2);
+    content.push(`${pk} D.T/Kg x ${olive}`);
+    content.push(SEP);
+    content.push(center(`${customer.prixFinal.toFixed(2)} D.T`));
+    content.push(SEP);
   } else {
-     content.push('         ******       ');
+    content.push(center('GRATUIT'));
   }
-
-  content.push(''); // Lignes vides pour la coupe physique par l'imprimante
-
+  
+  content.push('');
 
   return content.join('\n');
 };
-
 const CustomersCard = () => {
   const [data, setData] = useState<CustomerType[]>([])
   const [filteredData, setFilteredData] = useState<CustomerType[]>([])
@@ -287,11 +196,85 @@ const CustomersCard = () => {
   const [showModalEdit, setShowModalEdit] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showMultiDeleteModal, setShowMultiDeleteModal] = useState(false)
+  const [dailyStats, setDailyStats] = useState<DailyStatsType | null>(null)
+  const [showStats, setShowStats] = useState(false)
+
+  // Fonction pour calculer les statistiques quotidiennes
+  const calculateDailyStats = useCallback((customers: CustomerType[], dateFilter: Date[] = []) => {
+    let clientsToCalculate = customers;
+    
+    // Appliquer le filtre de date si sélectionné
+    if (dateFilter.length > 0) {
+      if (dateFilter.length === 1) {
+        const d = dateFilter[0];
+        clientsToCalculate = clientsToCalculate.filter((item) => {
+          if (!item.dateCreation) return false;
+          const dt = new Date(item.dateCreation);
+          return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() && dt.getDate() === d.getDate();
+        });
+      } else if (dateFilter.length === 2) {
+        const start = dateFilter[0];
+        const end = dateFilter[1];
+        clientsToCalculate = clientsToCalculate.filter((item) => {
+          if (!item.dateCreation) return false;
+          const dt = new Date(item.dateCreation);
+          return dt >= start && dt <= end;
+        });
+      }
+    }
+
+    const totalQuantiteHuile = clientsToCalculate.reduce((sum, client) => sum + (client.quantiteHuile || 0), 0);
+    const totalQuantiteOlive = clientsToCalculate.reduce((sum, client) => sum + (client.quantiteOliveNet || 0), 0);
+    const totalPrixFinal = clientsToCalculate.reduce((sum, client) => sum + (client.prixFinal || 0), 0);
+    const clientCount = clientsToCalculate.length;
+    const clientsPayes = clientsToCalculate.filter(client => client.status === 'payé').length;
+    const clientsNonPayes = clientCount - clientsPayes;
+    const totalPrixpayer = clientsToCalculate.reduce((sum, client) => {
+      // S'assurer que sum est un nombre et que prixFinal existe
+      const prixFinal = client.prixFinal ?? 0;
+      
+      // N'ajouter le prix que si le statut est 'payé'
+      if (client.status === 'payé') {
+        return sum + prixFinal;
+      }
+      
+      // Retourner la somme actuelle si le statut n'est pas 'payé'
+      return sum;
+    }, 0); // L'initialisation à 0 est crucialeconsole.log('clientsPayes',clientsPayes)
+    const totalPrixnonpayer = clientsToCalculate.reduce((sum, client) => {
+      // S'assurer que sum est un nombre et que prixFinal existe
+      const prixFinal = client.prixFinal ?? 0;
+      
+      // N'ajouter le prix que si le statut est 'payé'
+      if (client.status != 'payé') {
+        return sum + prixFinal;
+      }
+      
+      // Retourner la somme actuelle si le statut n'est pas 'payé'
+      return sum;
+    }, 0); // L'initialisation à 0 est crucialeconsole.log('clientsPayes',clientsPayes)
+    const dateLabel = dateFilter.length === 0 
+      ? "Aujourd'hui" 
+      : dateFilter.length === 1 
+        ? `Le ${formatDateDDMMYYYY(dateFilter[0].toISOString())}`
+        : `Du ${formatDateDDMMYYYY(dateFilter[0].toISOString())} au ${formatDateDDMMYYYY(dateFilter[1].toISOString())}`;
+
+    return {
+      date: dateLabel,
+      totalQuantiteHuile,
+      totalQuantiteOlive,
+      totalPrixFinal,
+      clientCount,
+      clientsPayes,
+      clientsNonPayes,
+      totalPrixpayer,
+      totalPrixnonpayer
+    };
+  }, []);
 
   // fetch clients
   const fetchClients = useCallback(async () => {
     try {
-  
       const res = await fetch('http://localhost:8170/clients')
       if (!res.ok) throw new Error('Fetch clients failed')
       const json = await res.json()
@@ -301,16 +284,29 @@ const CustomersCard = () => {
       }))
       setData(normalized)
       setFilteredData(normalized)
+      
+      // Calculer les stats pour aujourd'hui par défaut
+      const todayStats = calculateDailyStats(normalized, []);
+      setDailyStats(todayStats);
     } catch (err) {
       console.error('Error fetching clients:', err)
       setData([])
       setFilteredData([])
+      setDailyStats(null);
     }
-  }, [])
+  }, [calculateDailyStats])
 
   useEffect(() => {
     void fetchClients()
   }, [fetchClients])
+
+  // Mettre à jour les stats quand les dates changent
+  useEffect(() => {
+    if (data.length > 0) {
+      const stats = calculateDailyStats(data, selectedDates);
+      setDailyStats(stats);
+    }
+  }, [selectedDates, data, calculateDailyStats]);
 
   const handleClientSaved = async () => {
     await fetchClients()
@@ -356,10 +352,7 @@ const CustomersCard = () => {
         })
       }
 
-      // Recharger les données
       fetchClients()
-
-      // Message de confirmation
       alert(`Statut mis à jour : ${newStatus}`)
     } catch (error) {
       console.error('Erreur:', error)
@@ -367,7 +360,7 @@ const CustomersCard = () => {
     }
   }
 
-  // Filtrage global et par date (intervalle ou simple)
+  // Filtrage global et par date
   useEffect(() => {
     let result = [...data]
 
@@ -375,9 +368,9 @@ const CustomersCard = () => {
       const term = globalFilter.trim().toLowerCase()
       result = result.filter((item) => {
         const name = item.nomPrenom?.toLowerCase() ?? ''
-        const cin = String(item.numCIN ?? '')
+        const _id = item._id ?? ''
         const phone = String(item.numTelephone ?? '')
-        return name.includes(term) || cin.includes(term) || phone.includes(term)
+        return name.includes(term) || _id.includes(term) || phone.includes(term)
       })
     }
 
@@ -402,25 +395,9 @@ const CustomersCard = () => {
     setPagination((p) => ({ ...p, pageIndex: 0 }))
   }, [globalFilter, selectedDates, data])
 
-  const today = new Date()
-  const isToday = (dateStr?: string | null) => {
-    if (!dateStr) return false
-    const d = new Date(dateStr)
-    return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
-  }
-
-  const clientsToday = data.filter((c) => isToday(c.dateCreation))
-  const clientsPayes = clientsToday.filter((c) => c.status === 'payé').length
-  const clientsNonPayes = clientsToday.filter((c) => c.status !== 'payé').length
-  const totalClientsToday = clientsToday.length
-  console.log('clientsToday,,clientsPayes,,clientsNonPayes,,totalClientsToday', clientsToday, clientsPayes, clientsNonPayes, totalClientsToday)
-  // =========================================================================
-  // CORRIGÉ: Fonction pour imprimer un ticket texte pour imprimante thermique
-  // =========================================================================
   const handlePrintTicket = (customer: CustomerType) => {
     const ticketContent = generateThermalTicketContent(customer)
 
-    // Créer une fenêtre ou un iframe temporaire pour imprimer le contenu texte
     const printWindow = window.open('', '', 'height=400,width=600')
 
     if (!printWindow) {
@@ -428,28 +405,26 @@ const CustomersCard = () => {
       return
     }
 
-    // Le style est crucial pour l'impression thermique afin d'assurer
-    // que la mise en page à largeur fixe (monospace) est respectée.
     printWindow.document.write(`
       <html>
         <head>
           <title>Ticket Ma3sra</title>
           <style>
             @page {
-              size: 80mm auto; /* Spécifie une largeur de 80mm */
+              size: 80mm auto;
               margin: 0;
             }
             body {
-              font-family: 'Consolas', 'Courier New', monospace; /* Police monospace pour alignement fixe */
-              font-size: 9pt; /* Taille de police petite typique des tickets */
+              font-family: 'Consolas', 'Courier New', monospace;
+              font-size: 9pt;
               line-height: 1.2;
-              margin: 5mm; /* Petite marge sur le papier */
+              margin: 5mm;
             }
             pre {
                 margin: 0;
                 padding: 0;
-                white-space: pre-wrap; /* Permet le retour à la ligne si la ligne est trop longue */
-                word-wrap: break-word; /* Force le mot à se couper si nécessaire */
+                white-space: pre-wrap;
+                word-wrap: break-word;
             }
           </style>
         </head>
@@ -469,9 +444,6 @@ const CustomersCard = () => {
 
     printWindow.document.close()
   }
-  // =========================================================================
-  // FIN CORRECTION
-  // =========================================================================
 
   const columns = [
     {
@@ -559,7 +531,6 @@ const CustomersCard = () => {
             <TbEdit className="fs-lg" />
           </Button>
 
-          {/* Bouton compact avec statut */}
           <Button
             variant={row.original.status === 'payé' ? 'success' : 'danger'}
             size="sm"
@@ -603,8 +574,10 @@ const CustomersCard = () => {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+    enableRowSelection: true,
   })
-  console.log('data', data)
+
   const pageIndex = table.getState().pagination.pageIndex
   const pageSize = table.getState().pagination.pageSize
   const totalItems = filteredData.length
@@ -617,7 +590,7 @@ const CustomersCard = () => {
     setSelectedRowIds({})
     setShowDeleteModal(false)
     setShowMultiDeleteModal(false)
-    await fetchClients() // Refresh data after deletion
+    await fetchClients()
   }
 
   const handleMultiDelete = () => {
@@ -629,53 +602,118 @@ const CustomersCard = () => {
     setShowMultiDeleteModal(true)
   }
 
-  // Utiliser selectedRows APRÈS l'initialisation de table
   const selectedRows = table.getSelectedRowModel().rows
   const selectedCount = Object.keys(selectedRowIds).length
 
   return (
     <Container fluid>
-      <PageBreadcrumb title="Clients" subtitle="CRM" />
+      <PageBreadcrumb title="Clients"  />
 
-      <Row className="g-3">
-        <Col xl={3} md={6}>
-          <Card className="h-100 text-center">
-            <CardHeader className="border-light">
+      {/* Section Statistiques */}
+      {showStats && dailyStats && (
+        <Row className="mb-3">
+          <Col xs={12}>
+            <Card className="bg-light">
+              <CardHeader className="border-light d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">
+                  <TbChartBar className="me-2" />
+                  Statistiques {dailyStats.date}
+                </h5>
+                <Button variant="outline-secondary" size="sm" onClick={() => setShowStats(false)}>
+                  ×
+                </Button>
+              </CardHeader>
+              <CardBody className="border-light">
+                <Row className="text-center">
+                  <Col xs>
+                    <h6>Quantité Huile (kg)</h6>
+                    <h4 className="mb-0 text-primary">{dailyStats.totalQuantiteHuile.toFixed(2)}</h4>
+                  </Col>
+                  <Col xs>
+                    <h6>Quantité Olive Net (kg)</h6>
+                    <h4 className="mb-0 text-success">{dailyStats.totalQuantiteOlive.toFixed(2)}</h4>
+                  </Col>
+                  <Col xs>
+                    <h6>Total Paiements (DT)</h6>
+                    <h4 className="mb-0 text-warning">{dailyStats.totalPrixFinal.toFixed(2)}</h4>
+                  </Col>
+                  <Col xs>
+                    <h6>Total Clients</h6>
+                    <h4 className="mb-0 text-info">
+                      {dailyStats.clientsPayes} / {dailyStats.clientCount}
+                    </h4>
+                    <small className="text-muted">
+                      (Payés: {dailyStats.clientsPayes}, Non payés: {dailyStats.clientsNonPayes})
+                    </small>
+                  </Col>
+                </Row>
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      <Row className="justify-content-md-center">
+        <Col xs>
+          
+            <Card className="border-light">
               <h6>Clients payés / total (Aujourd'hui)</h6>
               <h4 className="mb-0 text-success">
-                {clientsPayes} / {totalClientsToday}
+                {dailyStats?.clientsPayes || 0} / {dailyStats?.clientCount || 0} = {dailyStats?.totalPrixpayer.toFixed(2)}DT
               </h4>
-            </CardHeader>
-          </Card>
+            </Card>
+       
         </Col>
 
-        <Col xl={3} md={6}>
-          <Card className="h-100 text-center">
-            <CardHeader className="border-light">
+        <Col xs>
+         
+            <Card className="border-light">
               <h6>Clients non payés / total (Aujourd'hui)</h6>
               <h4 className="mb-0 text-danger">
-                {clientsNonPayes} / {totalClientsToday}
+                {dailyStats?.clientsNonPayes || 0} / {dailyStats?.clientCount || 0}= {dailyStats?.totalPrixnonpayer.toFixed(2)}DT
               </h4>
-            </CardHeader>
-          </Card>
+            </Card>
+         
+        </Col>
+
+        <Col xs>
+         
+            <Card className="border-light">
+              <h6>Quantité Huile (kg)</h6>
+              <h4 className="mb-0 text-primary">{dailyStats?.totalQuantiteHuile.toFixed(2) || '0.00'} KG</h4>
+            </Card>
+       
+        </Col>
+
+        <Col xs>
+         
+            <Card className="border-light">
+              <h6>Total Paiements (DT)</h6>
+              <h4 className="mb-0 text-warning">{dailyStats?.totalPrixFinal.toFixed(2) || '0.00'} DT</h4>
+            </Card>
+         
         </Col>
       </Row>
+
       <Row>
         <Col xs={12}>
           <Card>
             <CardHeader className="border-light d-flex flex-wrap justify-content-between align-items-center gap-2">
               <div className="d-flex gap-2 align-items-center">
                 <Button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                  <TbPlus className="fs-lg" /> Ajouter un client
+                  <TbPlus className="fs-lg" /> Ajouter 
                 </Button>
                 <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} />
 
-                {/* Multi-delete button - only show when rows are selected */}
                 {selectedCount > 0 && (
                   <Button variant="danger" onClick={handleMultiDelete}>
                     <TbTrash className="fs-lg" /> Supprimer ({selectedCount})
                   </Button>
                 )}
+
+                <Button variant="info" onClick={() => setShowStats(!showStats)}>
+                  <TbChartBar className="fs-lg" /> Statistiques
+                </Button>
 
                 <Dropdown>
                   <Dropdown.Toggle variant="outline-secondary" id="dropdown-export-data">
@@ -732,7 +770,6 @@ const CustomersCard = () => {
                       options={{
                         mode: 'range',
                         dateFormat: 'Y-m-d',
-                        // Ajout pour éviter les problèmes d'hydratation
                         defaultDate: selectedDates,
                         static: true,
                       }}
@@ -766,7 +803,6 @@ const CustomersCard = () => {
               />
             </CardFooter>
 
-            {/* Single Delete Confirmation Modal */}
             <DeleteConfirmationModal
               show={showDeleteModal}
               onHide={() => setShowDeleteModal(false)}
@@ -775,7 +811,6 @@ const CustomersCard = () => {
               itemName="clients"
             />
 
-            {/* Multi Delete Confirmation Modal */}
             <DeleteConfirmationModal
               show={showMultiDeleteModal}
               onHide={() => setShowMultiDeleteModal(false)}

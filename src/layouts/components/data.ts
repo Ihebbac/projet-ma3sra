@@ -61,35 +61,35 @@ type UserDropdownItemType = {
 }
 
 export const userDropdownItems: UserDropdownItemType[] = [
-  {
-    label: 'Welcome back!',
-    isHeader: true,
-  },
-  {
-    label: 'Profile',
-    icon: TbUserCircle,
-    url: '/users/profile',
-  },
-  {
-    label: 'Notifications',
-    icon: TbBellRinging,
-    url: '#',
-  },
+  // {
+  //   label: 'Welcome back!',
+  //   isHeader: true,
+  // },
+  // {
+  //   label: 'Profile',
+  //   icon: TbUserCircle,
+  //   url: '/users/profile',
+  // },
+  // {
+  //   label: 'Notifications',
+  //   icon: TbBellRinging,
+  //   url: '#',
+  // },
   {
     label: 'Balance: $985.25',
     icon: TbCreditCard,
     url: '#',
   },
-  {
-    label: 'Account Settings',
-    icon: TbSettings2,
-    url: '#',
-  },
-  {
-    label: 'Support Center',
-    icon: TbHeadset,
-    url: '#',
-  },
+  // {
+  //   label: 'Account Settings',
+  //   icon: TbSettings2,
+  //   url: '#',
+  // },
+  // {
+  //   label: 'Support Center',
+  //   icon: TbHeadset,
+  //   url: '#',
+  // },
   {
     isDivider: true,
   },
@@ -214,7 +214,7 @@ export const menuItems: MenuItemType[] = [
     label: 'Users',
     icon: TbUsers,
     children: [
-      { key: 'contacts', label: 'Contacts', url: '/users/contacts' },
+      // { key: 'contacts', label: 'Contacts', url: '/users/contacts' },
       { key: 'profile', label: 'Profile', url: '/users/profile' },
       { key: 'roles', label: 'Roles', url: '/users/roles' },
       { key: 'roles-details', label: 'Roles Details', url: '/users/roles-details' },

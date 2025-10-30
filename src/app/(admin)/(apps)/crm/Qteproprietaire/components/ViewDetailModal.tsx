@@ -35,11 +35,11 @@ const ViewDetailModal = ({ show, toggleModal, data }: ViewDetailModalProps) => {
             </tr>
             <tr>
               <td className="fw-semibold">Kattou3</td>
-              <td>{data.kattou3 || 0} %</td>
+              <td>{(data.kattou3).toFixed(2) || 0} %</td>
             </tr>
             <tr>
               <td className="fw-semibold">Nisba</td>
-              <td>{data.nisba || 0} %</td>
+              <td>{(data.nisba).toFixed(2) || 0} %</td>
             </tr>
             <tr>
               <td className="fw-semibold">Date création</td>

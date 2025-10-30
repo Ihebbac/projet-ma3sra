@@ -14,7 +14,7 @@ const UserProfile = () => {
         <DropdownToggle as={'a'} className="topbar-link dropdown-toggle drop-arrow-none px-2">
           <Image src={user3.src} width="32" height="32" className="rounded-circle me-lg-2 d-flex" alt="user-image" />
           <div className="d-lg-flex align-items-center gap-1 d-none">
-            <h5 className="my-0">Geneva</h5>
+            <h5 className="my-0">Caissier 1</h5>
             <TbChevronDown className="align-middle" />
           </div>
         </DropdownToggle>

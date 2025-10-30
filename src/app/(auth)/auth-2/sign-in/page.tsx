@@ -135,20 +135,20 @@ const Page = () => {
                 <AppLogo />
               </div>
               <div className="mt-auto">
-                <p className="text-muted text-center auth-sub-text mx-auto">Let’s get you signed in. Enter your email and password to continue.</p>
+                <p className="text-muted text-center auth-sub-text mx-auto">Connectez-vous. Saisissez votre email et mot de passe pour continuer.</p>
                 <form className="mt-4">
                   <div className="mb-3">
                     <label htmlFor="userEmail" className="form-label">
-                      Email address <span className="text-danger">*</span>
+                      Adresse email <span className="text-danger">*</span>
                     </label>
                     <div className="app-search">
-                      <FormControl type="email" id="userEmail" placeholder="you@example.com" required />
+                      <FormControl type="email" id="userEmail" placeholder="vous@exemple.com" required />
                       <LuCircleUser className="app-search-icon text-muted" />
                     </div>
                   </div>
                   <div className="mb-3">
                     <label htmlFor="userPassword" className="form-label">
-                      Password <span className="text-danger">*</span>
+                      Mot de passe <span className="text-danger">*</span>
                     </label>
                     <div className="app-search">
                       <FormControl type="password" id="userPassword" placeholder="••••••••" required />
@@ -159,28 +159,28 @@ const Page = () => {
                     <div className="form-check">
                       <input className="form-check-input form-check-input-light fs-14" type="checkbox" defaultChecked id="rememberMe" />
                       <label className="form-check-label" htmlFor="rememberMe">
-                        Keep me signed in
+                        Rester connecté
                       </label>
                     </div>
                     <Link href="/auth-2/reset-pass" className="text-decoration-underline link-offset-3 text-muted">
-                      Forgot Password?
+                      Mot de passe oublié ?
                     </Link>
                   </div>
                   <div className="d-grid">
                     <button type="submit" className="btn btn-primary fw-bold py-2">
-                      Sign In
+                      Se connecter
                     </button>
                   </div>
                 </form>
               </div>
               <p className="text-muted text-center mt-4 mb-0">
-                New here?{' '}
+                Nouveau ici ?{' '}
                 <Link href="/auth-2/sign-up" className="text-decoration-underline link-offset-3 fw-semibold">
-                  Create an account
+                  Créer un compte
                 </Link>
               </p>
               <p className="text-center text-muted mt-auto mb-0">
-                © {currentYear} {appName} — by <span className="fw-semibold">{author}</span>
+                © {currentYear} {appName} 
               </p>
             </CardBody>
           </Card>
