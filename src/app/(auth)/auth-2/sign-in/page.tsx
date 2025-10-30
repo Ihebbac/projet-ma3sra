@@ -133,9 +133,11 @@ const Page = () => {
             <CardBody className="min-vh-100 d-flex flex-column justify-content-center">
               <div className="auth-brand mb-0 text-center">
                 <AppLogo />
+                {/* <h1>معصرة زيتون بوشامة</h1> */}
               </div>
               <div className="mt-auto">
-                <p className="text-muted text-center auth-sub-text mx-auto">Connectez-vous. Saisissez votre email et mot de passe pour continuer.</p>
+              <h1>معصرة زيتون بوشامة</h1>
+                {/* <p className="text-muted text-center auth-sub-text mx-auto">Connectez-vous. Saisissez votre email et mot de passe pour continuer.</p> */}
                 <form className="mt-4">
                   <div className="mb-3">
                     <label htmlFor="userEmail" className="form-label">
@@ -156,15 +158,15 @@ const Page = () => {
                     </div>
                   </div>
                   <div className="d-flex justify-content-between align-items-center mb-3">
-                    <div className="form-check">
+                    {/* <div className="form-check">
                       <input className="form-check-input form-check-input-light fs-14" type="checkbox" defaultChecked id="rememberMe" />
                       <label className="form-check-label" htmlFor="rememberMe">
                         Rester connecté
                       </label>
-                    </div>
-                    <Link href="/auth-2/reset-pass" className="text-decoration-underline link-offset-3 text-muted">
+                    </div> */}
+                    {/* <Link href="/auth-2/reset-pass" className="text-decoration-underline link-offset-3 text-muted">
                       Mot de passe oublié ?
-                    </Link>
+                    </Link> */}
                   </div>
                   <div className="d-grid">
                     <button type="submit" className="btn btn-primary fw-bold py-2">
@@ -173,12 +175,12 @@ const Page = () => {
                   </div>
                 </form>
               </div>
-              <p className="text-muted text-center mt-4 mb-0">
+              {/* <p className="text-muted text-center mt-4 mb-0">
                 Nouveau ici ?{' '}
                 <Link href="/auth-2/sign-up" className="text-decoration-underline link-offset-3 fw-semibold">
                   Créer un compte
                 </Link>
-              </p>
+              </p> */}
               <p className="text-center text-muted mt-auto mb-0">
                 © {currentYear} {appName} 
               </p>
