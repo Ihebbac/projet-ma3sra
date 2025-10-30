@@ -1,211 +1,270 @@
 'use client'
 import React, { useMemo } from 'react'
-import { Modal, Button, Row, Col, Badge, Table } from 'react-bootstrap'
+import { Modal, Button, Row, Col, Badge, Table, Accordion } from 'react-bootstrap'
+
+type JourTravaille = { date: string; heuresSup: number }
+type Employe = {
+  _id: string
+  nom: string
+  prenom: string
+  numTel: string
+  poste: string
+  montantJournalier: number
+  montantHeure: number
+  joursPayes: string[]
+  joursTravailles: JourTravaille[]
+}
 
 type ViewEmployeModalProps = {
   show: boolean
   onHide: () => void
-  employe: any
+  employe: Employe | null | undefined
 }
 
-const joursSemaine = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+function fmtMoney(n: number) {
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function monthLabel(d: Date) {
+  return d.toLocaleString('fr-FR', { month: 'long', year: 'numeric' })
+}
 
 const ViewEmployeModal = ({ show, onHide, employe }: ViewEmployeModalProps) => {
-  // Convertir les dates travaillées en objets Date, en tenant compte des heures supplémentaires
-  const datesTravailles = useMemo(() => {
-    if (!employe?.joursTravailles) return []
-    return employe.joursTravailles.map((d: { date: string }) => new Date(d.date))
-  }, [employe])
-
-  // Convertir les jours payés en objets Date
-  const joursPayes = useMemo(() => {
-    if (!employe?.joursPayes) return []
-    return employe.joursPayes.map((d: string) => new Date(d))
-  }, [employe])
-
-  // Regrouper par mois
-  const groupedByMonth = useMemo(() => {
-    const grouped: Record<string, Date[]> = {}
-    datesTravailles.forEach((date: Date) => {
-      const key = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`
-      if (!grouped[key]) grouped[key] = []
-      grouped[key].push(date)
-    })
-    return grouped
-  }, [datesTravailles])
-
-  // Regrouper les jours par semaine (1 à 5) selon la date
-  const getWeeksInMonth = (dates: Date[]) => {
-    const weeks: Record<number, Date[]> = {}
-    dates.forEach((date) => {
-      const weekOfMonth = Math.ceil(date.getDate() / 7)
-      if (!weeks[weekOfMonth]) weeks[weekOfMonth] = []
-      weeks[weekOfMonth].push(date)
-    })
-    return weeks
-  }
-
   if (!employe) return null
+
+  // Sets pour comparaison “jour par jour” (en neutralisant l’heure)
+  const paidSet = useMemo(() => {
+    const s = new Set<string>()
+    ;(employe.joursPayes || []).forEach((iso) => s.add(new Date(iso).toDateString()))
+    return s
+  }, [employe.joursPayes])
+
+  // Normalisation des jours travaillés en lignes détaillées
+  const entries = useMemo(() => {
+    const list =
+      (employe.joursTravailles || []).map((jt) => {
+        const d = new Date(jt.date)
+        const base = employe.montantJournalier || 0
+        const hs = jt.heuresSup || 0
+        const overtimePay = hs * (employe.montantHeure || 0)
+        return {
+          key: d.toISOString(),
+          date: d,
+          dateStr: d.toLocaleDateString('fr-FR'),
+          weekday: d.toLocaleDateString('fr-FR', { weekday: 'short' }),
+          heuresSup: hs,
+          base,
+          overtimePay,
+          total: base + overtimePay,
+          isPaid: paidSet.has(d.toDateString()),
+        }
+      }) || []
+
+    // Tri chronologique ascendant
+    return list.sort((a, b) => a.date.getTime() - b.date.getTime())
+  }, [employe.joursTravailles, employe.montantJournalier, employe.montantHeure, paidSet])
+
+  // Groupement par mois
+  const byMonth = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        label: string
+        items: typeof entries
+        totals: { base: number; overtimePay: number; total: number; paidDays: number; hours: number }
+      }
+    > = {}
+
+    entries.forEach((e) => {
+      const key = `${e.date.getFullYear()}-${String(e.date.getMonth() + 1).padStart(2, '0')}`
+      if (!map[key]) {
+        const anyDate = new Date(e.date.getFullYear(), e.date.getMonth(), 1)
+        map[key] = {
+          label: monthLabel(anyDate),
+          items: [],
+          totals: { base: 0, overtimePay: 0, total: 0, paidDays: 0, hours: 0 },
+        }
+      }
+      map[key].items.push(e)
+      map[key].totals.base += e.base
+      map[key].totals.overtimePay += e.overtimePay
+      map[key].totals.total += e.total
+      map[key].totals.paidDays += e.isPaid ? 1 : 0
+      map[key].totals.hours += e.heuresSup
+    })
+
+    // Ordre par mois décroissant (plus récent en premier)
+    return Object.entries(map)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, v]) => ({ key, ...v }))
+  }, [entries])
+
+  // Totaux globaux
+  const totals = useMemo(() => {
+    return entries.reduce(
+      (acc, e) => {
+        acc.days += 1
+        acc.paidDays += e.isPaid ? 1 : 0
+        acc.base += e.base
+        acc.overtimePay += e.overtimePay
+        acc.hours += e.heuresSup
+        acc.total += e.total
+        return acc
+      },
+      { days: 0, paidDays: 0, base: 0, overtimePay: 0, total: 0, hours: 0 },
+    )
+  }, [entries])
 
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
       <Modal.Header closeButton>
-        <Modal.Title>Détails de l'employé</Modal.Title>
+        <Modal.Title>Détails de l&apos;employé</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
-        {/* Informations principales */}
+        {/* --- Informations Employé --- */}
         <Row className="g-3 mb-3">
-          <Col md={6}>
+          <Col xs={12} md={6}>
             <strong>Nom :</strong> {employe.nom}
           </Col>
-          <Col md={6}>
+          <Col xs={12} md={6}>
             <strong>Prénom :</strong> {employe.prenom}
           </Col>
-          <Col md={6}>
+          <Col xs={12} md={6}>
             <strong>Téléphone :</strong> {employe.numTel}
           </Col>
-          <Col md={6}>
+          <Col xs={12} md={6}>
             <strong>Poste :</strong> {employe.poste}
           </Col>
-          <Col md={6}>
-            <strong>Salaire journalier :</strong> {employe.montantJournalier} DT
+          <Col xs={12} md={6}>
+            <strong>Taux journalier :</strong> {fmtMoney(employe.montantJournalier)} DT
           </Col>
-          <Col md={6}>
-            <strong>Heures supplémentaires :</strong> {employe.montantHeure} DT
+          <Col xs={12} md={6}>
+            <strong>Taux heure supp. :</strong> {fmtMoney(employe.montantHeure)} DT
           </Col>
         </Row>
 
-        <hr />
-
-        <h6 className="mb-3">
-          <strong>Jours travaillés</strong> <Badge bg="primary">{datesTravailles.length}</Badge>
-        </h6>
-
-        {datesTravailles.length === 0 && <p className="text-muted">Aucun jour travaillé enregistré</p>}
-
-        {/* Boucle sur chaque mois */}
-        {Object.entries(groupedByMonth).map(([mois, dates], idx) => {
-          const [annee, m] = mois.split('-').map(Number)
-          const nbJours = new Date(annee, m, 0).getDate()
-          const datesTravaillesStr = dates.map((d) => d.toDateString())
-
-          const startDay = new Date(annee, m - 1, 1).getDay()
-          const offset = startDay === 0 ? 6 : startDay - 1
-
-          // Groupement des semaines
-          const semaines = getWeeksInMonth(dates)
-
-          // Calcul du total du mois
-          const totalMois = Object.values(semaines).reduce((acc, semainesJours) => {
-            const semaineTotal = semainesJours.reduce((weekAcc, date) => {
-              const jourTravaille = employe.joursTravailles.find(
-                (jour: { date: string }) => new Date(jour.date).toDateString() === date.toDateString(),
-              )
-              const salaireBase = employe.montantJournalier
-              const heuresSup = jourTravaille ? jourTravaille.heuresSup * employe.montantHeure : 0
-              return weekAcc + salaireBase + heuresSup
-            }, 0)
-            return acc + semaineTotal
-          }, 0)
-
-          return (
-            <div key={idx} className="mb-5">
-              <h5 className="mb-3">📅 {new Date(annee, m - 1).toLocaleString('fr-FR', { month: 'long', year: 'numeric' })}</h5>
-
-              {/* Tableau du salaire hebdomadaire */}
-              <Table bordered hover size="sm" className="mb-4">
-                <thead className="table-light">
-                  <tr>
-                    <th>Semaine</th>
-                    <th>Jours travaillés</th>
-                    <th>Taux journalier (DT)</th>
-                    <th>Salaire de la semaine (DT)</th>
-                    <th>Heures supplémentaires (DT)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(semaines).map(([numSemaine, jours]) => {
-                    const salaireSemaine = jours.length * employe.montantJournalier
-                    const heuresSupTotal = jours.reduce((total, date) => {
-                      const jourTravaille = employe.joursTravailles.find(
-                        (jour: { date: string }) => new Date(jour.date).toDateString() === date.toDateString(),
-                      )
-                      return total + (jourTravaille ? jourTravaille.heuresSup * employe.montantHeure : 0)
-                    }, 0)
-
-                    return (
-                      <tr key={numSemaine}>
-                        <td>Semaine {numSemaine} du mois</td>
-                        <td>{jours.length}</td>
-                        <td>{employe.montantJournalier}</td>
-                        <td>
-                          <strong>{salaireSemaine}</strong>
-                        </td>
-                        <td>
-                          <strong>{heuresSupTotal} DT</strong>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  <tr className="table-success">
-                    <td colSpan={4}>
-                      <strong>Total du mois</strong>
-                    </td>
-                    <td>
-                      <strong>{totalMois} DT</strong>
-                    </td>
-                  </tr>
-                </tbody>
-              </Table>
-
-              {/* Grille des jours travaillés */}
-              <div className="d-flex flex-wrap border rounded p-2 bg-light">
-                {joursSemaine.map((j) => (
-                  <div key={j} className="text-center fw-bold" style={{ width: '13.8%', marginBottom: '4px' }}>
-                    {j}
-                  </div>
-                ))}
-
-                {/* Décalage avant le premier jour */}
-                {Array(offset)
-                  .fill(null)
-                  .map((_, i) => (
-                    <div key={`empty-${i}`} style={{ width: '13.8%', height: '40px' }} />
-                  ))}
-
-                {/* Affichage du mois */}
-                {Array.from({ length: nbJours }, (_, i) => {
-                  const currentDate = new Date(annee, m - 1, i + 1)
-                  const estTravaille = datesTravaillesStr.includes(currentDate.toDateString())
-                  const isPaid = joursPayes.some((date: any) => date.toDateString() === currentDate.toDateString())
-                  const jourTravaille = employe.joursTravailles.find(
-                    (jour: { date: string }) => new Date(jour.date).toDateString() === currentDate.toDateString(),
-                  )
-                  const heuresSup = jourTravaille ? jourTravaille.heuresSup : 0
-                  const heuresSupTotal = heuresSup * employe.montantHeure
-
-                  return (
-                    <div
-                      key={i}
-                      className={`text-center border rounded m-1 ${estTravaille ? 'bg-primary text-white fw-bold' : 'bg-white'} ${
-                        isPaid ? 'border-success' : ''
-                      }`}
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        lineHeight: '40px',
-                        fontSize: '0.85rem',
-                      }}
-                      title={currentDate.toLocaleDateString('fr-FR')}>
-                      {i + 1} {heuresSup > 0 && <span className="text-warning">(+{heuresSupTotal} DT)</span>}
-                    </div>
-                  )
-                })}
-              </div>
+        {/* --- Récap Global --- */}
+        <Row className="g-3 mb-4">
+          <Col xs={6} md={4} lg={2}>
+            <div className="p-2 border rounded text-center">
+              <div className="text-muted small">Jours travaillés</div>
+              <div className="fs-5 fw-bold">{totals.days}</div>
             </div>
-          )
-        })}
+          </Col>
+          <Col xs={6} md={4} lg={2}>
+            <div className="p-2 border rounded text-center">
+              <div className="text-muted small">Jours payés</div>
+              <div className="fs-5 fw-bold text-success">{totals.paidDays}</div>
+            </div>
+          </Col>
+          <Col xs={6} md={4} lg={2}>
+            <div className="p-2 border rounded text-center">
+              <div className="text-muted small">Jours impayés</div>
+              <div className="fs-5 fw-bold text-danger">{totals.days - totals.paidDays}</div>
+            </div>
+          </Col>
+          <Col xs={6} md={4} lg={2}>
+            <div className="p-2 border rounded text-center">
+              <div className="text-muted small">Heures supp.</div>
+              <div className="fs-5 fw-bold">{totals.hours}</div>
+            </div>
+          </Col>
+          <Col xs={6} md={4} lg={2}>
+            <div className="p-2 border rounded text-center">
+              <div className="text-muted small">Base (DT)</div>
+              <div className="fs-5 fw-bold">{fmtMoney(totals.base)}</div>
+            </div>
+          </Col>
+          <Col xs={6} md={4} lg={2}>
+            <div className="p-2 border rounded text-center">
+              <div className="text-muted small">HS (DT)</div>
+              <div className="fs-5 fw-bold">{fmtMoney(totals.overtimePay)}</div>
+            </div>
+          </Col>
+          <Col xs={12} className="mt-2">
+            <div className="p-2 border rounded text-center bg-light">
+              <div className="text-muted small">Total à payer (Base + HS)</div>
+              <div className="fs-4 fw-bold">{fmtMoney(totals.total)} DT</div>
+            </div>
+          </Col>
+        </Row>
+
+        {/* --- Détails par mois --- */}
+        {entries.length === 0 ? (
+          <p className="text-muted">Aucun jour travaillé enregistré.</p>
+        ) : (
+          <Accordion alwaysOpen>
+            {byMonth.map((m, idx) => (
+              <Accordion.Item eventKey={String(idx)} key={m.key}>
+                <Accordion.Header>{m.label}</Accordion.Header>
+                <Accordion.Body>
+                  <div className="table-responsive">
+                    <Table bordered hover size="sm" className="align-middle mb-3">
+                      <thead className="table-light">
+                        <tr>
+                          <th style={{ whiteSpace: 'nowrap' }}>Date</th>
+                          <th style={{ whiteSpace: 'nowrap' }}>Jour</th>
+                          <th style={{ whiteSpace: 'nowrap' }}>Heures supp.</th>
+                          <th style={{ whiteSpace: 'nowrap' }}>Paie base (DT)</th>
+                          <th style={{ whiteSpace: 'nowrap' }}>Paie HS (DT)</th>
+                          <th style={{ whiteSpace: 'nowrap' }}>Total jour (DT)</th>
+                          <th style={{ whiteSpace: 'nowrap' }}>Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {m.items.map((e) => (
+                          <tr key={e.key}>
+                            <td>{e.dateStr}</td>
+                            <td className="text-capitalize">{e.weekday}</td>
+                            <td>{e.heuresSup}</td>
+                            <td>{fmtMoney(e.base)}</td>
+                            <td>{fmtMoney(e.overtimePay)}</td>
+                            <td className="fw-bold">{fmtMoney(e.total)}</td>
+                            <td>
+                              {e.isPaid ? (
+                                <Badge bg="success">Payé</Badge>
+                              ) : (
+                                <Badge bg="warning" text="dark">
+                                  À payer
+                                </Badge>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="table-success">
+                          <td colSpan={3} className="fw-bold">
+                            Total {m.label}
+                          </td>
+                          <td className="fw-bold">{fmtMoney(m.totals.base)}</td>
+                          <td className="fw-bold">{fmtMoney(m.totals.overtimePay)}</td>
+                          <td className="fw-bold">{fmtMoney(m.totals.total)}</td>
+                          <td className="fw-bold">
+                            {m.totals.paidDays}/{m.items.length} jours payés
+                          </td>
+                        </tr>
+                      </tbody>
+                    </Table>
+                  </div>
+                  <div className="small text-muted">
+                    <span className="me-3">
+                      <Badge bg="success" className="me-1">
+                        &nbsp;
+                      </Badge>
+                      Payé
+                    </span>
+                    <span>
+                      <Badge bg="warning" text="dark" className="me-1">
+                        &nbsp;
+                      </Badge>
+                      À payer
+                    </span>
+                  </div>
+                </Accordion.Body>
+              </Accordion.Item>
+            ))}
+          </Accordion>
+        )}
       </Modal.Body>
 
       <Modal.Footer>
