@@ -10,7 +10,10 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <Container fluid>
-      <PageBreadcrumb title="Dashboard" />
+         
+                
+      <PageBreadcrumb title="Tableau de Bord" />
+      <p className="text-muted mb-0">Vue d'ensemble de votre activité</p>
       <DashboardClient />
     </Container>
   )

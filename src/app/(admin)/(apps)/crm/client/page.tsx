@@ -130,57 +130,54 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   const tel = customer.numTelephone ?? '-'
 
   // === TICKET PRINCIPAL ===
-  content.push(center('معصرة بوشامة'))
-  content.push(center('MAASSRA BOUCHAMA'))
+  content.push(center(LOGO_PLACEHOLDER))
   content.push(LINE)
   content.push(`${num} ${date} ${time}`)
-  content.push(bi('Client', 'زبون'))
-  content.push(nom)
-  content.push(tel)
+  content.push(bi('Client', 'الحريف'))
+  content.push(center(nom))
+  content.push(bi('Téléphone', 'الهاتف'))
+  content.push(center(String(tel)))
   content.push(LINE)
-  content.push(bi(`Olive: ${olive} Kg`, 'زيتون'))
-  content.push(bi(`Huile: ${huile} Kg`, 'زيت'))
-  content.push(LINE)
+  content.push(bi(`Olive`, 'زيتون'))
+  content.push(center(String (`${olive}kg`)))
+  content.push(bi(`Huile`, 'زيت'))
+  content.push(center(String (`${huile}kg`)))
+  
 
   // Montant
   if (customer.prixFinal && customer.prixKg) {
     content.push(SEP)
-    content.push(center(`${customer.prixFinal.toFixed(2)} D.T`))
+    content.push(bi('Montant total','المبلغ الجملي'))
+    content.push(center(`${customer.prixFinal.toFixed(2)} TND`))
     content.push(SEP)
   } else {
-    content.push(center('GRATUIT / مجاني'))
+    content.push(center("---------"))
     content.push(LINE)
   }
 
-  content.push(center('شكرا - MERCI'))
-  content.push(center('+216 9X XXX XXX'))
-  content.push(LINE)
-
-  // === COPIE CLIENT ===
-  content.push(center('✂ CLIENT / زبون ✂'))
-  content.push(nom)
-  const mnt = customer.prixFinal ? `${customer.prixFinal.toFixed(2)} D.T` : 'Gratuit'
-  content.push(center(mnt))
+  
+  content.push(center('سعداء بخدمتكم'))
+  content.push(center('52 417 792-52 112 478'))
   content.push(LINE)
 
   // === COPIE CAISSE ===
   content.push(center('✂ CAISSE / صندوق ✂'))
   content.push(`${num} ${date}`)
-  content.push(nom)
-  content.push(`Olive: ${olive} Kg`)
+  content.push(center(nom))
+  content.push(center(`Olive: ${olive} Kg`))
+  content.push(center(`Olive: ${huile} Kg`))
 
   if (customer.prixFinal && customer.prixKg) {
-    const pk = customer.prixKg.toFixed(2)
-    content.push(`${pk} D.T/Kg x ${olive}`)
+  
     content.push(SEP)
-    content.push(center(`${customer.prixFinal.toFixed(2)} D.T`))
+    content.push(bi('Montant total','المبلغ الجملي'))
+    content.push(center(`${customer.prixFinal.toFixed(2)} TND`))
     content.push(SEP)
   } else {
     content.push(center('GRATUIT'))
   }
 
   content.push('')
-
   return content.join('\n')
 }
 const CustomersCard = () => {
@@ -199,6 +196,7 @@ const CustomersCard = () => {
   const [showMultiDeleteModal, setShowMultiDeleteModal] = useState(false)
   const [dailyStats, setDailyStats] = useState<DailyStatsType | null>(null)
   const [showStats, setShowStats] = useState(false)
+
 
   // Fonction pour calculer les statistiques quotidiennes
   const calculateDailyStats = useCallback((customers: CustomerType[], dateFilter: Date[] = []) => {
@@ -452,79 +450,93 @@ const CustomersCard = () => {
     printWindow.document.close()
   }
 
-  const columns = [
-    {
-      id: 'select',
-      header: ({ table }: { table: TableType<CustomerType> }) => (
-        <input
-          type="checkbox"
-          className="form-check-input form-check-input-light fs-14"
-          checked={table.getIsAllRowsSelected()}
-          onChange={table.getToggleAllRowsSelectedHandler()}
-        />
-      ),
-      cell: ({ row }: { row: TableRow<CustomerType> }) => (
-        <input
-          type="checkbox"
-          className="form-check-input form-check-input-light fs-14"
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-        />
-      ),
-      enableSorting: false,
-      enableColumnFilter: false,
-    },
-    columnHelper.accessor('nomPrenom', {
-      header: 'Nom & Prénom',
-      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
-    }),
-    columnHelper.accessor('nombreCaisses', {
-      header: 'nombreCaisses',
-      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
-    }),
-    columnHelper.accessor('quantiteOliveNet', {
-      header: 'quantiteOliveNet',
-      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
-    }),
-    columnHelper.accessor('quantiteHuile', {
-      header: 'quantiteHuile',
-      cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
-    }),
-    columnHelper.accessor('kattou3', {
-      header: 'kattou3',
-      cell: (info) => <Badge bg="warning">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
-    }),
-    columnHelper.accessor('nisbaReelle', {
-      header: 'nisba %',
-      cell: (info) => <Badge bg="success">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
-    }),
-    columnHelper.accessor('prixFinal', {
-      header: 'prix Dinar',
-      cell: (info) => <Badge bg="secondary">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
-    }),
-    columnHelper.accessor('numTelephone', { header: 'Téléphone' }),
-    columnHelper.accessor('dateCreation', {
-      header: 'Date de création',
-      cell: (info) => formatDateDDMMYYYY(info.getValue() as string),
-    }),
-    columnHelper.accessor('type', {
-      header: 'Type',
-      cell: (info) => (
-        <span className={`badge ${info.getValue() === 'فلاح' ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info'}`}>
-          {info.getValue()}
-        </span>
-      ),
-    }),
-    {
-      header: 'Actions',
-      cell: ({ row }: { row: TableRow<CustomerType> }) => (
+const columns = [
+  {
+    id: 'select',
+    header: ({ table }: { table: TableType<CustomerType> }) => (
+      <input
+        type="checkbox"
+        className="form-check-input form-check-input-light fs-14"
+        checked={table.getIsAllRowsSelected()}
+        onChange={table.getToggleAllRowsSelectedHandler()}
+      />
+    ),
+    cell: ({ row }: { row: TableRow<CustomerType> }) => (
+      <input
+        type="checkbox"
+        className="form-check-input form-check-input-light fs-14"
+        checked={row.getIsSelected()}
+        onChange={row.getToggleSelectedHandler()}
+      />
+    ),
+    enableSorting: false,
+    enableColumnFilter: false,
+  },
+  columnHelper.accessor('nomPrenom', {
+    header: 'Nom & Prénom',
+    cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
+  }),
+  columnHelper.accessor('nombreCaisses', {
+    header: 'nombreCaisses',
+    cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
+  }),
+  columnHelper.accessor('quantiteOliveNet', {
+    header: 'quantiteOliveNet',
+    cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
+  }),
+  columnHelper.accessor('quantiteHuile', {
+    header: 'quantiteHuile',
+    cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
+  }),
+  columnHelper.accessor('kattou3', {
+    header: 'kattou3',
+    cell: (info) => <Badge bg="warning">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
+  }),
+  columnHelper.accessor('nisbaReelle', {
+    header: 'nisba %',
+    cell: (info) => <Badge bg="success">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
+  }),
+  columnHelper.accessor('prixFinal', {
+    header: 'prix Dinar',
+    cell: (info) => <Badge bg="secondary">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
+  }),
+  columnHelper.accessor('numTelephone', { header: 'Téléphone' }),
+  columnHelper.accessor('dateCreation', {
+    header: 'Date de création',
+    cell: (info) => formatDateDDMMYYYY(info.getValue() as string),
+  }),
+  columnHelper.accessor('type', {
+    header: 'Type',
+    cell: (info) => (
+      <span className={`badge ${info.getValue() === 'فلاح' ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info'}`}>
+        {info.getValue()}
+      </span>
+    ),
+  }),
+  // Nouvelle colonne pour le statut de paiement
+  columnHelper.accessor('status', {
+    header: 'Statut Paiement',
+    cell: (info) => (
+      <Badge bg={info.getValue() === 'payé' ? 'success' : 'danger'}>
+        {info.getValue() === 'payé' ? 'Payé' : 'Non Payé'}
+      </Badge>
+    ),
+  }),
+  {
+    header: 'Actions',
+    cell: ({ row }: { row: TableRow<CustomerType> }) => {
+      const customer = row.original;
+      const isPaid = customer.status === 'payé';
+      const hasPrinted = customer.aImprimer; // Supposons que vous avez un champ aImprimer dans CustomerType
+
+      return (
         <div className="d-flex gap-1">
           <Button
             variant="default"
             size="sm"
             onClick={() => {
               setShowModalDetail(true)
-              setSelectedCustomer(row.original)
+              setSelectedCustomer(customer)
             }}>
             <TbEye className="fs-lg" />
           </Button>
@@ -533,42 +545,53 @@ const CustomersCard = () => {
             size="sm"
             onClick={() => {
               setShowModalEdit(true)
-              setSelectedCustomer(row.original)
+              setSelectedCustomer(customer)
             }}>
             <TbEdit className="fs-lg" />
           </Button>
 
           <Button
-            variant={row.original.status === 'payé' ? 'success' : 'danger'}
+            variant={isPaid ? 'success' : 'danger'}
             size="sm"
-            onClick={() => handleTogglePaymentStatus(row.original)}
-            title={`Statut: ${row.original.status}. Cliquer pour changer`}
+            onClick={() => handleTogglePaymentStatus(customer)}
+            title={`Statut: ${customer.status}. Cliquer pour changer`}
             className="position-relative">
             <TbCash className="fs-lg" />
             <span
               className={`position-absolute top-0 start-100 translate-middle p-1 border border-light rounded-circle ${
-                row.original.status === 'payé' ? 'bg-success' : 'bg-danger'
+                isPaid ? 'bg-success' : 'bg-danger'
               }`}>
               <span className="visually-hidden">Statut</span>
             </span>
           </Button>
 
-          <Button variant="default" size="sm" onClick={() => handlePrintTicket(row.original)}>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => handlePrintTicket(customer)}
+            disabled={!isPaid} // Désactivé si non payé
+            title={!isPaid ? "Impossible d'imprimer - Client non payé" : "Imprimer le ticket"}
+          >
             <TbPrinter className="fs-lg" />
           </Button>
+          
           <Button
             variant="default"
             size="sm"
             onClick={() => {
               setShowDeleteModal(true)
-              setSelectedRowIds({ [row.original._id]: true })
-            }}>
+              setSelectedRowIds({ [customer._id]: true })
+            }}
+            disabled={hasPrinted} // Désactivé si déjà imprimé
+            title={hasPrinted ? "Impossible de supprimer - Déjà imprimé" : "Supprimer"}
+          >
             <TbTrash className="fs-lg" />
           </Button>
         </div>
-      ),
+      );
     },
-  ]
+  },
+]
 
   const table = useReactTable({
     data: filteredData,

@@ -18,6 +18,10 @@ import {
   TbUserHexagon,
   TbUsers,
 } from 'react-icons/tb'
+import { GiMoneyStack,GiCardExchange } from "react-icons/gi";
+import { FaStoreAlt } from "react-icons/fa";
+import { ImTruck } from "react-icons/im";
+
 import {
   LuCalendar,
   LuChartNoAxesCombined,
@@ -180,15 +184,15 @@ export const menuItems: MenuItemType[] = [
     // { key: 'Qantité Zit', label: 'Qantité Zit',icon: LuRss, url: '/crm/Qteclientzit' },
   // ],
 },
-  { key: 'Fitoura', label: 'Fitoura',icon: LuFolderOpenDot, url: '/crm/fitoura' },
+  { key: 'Fitoura', label: 'Fitoura',icon: ImTruck , url: '/crm/fitoura' },
  
   // { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
-  { key: 'Stock propriétaire', label: 'Stock propriétaire',icon: LuHandshake, url: '/crm/Qteproprietaire' },
-  { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire',icon: LuHandshake, url: '/crm/TransfertStockproprietaire' },
+  { key: 'Stock propriétaire', label: 'Stock propriétaire',icon: FaStoreAlt , url: '/crm/Qteproprietaire' },
+  { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire',icon: GiCardExchange, url: '/crm/TransfertStockproprietaire' },
   {
     key: 'Caisse & Financement',
     label: 'Caisse & Financement',
-    icon: LuLifeBuoy,
+    icon: GiMoneyStack,
     url: '/users/contacts',
     // children: [
     //   { key: 'Caisse', label: 'Caisse', url: '/users/contacts' },
@@ -394,7 +398,7 @@ export const menuItems: MenuItemType[] = [
   //     { key: 'gradient-topbar', label: 'Gradient Topbar', url: '/layouts/topbars/gradient' },
   //   ],
   // },
-  { key: 'components', label: 'Components', isTitle: true },
+  // { key: 'components', label: 'Components', isTitle: true },
   // {
   //   key: 'ui',
   //   label: 'Base UI',
@@ -557,54 +561,54 @@ export const menuItems: MenuItemType[] = [
   //   icon: LuDessert,
   //   url: '/widgets',
   // },
-  {
-    key: 'charts',
-    label: 'Charts',
-    icon: LuChartNoAxesCombined,
-    children: [
-      {
-        key: 'apexchart',
-        label: 'Apex Charts',
-        children: [
-          { key: 'apex-area-chart', label: 'Area', url: '/charts/apex/area' },
-          { key: 'apex-bar-chart', label: 'Bar', url: '/charts/apex/bar' },
-          { key: 'apex-bubble-chart', label: 'Bubble', url: '/charts/apex/bubble' },
-          { key: 'apex-candlestick-chart', label: 'Candlestick', url: '/charts/apex/candlestick' },
-          { key: 'apex-column-chart', label: 'Column', url: '/charts/apex/column' },
-          { key: 'apex-heatmap-chart', label: 'Heatmap', url: '/charts/apex/heatmap' },
-          { key: 'apex-line-chart', label: 'Line', url: '/charts/apex/line' },
-          { key: 'apex-mixed-chart', label: 'Mixed', url: '/charts/apex/mixed' },
-          { key: 'apex-timeline-chart', label: 'Timeline', url: '/charts/apex/timeline' },
-          { key: 'apex-boxplot-chart', label: 'Boxplot', url: '/charts/apex/boxplot' },
-          { key: 'apex-treemap-chart', label: 'Treemap', url: '/charts/apex/treemap' },
-          { key: 'apex-pie-chart', label: 'Pie', url: '/charts/apex/pie' },
-          { key: 'apex-radar-chart', label: 'Radar', url: '/charts/apex/radar' },
-          { key: 'apex-radialbar-chart', label: 'Radialbar', url: '/charts/apex/radialbar' },
-          { key: 'apex-scatter-chart', label: 'Scatter', url: '/charts/apex/scatter' },
-          { key: 'apex-polar-area-chart', label: 'Polar Area', url: '/charts/apex/polar-area' },
-          { key: 'apex-sparkline-chart', label: 'Sparklines', url: '/charts/apex/sparklines' },
-          { key: 'apex-range-chart', label: 'Range', url: '/charts/apex/range' },
-          { key: 'apex-funnel-chart', label: 'Funnel', url: '/charts/apex/funnel' },
-          { key: 'apex-slope-chart', label: 'Slope', url: '/charts/apex/slope' },
-        ],
-      },
-      {
-        key: 'Chartjs',
-        label: 'Chart JS',
-        children: [
-          { key: 'area', label: 'Area', url: '/charts/chartjs/area' },
-          { key: 'bar', label: 'Bar', url: '/charts/chartjs/bar' },
-          { key: 'line', label: 'Line', url: '/charts/chartjs/line' },
-          { key: 'other', label: 'Other', url: '/charts/chartjs/other' },
-        ],
-      },
-      {
-        key: 'apex-tree',
-        label: 'Apex Tree',
-        url: '/charts/apex-tree',
-      },
-    ],
-  },
+  // {
+  //   key: 'charts',
+  //   label: 'Charts',
+  //   icon: LuChartNoAxesCombined,
+  //   children: [
+  //     {
+  //       key: 'apexchart',
+  //       label: 'Apex Charts',
+  //       children: [
+  //         { key: 'apex-area-chart', label: 'Area', url: '/charts/apex/area' },
+  //         { key: 'apex-bar-chart', label: 'Bar', url: '/charts/apex/bar' },
+  //         { key: 'apex-bubble-chart', label: 'Bubble', url: '/charts/apex/bubble' },
+  //         { key: 'apex-candlestick-chart', label: 'Candlestick', url: '/charts/apex/candlestick' },
+  //         { key: 'apex-column-chart', label: 'Column', url: '/charts/apex/column' },
+  //         { key: 'apex-heatmap-chart', label: 'Heatmap', url: '/charts/apex/heatmap' },
+  //         { key: 'apex-line-chart', label: 'Line', url: '/charts/apex/line' },
+  //         { key: 'apex-mixed-chart', label: 'Mixed', url: '/charts/apex/mixed' },
+  //         { key: 'apex-timeline-chart', label: 'Timeline', url: '/charts/apex/timeline' },
+  //         { key: 'apex-boxplot-chart', label: 'Boxplot', url: '/charts/apex/boxplot' },
+  //         { key: 'apex-treemap-chart', label: 'Treemap', url: '/charts/apex/treemap' },
+  //         { key: 'apex-pie-chart', label: 'Pie', url: '/charts/apex/pie' },
+  //         { key: 'apex-radar-chart', label: 'Radar', url: '/charts/apex/radar' },
+  //         { key: 'apex-radialbar-chart', label: 'Radialbar', url: '/charts/apex/radialbar' },
+  //         { key: 'apex-scatter-chart', label: 'Scatter', url: '/charts/apex/scatter' },
+  //         { key: 'apex-polar-area-chart', label: 'Polar Area', url: '/charts/apex/polar-area' },
+  //         { key: 'apex-sparkline-chart', label: 'Sparklines', url: '/charts/apex/sparklines' },
+  //         { key: 'apex-range-chart', label: 'Range', url: '/charts/apex/range' },
+  //         { key: 'apex-funnel-chart', label: 'Funnel', url: '/charts/apex/funnel' },
+  //         { key: 'apex-slope-chart', label: 'Slope', url: '/charts/apex/slope' },
+  //       ],
+  //     },
+  //     {
+  //       key: 'Chartjs',
+  //       label: 'Chart JS',
+  //       children: [
+  //         { key: 'area', label: 'Area', url: '/charts/chartjs/area' },
+  //         { key: 'bar', label: 'Bar', url: '/charts/chartjs/bar' },
+  //         { key: 'line', label: 'Line', url: '/charts/chartjs/line' },
+  //         { key: 'other', label: 'Other', url: '/charts/chartjs/other' },
+  //       ],
+  //     },
+  //     {
+  //       key: 'apex-tree',
+  //       label: 'Apex Tree',
+  //       url: '/charts/apex-tree',
+  //     },
+  //   ],
+  // },
   // {
   //   key: 'forms',
   //   label: 'Forms',
