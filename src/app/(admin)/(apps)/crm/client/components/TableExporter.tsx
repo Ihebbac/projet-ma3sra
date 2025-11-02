@@ -1,5 +1,4 @@
 // ✅ src/utils/TableExporter.ts
-
 import * as XLSX from 'xlsx'
 import { Row } from '@tanstack/react-table'
 
@@ -30,14 +29,13 @@ type CustomerType = {
 
 // 📍 Informations société
 const COMPANY_INFO = {
-  name: 'Liste des clients',
-  tvaRate: 0.19,      // TVA = 19%
-  stampDuty: 0.6,     // Timbre fiscal
+
+  tvaRate: 0.19,
+  stampDuty: 0.6,
 }
 
-// ⚙️ Préparation des données
+// ⚙️ Préparation des données pour Excel
 const prepareData = (rows: Row<CustomerType>[]) => {
-  // Titres de colonnes
   const headersMap: Record<keyof CustomerType, string> = {
     _id: 'ID',
     nomPrenom: 'Nom & Prénom',
@@ -62,11 +60,20 @@ const prepareData = (rows: Row<CustomerType>[]) => {
     status: 'Statut',
   }
 
-  // Colonnes à exporter
   const keysToExport: (keyof CustomerType)[] = [
-    '_id', 'nomPrenom', 'numCIN', 'numTelephone',
-    'nombreCaisses', 'quantiteOlive', 'quantiteOliveNet', 'quantiteHuile',
-    'nisba', 'kattou3', 'prixKg', 'prixFinal', 'status'
+    '_id',
+    'nomPrenom',
+    'numCIN',
+    'numTelephone',
+    'nombreCaisses',
+    'quantiteOlive',
+    'quantiteOliveNet',
+    'quantiteHuile',
+    'nisba',
+    'kattou3',
+    'prixKg',
+    'prixFinal',
+    'status',
   ]
 
   const header = keysToExport.map(key => headersMap[key])
@@ -74,7 +81,6 @@ const prepareData = (rows: Row<CustomerType>[]) => {
   let totalOlive = 0
   let totalHuile = 0
 
-  // Corps du tableau
   const body = rows.map(row => {
     const r = row.original
     const rowData = keysToExport.map(key => {
@@ -84,11 +90,9 @@ const prepareData = (rows: Row<CustomerType>[]) => {
         return value.toFixed(3)
       return String(value)
     })
-
     totalHT += Number(r.prixFinal || 0)
     totalOlive += Number(r.quantiteOlive || 0)
     totalHuile += Number(r.quantiteHuile || 0)
-
     return rowData
   })
 
@@ -98,10 +102,9 @@ const prepareData = (rows: Row<CustomerType>[]) => {
   return { header, body, totalHT, totalTVA, totalTTC, totalOlive, totalHuile }
 }
 
-// ✅ Export XLSX
+// ✅ Export Excel
 export const exportToXLSX = (rows: Row<CustomerType>[], filename = 'export_clients') => {
   const { header, body, totalHT, totalTVA, totalTTC, totalOlive, totalHuile } = prepareData(rows)
-
   const dataToExport = [
     header,
     ...body,
@@ -121,114 +124,122 @@ export const exportToXLSX = (rows: Row<CustomerType>[], filename = 'export_clien
   XLSX.writeFile(wb, `${filename}.xlsx`)
 }
 
+// 🧮 Préparation pour PDF
+const preparePdfData = (rows: Row<CustomerType>[]) => {
+  let totalPrixFinal = 0
+  let totalHuile = 0
+  let totalOlive = 0
+  let totalPaye = 0
+  let totalNonPaye = 0
 
-// ✅ Export PDF (avec placement corrigé)
-export const exportToPDF = async (
-  rows: Row<CustomerType>[],
-  filename = 'Liste des clients'
-) => {
+  rows.forEach(r => {
+    const prix = Number(r.original.prixFinal || 0)
+    totalPrixFinal += prix
+    totalHuile += Number(r.original.quantiteHuile || 0)
+    totalOlive += Number(r.original.quantiteOlive || 0)
+    if (r.original.status === 'payé') totalPaye += prix
+    else totalNonPaye += prix
+  })
+
+  return { totalPrixFinal, totalHuile, totalOlive, totalPaye, totalNonPaye }
+}
+
+// ✅ Export PDF Professionnel
+export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport_Clients') => {
   if (typeof window === 'undefined') return
-
   try {
     const { default: jsPDF } = await import('jspdf')
     const autoTable = (await import('jspdf-autotable')).default
-
-    // 🧮 Fonction utilitaire pour calculer les totaux
-    const prepareData = (rows: Row<CustomerType>[]) => {
-      let totalPrixFinal = 0
-      let totalHuile = 0
-      let totalOlive = 0
-
-      rows.forEach(r => {
-        totalPrixFinal += Number(r.original.prixFinal || 0)
-        totalHuile += Number(r.original.quantiteHuile || 0)
-        totalOlive += Number(r.original.quantiteOlive || 0)
-      })
-
-      return {
-        totalPrixFinal,
-        totalHuile,
-        totalOlive,
-      }
-    }
-
-    const { totalPrixFinal, totalHuile, totalOlive } = prepareData(rows)
-
+    const totals = preparePdfData(rows)
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
     const pageWidth = doc.internal.pageSize.width
-    const margin = 14
+    const margin = 10
     let y = 15
 
-    // 🧾 EN-TÊTE
-    doc.setFontSize(14).setFont(undefined, 'bold')
-    doc.text('Liste des clients', margin, y)
+    // === En-tête professionnel ===
+    // doc.setFillColor(41, 128, 185)
+    // doc.rect(0, 0, pageWidth, 25, 'F')
+    // doc.setTextColor(255, 255, 255).setFontSize(18).setFont(undefined, 'bold')
+    // doc.text(COMPANY_INFO.name, margin, 17)
+    // doc.setFontSize(10)
+    // doc.text(COMPANY_INFO.address, margin, 22)
+    // doc.text(`Tél: ${COMPANY_INFO.phone}`, pageWidth - margin, 22, { align: 'right' })
+
+    y = 35
+    doc.setTextColor(0, 0, 0).setFontSize(14).setFont(undefined, 'bold')
+    doc.text('Rapport des Clients', pageWidth / 2, y, { align: 'center' })
     y += 8
     doc.setFontSize(10)
-    doc.text(`Date d'export : ${new Date().toLocaleDateString()}`, margin, y)
+    doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')} | Nombre de clients : ${rows.length}`, margin, y)
 
-    // 🧩 TABLEAU
-    y += 10
-    const tableHeaders = [
-      'Nom & Prénom',
-      'Téléphone',
-      'Nb Caisses',
-      'Qté Olive',
-      'Qté Olive Net',
-      'Qté Huile',
-      'Nisba',
-      'Kattou3',
-      'Prix Kg',
-      'Prix Final',
-      'Statut',
-    ]
-
-    const tableBody = rows.map(r => [
-      r.original.nomPrenom || '--',
-      r.original.numTelephone || '--',
-      (r.original.nombreCaisses || 0).toFixed(2),
-      (r.original.quantiteOlive || 0).toFixed(2),
+    // === Tableau principal ===
+    y += 8
+    const headers = ['Nom & Prénom', 'Téléphone', 'Qté Olive Net (kg)', 'Qté Huile (L)', 'Prix Final (DT)', 'Statut']
+    const body = rows.map(r => [
+      r.original.nomPrenom || '—',
+      r.original.numTelephone || '—',
       (r.original.quantiteOliveNet || 0).toFixed(2),
       (r.original.quantiteHuile || 0).toFixed(2),
-      (r.original.nisba || 0).toFixed(2),
-      (r.original.kattou3 || 0).toFixed(2),
-      (r.original.prixKg || 0).toFixed(2),
       (r.original.prixFinal || 0).toFixed(2),
       r.original.status || '—',
     ])
 
     autoTable(doc, {
-      head: [tableHeaders],
-      body: tableBody,
+      head: [headers],
+      body,
       startY: y,
       theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: 'center' },
+      didParseCell: (data) => {
+        if (data.column.index === 5 && data.section === 'body') {
+          const status = data.cell.raw
+          if (status === 'payé') {
+            data.cell.styles.fillColor = [223, 240, 216]
+            data.cell.styles.textColor = [0, 100, 0]
+          } else if (status === 'non payé') {
+            data.cell.styles.fillColor = [252, 228, 236]
+            data.cell.styles.textColor = [180, 0, 0]
+          }
+        }
+      },
       margin: { left: margin, right: margin },
     })
 
-    // 📊 SECTION DES TOTAUX
+    // === Section Totaux Pro ===
     const finalY = (doc as any).lastAutoTable.finalY + 10
-    const rightX = pageWidth - margin
-    const labelX = rightX - 60
+    const labelX = pageWidth - 70
+    const valueX = pageWidth - margin
 
-    doc.setFontSize(10).setFont(undefined, 'bold')
-    doc.text('Totaux :', margin, finalY)
+    doc.setFontSize(11).setFont(undefined, 'bold').setTextColor(41, 128, 185)
+    doc.text('RÉSUMÉ DES TOTAUX', labelX , finalY)
 
-    doc.setFont(undefined, 'normal')
-    doc.text(`Total Olive :`, labelX, finalY)
-    doc.text(`${totalOlive.toFixed(2)} kg`, rightX, finalY, { align: 'right' })
+    doc.setTextColor(0, 0, 0).setFontSize(10).setFont(undefined, 'normal')
+    let currentY = finalY + 6
+    const addRow = (label: string, value: string, color = [0, 0, 0]) => {
+      doc.setTextColor(...color)
+      doc.text(label, labelX, currentY, { align: 'right' })
+      doc.text(value, valueX, currentY, { align: 'right' })
+      currentY += 6
+    }
 
-    doc.text(`Total Huile :`, labelX, finalY + 6)
-    doc.text(`${totalHuile.toFixed(2)} L`, rightX, finalY + 6, { align: 'right' })
+    addRow('Total Olive (kg) :', `${totals.totalOlive.toFixed(2)} kg`)
+    addRow('Total Huile (L) :', `${totals.totalHuile.toFixed(2)} L`)
+    addRow('Total Payé :', `${totals.totalPaye.toFixed(2)} DT`, [0, 100, 0])
+    addRow('Total Non Payé :', `${totals.totalNonPaye.toFixed(2)} DT`, [180, 0, 0])
+    addRow('TOTAL GÉNÉRAL :', `${totals.totalPrixFinal.toFixed(2)} DT`, [41, 128, 185])
 
-    doc.text(`Total Prix Final :`, labelX, finalY + 12)
-    doc.text(`${totalPrixFinal.toFixed(2)} DT`, rightX, finalY + 12, { align: 'right' })
+    // === Pied de page professionnel ===
+    const pageHeight = doc.internal.pageSize.height
+    doc.setDrawColor(200, 200, 200)
+    doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15)
+    doc.setFontSize(8).setTextColor(100)
+    doc.text('Document généré automatiquement - Olive Plus © 2025', pageWidth / 2, pageHeight - 10, { align: 'center' })
 
-    // 💾 SAUVEGARDE
+    // 💾 Sauvegarde
     doc.save(`${filename}.pdf`)
   } catch (err) {
     console.error('Erreur export PDF :', err)
     alert('Une erreur est survenue lors de la génération du PDF.')
   }
 }
-

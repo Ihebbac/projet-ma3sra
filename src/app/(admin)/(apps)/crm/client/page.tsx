@@ -148,7 +148,7 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   if (customer.prixFinal && customer.prixKg) {
     content.push(SEP)
     content.push(bi('Montant total','المبلغ الجملي'))
-    content.push(center(`${customer.prixFinal.toFixed(2)} TND`))
+    content.push(center(`💵💵${customer.prixFinal.toFixed(2)}💵💵 TND`))
     content.push(SEP)
   } else {
     content.push(center("---------"))
@@ -606,6 +606,7 @@ const columns = [
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: 'includesString',
     enableRowSelection: true,
+ 
   })
 
   const pageIndex = table.getState().pagination.pageIndex
@@ -631,7 +632,8 @@ const columns = [
     }
     setShowMultiDeleteModal(true)
   }
-
+  // const pageSize = table.getState().pagination.pageSize // Récupère la taille de page actuelle
+  const setPageSize = table.setPageSize
   const selectedRows = table.getSelectedRowModel().rows
   const selectedCount = Object.keys(selectedRowIds).length
 
@@ -822,6 +824,8 @@ const columns = [
                 setPageIndex={table.setPageIndex}
                 nextPage={table.nextPage}
                 canNextPage={table.getCanNextPage()}
+                pageSize={pageSize}
+                setPageSize={setPageSize}
               />
             </CardFooter>
 

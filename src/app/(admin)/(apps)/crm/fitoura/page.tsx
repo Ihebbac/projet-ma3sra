@@ -70,6 +70,7 @@ const FitouraCard = () => {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
   const [columnFilters, setColumnFilters] = useState<any[]>([])
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const statusValues = ['EN_COURS', 'TERMINE', 'Bloqué']
 
@@ -433,7 +434,7 @@ const FitouraCard = () => {
       <FitouraDetailModal show={showDetailModal} onHide={() => setShowDetailModal(false)} operation={currentOperation} />
       <FitouraEditAllModal show={showEdit} onHide={() => setShowEdit(false)} operation={currentOperation} fetchData={fetchData} />
       <DeleteConfirmationModal
-        show={Object.keys(selectedRowIds).length > 0}
+        show={showDeleteModal}
         onHide={toggleDeleteModal}
         onConfirm={handleDelete}
         selectedCount={Object.keys(selectedRowIds).length}

@@ -5,7 +5,7 @@ import { Fragment } from 'react'
 import { Dropdown, DropdownDivider, DropdownItem, DropdownMenu, DropdownToggle } from 'react-bootstrap'
 import { TbChevronDown } from 'react-icons/tb'
 
-import user3 from '@/assets/images/users/user-3.jpg'
+import user3 from '@/assets/images/users/user-2.jpg'
 
 const UserProfile = () => {
   return (
