@@ -18,9 +18,9 @@ import {
   TbUserHexagon,
   TbUsers,
 } from 'react-icons/tb'
-import { GiMoneyStack,GiCardExchange } from "react-icons/gi";
-import { FaStoreAlt } from "react-icons/fa";
-import { ImTruck } from "react-icons/im";
+import { GiMoneyStack, GiCardExchange } from 'react-icons/gi'
+import { FaStoreAlt } from 'react-icons/fa'
+import { ImTruck } from 'react-icons/im'
 
 import {
   LuCalendar,
@@ -177,18 +177,21 @@ export const menuItems: MenuItemType[] = [
   //   ],
   // },
   {
-     key: 'Clients', label: 'Clients', icon: LuHandshake, url: '/crm/client' 
-  // children: [
-  //   ,
+    key: 'Clients',
+    label: 'Clients',
+    icon: LuHandshake,
+    url: '/crm/client',
+    // children: [
+    //   ,
     // { key: 'Qantité zitoun', label: 'Qantité zitoun',icon: LuRss, url: '/crm/Qteclient' },
     // { key: 'Qantité Zit', label: 'Qantité Zit',icon: LuRss, url: '/crm/Qteclientzit' },
-  // ],
-},
-  { key: 'Fitoura', label: 'Fitoura',icon: ImTruck , url: '/crm/fitoura' },
- 
+    // ],
+  },
+  { key: 'Fitoura', label: 'Fitoura', icon: ImTruck, url: '/crm/fitoura' },
+
   // { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
-  { key: 'Stock propriétaire', label: 'Stock propriétaire',icon: FaStoreAlt , url: '/crm/Qteproprietaire' },
-  { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire',icon: GiCardExchange, url: '/crm/TransfertStockproprietaire' },
+  { key: 'Stock propriétaire', label: 'Stock propriétaire', icon: FaStoreAlt, url: '/crm/Qteproprietaire' },
+  { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire', icon: GiCardExchange, url: '/crm/TransfertStockproprietaire' },
   {
     key: 'Caisse & Financement',
     label: 'Caisse & Financement',
@@ -210,7 +213,7 @@ export const menuItems: MenuItemType[] = [
     //   { key: 'Liste des Employés', label: 'Liste des Employés', url: '/crm/employeList' },
     //   { key: 'suivi présence ', label: 'suivi présence', url: '/crm/employe' },
     //   { key: 'calcul salire', label: 'calcul salire', url: '/users/roles' },
-     
+
     // ],
   },
   {
@@ -285,53 +288,53 @@ export const menuItems: MenuItemType[] = [
   //   ],
   // },
 
-  {
-    key: 'auth',
-    label: 'Authentication',
-    icon: LuFingerprint,
-    children: [
-      {
-        key: 'version-1',
-        label: 'Basic',
-        parentKey: 'auth',
-        children: [
-          { key: 'sign-in', label: 'Sign In', url: '/auth-1/sign-in' },
-          { key: 'sign-up', label: 'Sign Up', url: '/auth-1/sign-up' },
-          { key: 'reset-pass', label: 'Reset Password', url: '/auth-1/reset-password' },
-          { key: 'new-pass', label: 'New Password', url: '/auth-1/new-password' },
-          { key: 'two-factor', label: 'Two Factor', url: '/auth-1/two-factor' },
-          { key: 'lock-screen', label: 'Lock Screen', url: '/auth-1/lock-screen' },
-          { key: 'success-mail', label: 'Success Mail', url: '/auth-1/success-mail' },
-          { key: 'login-pin', label: 'Login with PIN', url: '/auth-1/login-pin' },
-          { key: 'delete-account', label: 'Delete Account', url: '/auth-1/delete-account' },
-        ],
-      },
-      {
-        key: 'version-2',
-        label: 'Cover',
-        parentKey: 'auth',
-        children: [
-          { key: 'sign-in-2', label: 'Sign In', url: '/auth-2/sign-in' },
-          { key: 'sign-up-2', label: 'Sign Up', url: '/auth-2/sign-up' },
-          {
-            key: 'reset-pass-2',
-            label: 'Reset Password',
-            url: '/auth-2/reset-password',
-          },
-          { key: 'new-pass-2', label: 'New Password', url: '/auth-2/new-password' },
-          { key: 'two-factor-2', label: 'Two Factor', url: '/auth-2/two-factor' },
-          { key: 'lock-screen-2', label: 'Lock Screen', url: '/auth-2/lock-screen' },
-          { key: 'success-mail-2', label: 'Success Mail', url: '/auth-2/success-mail' },
-          { key: 'login-pin-2', label: 'Login with PIN', url: '/auth-2/login-pin' },
-          {
-            key: 'delete-account-2',
-            label: 'Delete Account',
-            url: '/auth-2/delete-account',
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   key: 'auth',
+  //   label: 'Authentication',
+  //   icon: LuFingerprint,
+  //   children: [
+  //     {
+  //       key: 'version-1',
+  //       label: 'Basic',
+  //       parentKey: 'auth',
+  //       children: [
+  //         { key: 'sign-in', label: 'Sign In', url: '/auth-1/sign-in' },
+  //         { key: 'sign-up', label: 'Sign Up', url: '/auth-1/sign-up' },
+  //         { key: 'reset-pass', label: 'Reset Password', url: '/auth-1/reset-password' },
+  //         { key: 'new-pass', label: 'New Password', url: '/auth-1/new-password' },
+  //         { key: 'two-factor', label: 'Two Factor', url: '/auth-1/two-factor' },
+  //         { key: 'lock-screen', label: 'Lock Screen', url: '/auth-1/lock-screen' },
+  //         { key: 'success-mail', label: 'Success Mail', url: '/auth-1/success-mail' },
+  //         { key: 'login-pin', label: 'Login with PIN', url: '/auth-1/login-pin' },
+  //         { key: 'delete-account', label: 'Delete Account', url: '/auth-1/delete-account' },
+  //       ],
+  //     },
+  //     {
+  //       key: 'version-2',
+  //       label: 'Cover',
+  //       parentKey: 'auth',
+  //       children: [
+  //         { key: 'sign-in-2', label: 'Sign In', url: '/auth-2/sign-in' },
+  //         { key: 'sign-up-2', label: 'Sign Up', url: '/auth-2/sign-up' },
+  //         {
+  //           key: 'reset-pass-2',
+  //           label: 'Reset Password',
+  //           url: '/auth-2/reset-password',
+  //         },
+  //         { key: 'new-pass-2', label: 'New Password', url: '/auth-2/new-password' },
+  //         { key: 'two-factor-2', label: 'Two Factor', url: '/auth-2/two-factor' },
+  //         { key: 'lock-screen-2', label: 'Lock Screen', url: '/auth-2/lock-screen' },
+  //         { key: 'success-mail-2', label: 'Success Mail', url: '/auth-2/success-mail' },
+  //         { key: 'login-pin-2', label: 'Login with PIN', url: '/auth-2/login-pin' },
+  //         {
+  //           key: 'delete-account-2',
+  //           label: 'Delete Account',
+  //           url: '/auth-2/delete-account',
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   // {
   //   key: 'error',
   //   label: 'Error Pages',
