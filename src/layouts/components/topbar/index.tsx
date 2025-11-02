@@ -75,7 +75,7 @@ const Topbar = () => {
 
           {/* <LanguageDropdown /> */}
 
-          <MessageDropdown />
+          {/* <MessageDropdown /> */}
 
           {/* <ApplicationMenu /> */}
 

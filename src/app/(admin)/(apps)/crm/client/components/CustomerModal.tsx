@@ -100,7 +100,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
     return nQfza > 0 ? huile / nQfza : 0
   }
 
-  const calculatePrixFinal = (huile: number, prixKg: number) => (huile > 0 && prixKg > 0 ? huile * prixKg : 0)
+  const calculatePrixFinal = (huile: number, prixKg: number) => Math.round (huile > 0 && prixKg > 0 ? huile * prixKg : 0)
 
   // === RE-CALCUL AUTOMATIQUE ===
   useEffect(() => {
@@ -309,7 +309,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
                       type="number" 
                       name="quantiteOliveNet" 
                       value={format(formValues.quantiteOliveNet)} 
-                      readOnly 
+                      // readOnly 
                     />
                   </Form.Group>
                 </Col>
@@ -345,7 +345,8 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
                       type="number" 
                       name="nisba" 
                       value={format(formValues.nisba)} 
-                      readOnly 
+                      onChange={handleChange} 
+                      // readOnly 
                     />
                     <Form.Text className="text-muted">= (huile / olive net) × 100</Form.Text>
                   </Form.Group>
@@ -357,7 +358,8 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
                       type="number" 
                       name="kattou3" 
                       value={format(formValues.kattou3)} 
-                      readOnly 
+                      onChange={handleChange} 
+                      // readOnly 
                     />
                   </Form.Group>
                 </Col>
@@ -415,7 +417,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
                 </Col>
                 <Col>
                   <h6>Prix Total</h6>
-                  <p className="fw-bold text-danger">{format(formValues.prixFinal)} DT</p>
+                  <p className="fw-bold text-danger">{Math.round(formValues.prixFinal)} TND</p>
                 </Col>
               </Row>
             </Card>
