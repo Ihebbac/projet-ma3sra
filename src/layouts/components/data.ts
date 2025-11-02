@@ -222,7 +222,7 @@ export const menuItems: MenuItemType[] = [
     icon: TbUsers,
     children: [
       // { key: 'contacts', label: 'Contacts', url: '/users/contacts' },
-      { key: 'profile', label: 'Profile', url: '/users/profile' },
+      // { key: 'profile', label: 'Profile', url: '/users/profile' },
       { key: 'roles', label: 'Roles', url: '/users/roles' },
       { key: 'roles-details', label: 'Roles Details', url: '/users/roles-details' },
       { key: 'permissions', label: 'Permissions', url: '/users/permissions' },

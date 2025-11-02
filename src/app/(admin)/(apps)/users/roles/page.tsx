@@ -1,10 +1,9 @@
 'use client'
 import UserTable from '@/app/(admin)/(apps)/users/roles/components/UserTable'
-import { memberRoles } from '@/app/(admin)/(apps)/users/roles/data'
 import { Col, Container, FormControl, FormLabel, Modal, ModalBody, ModalFooter, ModalHeader, Row } from 'react-bootstrap'
 import { TbPlus } from 'react-icons/tb'
 import { useToggle } from 'usehooks-ts'
-import MemberRoleCard from '@/app/(admin)/(apps)/users/roles/components/MemberRoleCard'
+
 
 const Page = () => {
   const [show, toggle] = useToggle(false)
@@ -23,13 +22,13 @@ const Page = () => {
               </a>
             </div>
           </div>
-          <Row>
+          {/* <Row>
             {memberRoles.map((member, idx) => (
               <Col md={6} lg={3} key={idx}>
                 <MemberRoleCard member={member} />
               </Col>
             ))}
-          </Row>
+          </Row> */}
           <Row>
             <Col xs={12}>
               <UserTable />
