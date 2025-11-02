@@ -37,7 +37,7 @@ const Page = () => {
 
       router.replace(nextPath)
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Une erreur est survenue. Réessayez.')
+      setErrorMsg(`impossible de se connecter ${err?.message}` || 'Une erreur est survenue. Réessayez.')
     } finally {
       setSubmitting(false)
     }
