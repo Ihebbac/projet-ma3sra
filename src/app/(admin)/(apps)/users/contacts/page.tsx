@@ -444,8 +444,8 @@ const CustomersCard = () => {
                     Tout
                   </Button>
                 </ButtonGroup>
-                <div className="d-flex align-items-center gap-2">
-                  <span className="fw-semibold">Plage :</span>
+                <div className="d-flex align-items-center gap-3">
+                  <span className="fw-semibold">Date</span>
                   <Flatpickr
                     className="form-control"
                     options={{ mode: 'range', dateFormat: 'Y-m-d' }}
