@@ -33,7 +33,10 @@ const Page = () => {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         throw new Error(data?.error || 'Identifiants invalides')
-      }
+      }      
+      window.localStorage.setItem('user', JSON.stringify(data.data))
+
+
 
       router.replace(nextPath)
     } catch (err: any) {

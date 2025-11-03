@@ -62,7 +62,7 @@ const getTypeBadgeVariant = (type: string) => {
   }
 }
 
-const CustomerModalViewDetail = ({ show, onHide, customer }: CustomerModalProps) => {
+const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalProps) => {
   const format = (v: number) => (v > 0 ? v.toFixed(2) : '')
   console.log("customer",customer)
 
@@ -89,10 +89,18 @@ const CustomerModalViewDetail = ({ show, onHide, customer }: CustomerModalProps)
       <Modal.Header closeButton className="bg-light border-bottom">
         <Modal.Title className="d-flex align-items-center">
           <User className="me-2 text-primary" size={24} />
-          <div>
+          <Row>
+
+            <Col xs> <div>
             <div className="fw-bold fs-4">{customer.nomPrenom}</div>
             <div className="text-muted fs-6">Détails du client</div>
-          </div>
+          </div></Col>
+            <Col xs>      <h3 className="mb-0 d-flex align-items-center">
+                <Badge bg="success">ajouter Par : {(customer?.nomutilisatuer).split('@')[0]}</Badge>
+                
+              </h3></Col>
+          </Row>
+         
         </Modal.Title>
       </Modal.Header>
 
@@ -101,12 +109,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer }: CustomerModalProps)
           
           {/* Section 1: Informations du Client */}
           <Card className="border-0 shadow-sm mb-4">
-            <Card.Header className=" border-bottom">
-              <h5 className="mb-0 d-flex align-items-center">
-                <User className="bg-whiteme-2 text-primary" size={20} />
-                Informations Personnelles
-              </h5>
-            </Card.Header>
+       
             <Card.Body>
               <Row className="g-3">
                 <Col xs>

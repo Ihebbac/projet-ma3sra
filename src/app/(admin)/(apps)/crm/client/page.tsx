@@ -27,6 +27,7 @@ import CustomerModalViewDetail from '../client/components/CustomerModalViewDetai
 import CustomerEditModal from '../client/components/CustomerEditModal'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { exportToPDF, exportToXLSX } from './components/TableExporter'
+// import { cookies } from 'next/headers'
 
 type CustomerType = {
   _id: string
@@ -50,6 +51,7 @@ type CustomerType = {
   prixFinal?: number
   prixKg?: number
   status: 'payé' | 'non payé'
+  nomutilisatuer:string
 }
 
 // Nouveau type pour les statistiques
@@ -128,11 +130,11 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   const huile = customer.quantiteHuile?.toFixed(2) ?? '-'
   const nom = customer.nomPrenom.slice(0, W)
   const tel = customer.numTelephone ?? '-'
-
+const caisier = customer.nomutilisatuer.split('@')[0]
   // === TICKET PRINCIPAL ===
   content.push(center(LOGO_PLACEHOLDER))
   content.push(LINE)
-  content.push(`${num} ${date} ${time}`)
+  content.push(`${num} ${date} ${time} ${caisier}`)
   content.push(bi('Client', 'الحريف'))
   content.push(center(nom))
   content.push(bi('Téléphone', 'الهاتف'))
@@ -196,6 +198,7 @@ const CustomersCard = () => {
   const [showMultiDeleteModal, setShowMultiDeleteModal] = useState(false)
   const [dailyStats, setDailyStats] = useState<DailyStatsType | null>(null)
   const [showStats, setShowStats] = useState(false)
+  const [user, setuser] = useState<any>()
 
 
   // Fonction pour calculer les statistiques quotidiennes
@@ -271,7 +274,16 @@ const CustomersCard = () => {
       totalPrixnonpayer,
     }
   }, [])
+  useEffect(()=>{
+    
+   ( async ()=>{
 
+    setuser (JSON.parse(localStorage.getItem('user')??''))
+      console.log("user",user)
+    })()
+     
+    },[])
+ console.log("role",user)
   // fetch clients
   const fetchClients = useCallback(async () => {
     try {
@@ -345,6 +357,7 @@ const CustomersCard = () => {
           motif: `Payment Client`,
           uniqueId: customer._id,
           montant: customer.prixFinal,
+          nomutilisatuer : customer.nomutilisatuer,
           type: 'credit',
           date: new Date().toISOString(),
           commentaire: `payment de Client : ${customer.nomPrenom} Telephone :${customer?.numTelephone ?? ''} - quantiteHuile : ${customer.quantiteHuile}
@@ -473,54 +486,77 @@ const columns = [
     enableColumnFilter: false,
   },
   columnHelper.accessor('nomPrenom', {
-    header: 'Nom & Prénom',
+    header: 'اسم الفلاح',
     cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
   }),
   columnHelper.accessor('nombreCaisses', {
-    header: 'nombreCaisses',
-    cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
+    header: 'ع.ص',
+    cell: (info) => <h5 className="mb-0">({info.getValue()})</h5>,
   }),
   columnHelper.accessor('quantiteOliveNet', {
-    header: 'quantiteOliveNet',
-    cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
+    header: 'الزيتون NET',
+    cell: (info) => <h5 className="mb-0">{info.getValue()}KG</h5>,
   }),
   columnHelper.accessor('quantiteHuile', {
-    header: 'quantiteHuile',
-    cell: (info) => <h5 className="mb-0">{info.getValue()}</h5>,
+    header: 'الزيت NET',
+    cell: (info) => <h5 className="mb-0">{info.getValue()}KG</h5>,
   }),
   columnHelper.accessor('kattou3', {
-    header: 'kattou3',
-    cell: (info) => <Badge bg="warning">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
+    header: 'القطوع',
+    cell: (info) => <Badge bg="warning">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}%</Badge>,
   }),
   columnHelper.accessor('nisbaReelle', {
-    header: 'nisba %',
-    cell: (info) => <Badge bg="success">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
+    header: 'النسبة %',
+    cell: (info) => <Badge bg="success">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}%</Badge>,
   }),
   columnHelper.accessor('prixFinal', {
-    header: 'prix Dinar',
-    cell: (info) => <Badge bg="secondary">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}</Badge>,
+    header: 'الثمن',
+    cell: (info) => <Badge bg="secondary">{info.getValue() != null ? info.getValue().toFixed(3) : 'N/A'}TND</Badge>,
   }),
-  columnHelper.accessor('numTelephone', { header: 'Téléphone' }),
+  columnHelper.accessor('numTelephone', { header: 'الهاتف' }),
   columnHelper.accessor('dateCreation', {
-    header: 'Date de création',
+    header: 'التاريخ ',
     cell: (info) => formatDateDDMMYYYY(info.getValue() as string),
   }),
-  columnHelper.accessor('type', {
-    header: 'Type',
-    cell: (info) => (
-      <span className={`badge ${info.getValue() === 'فلاح' ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info'}`}>
-        {info.getValue()}
-      </span>
-    ),
-  }),
+  // columnHelper.accessor('type', {
+  //   header: 'Type',
+  //   cell: (info) => (
+  //     <span className={`badge ${info.getValue() === 'فلاح' ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info'}`}>
+  //       {info.getValue()}
+  //     </span>
+  //   ),
+  // }),
   // Nouvelle colonne pour le statut de paiement
   columnHelper.accessor('status', {
-    header: 'Statut Paiement',
+    header: 'الدفع',
     cell: (info) => (
       <Badge bg={info.getValue() === 'payé' ? 'success' : 'danger'}>
         {info.getValue() === 'payé' ? 'Payé' : 'Non Payé'}
       </Badge>
     ),
+  }),
+  columnHelper.accessor('nomutilisatuer', {
+    header: 'تم الإنشاء بواسطة',
+    cell: (info) => {
+      const valeur = info.getValue();
+      
+      // Vérifier si la valeur existe et contient @
+      if (!valeur || typeof valeur !== 'string') {
+        return <Badge bg="warning">Non défini</Badge>;
+      }
+      
+      const indexArobase = valeur.indexOf('@');
+      
+      if (indexArobase === -1) {
+        return <Badge bg="warning">{valeur}</Badge>;
+      }
+      
+      return (
+        <Badge bg="warning">
+          {valeur.slice(0, indexArobase)}
+        </Badge>
+      );
+    },
   }),
   {
     header: 'Actions',
@@ -582,7 +618,7 @@ const columns = [
               setShowDeleteModal(true)
               setSelectedRowIds({ [customer._id]: true })
             }}
-            disabled={hasPrinted} // Désactivé si déjà imprimé
+            disabled={isPaid&&user?.roles?.includes('caissier')} 
             title={hasPrinted ? "Impossible de supprimer - Déjà imprimé" : "Supprimer"}
           >
             <TbTrash className="fs-lg" />
@@ -727,7 +763,7 @@ const columns = [
                 <Button className="btn btn-primary" onClick={() => setShowModal(true)}>
                   <TbPlus className="fs-lg" /> Ajouter
                 </Button>
-                <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} />
+                <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} user={user} />
 
                 {selectedCount > 0 && (
                   <Button variant="danger" onClick={handleMultiDelete}>
@@ -848,7 +884,7 @@ const columns = [
         </Col>
       </Row>
 
-      <CustomerModalViewDetail show={showModalDetail} onHide={() => setShowModalDetail(false)} customer={selectedCustomer} />
+      <CustomerModalViewDetail show={showModalDetail} onHide={() => setShowModalDetail(false)} customer={selectedCustomer} user={user} />
       <CustomerEditModal show={showModalEdit} onHide={() => setShowModalEdit(false)} customer={selectedCustomer} onClientSaved={handleClientSaved} />
     </Container>
   )

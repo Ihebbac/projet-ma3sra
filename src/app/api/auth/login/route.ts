@@ -2,8 +2,9 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { signSession } from '@/lib/jwt'
+import { json } from 'stream/consumers'
 
-const API = "http://localhost:8170"!
+const API = 'http://localhost:8170'!
 
 export async function POST(req: Request) {
   try {
@@ -55,7 +56,6 @@ export async function POST(req: Request) {
       path: '/',
       maxAge: 24 * 60 * 60,
     })
-
     // 2) External tokens (for server-to-API calls)
     c.set('ext_access', access, {
       httpOnly: true,
@@ -74,7 +74,8 @@ export async function POST(req: Request) {
       })
     }
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true,    data:{ sub: user?.id?.toString?.() || user?._id, email: user?.email, roles: user?.roles }
+  })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Login failed' }, { status: 400 })
   }

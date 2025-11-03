@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { Container, FormControl } from 'react-bootstrap'
 import { LuSearch } from 'react-icons/lu'
 import { TbMenu4 } from 'react-icons/tb'
+import { useEffect, useState } from 'react' // <-- Ajout de useEffect et useState
 
 import logoDark from '@/assets/images/logo-black.jpg'
 import logoSm from '@/assets/images/logo-sm.jpg'
@@ -19,8 +20,36 @@ import ApplicationMenu from '@/layouts/components/topbar/components/ApplicationM
 import FullscreenToggle from '@/layouts/components/topbar/components/FullscreenToggle'
 import MonochromeThemeModeToggler from '@/layouts/components/topbar/components/MonochromeThemeModeToggler'
 
+// Définition du type utilisateur pour typage
+type User = {
+    roles?: string[]
+} | null
+
 const Topbar = () => {
   const { sidenav, changeSideNavSize, showBackdrop } = useLayoutContext()
+
+  // 1. État pour stocker l'utilisateur
+  const [user, setUser] = useState<User>(null)
+
+  // 2. Chargement de l'utilisateur depuis localStorage au montage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser))
+      } catch (error) {
+        console.error('Error parsing user from localStorage:', error)
+        setUser(null)
+      }
+    }
+  }, [])
+
+  // 3. Déterminer si l'utilisateur est propriétaire
+  const isProprietaire = user?.roles?.includes('Proprietaire') ?? false
+
+  // 4. Déterminer le rôle à afficher dans l'UI
+  const displayRole = isProprietaire ? 'Proprietaire' : 'caissier'
+
 
   const toggleSideNav = () => {
     const html = document.documentElement
@@ -35,6 +64,7 @@ const Topbar = () => {
       changeSideNavSize(currentSize === 'condensed' ? 'default' : 'condensed')
     }
   }
+  
 
   return (
     <header className="app-topbar">
@@ -85,7 +115,8 @@ const Topbar = () => {
 
           {/* <MonochromeThemeModeToggler /> */}
 
-          <UserProfile />
+          {/* 5. Passage du rôle dynamique au composant UserProfile */}
+          <UserProfile displayRole={displayRole} />
 
           {/* <CustomizerToggler /> */}
         </div>

@@ -26,7 +26,7 @@ const toNumber = (v: any): number | undefined => {
   return isNaN(n) ? undefined : n
 }
 
-const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, onClientSaved }) => {
+const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, onClientSaved,user }) => {
   const [openOlive, setOpenOlive] = useState(true)
   const [openHuile, setOpenHuile] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -58,6 +58,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
     nombreQfza: 0,
     huileParQfza: 0,
     prixFinal: 0,
+    nomutilisatuer:user?.email,
   })
 
   const [formValues, setFormValues] = useState(getInitialFormData())
@@ -128,6 +129,8 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
       nisbaReelle: nisba,
       prixFinal,
       prixKg: prixKg,
+      nomutilisatuer:user?.email,
+
     }))
   }, [formValues.quantiteOlive, formValues.nombreCaisses, formValues.quantiteHuile, poidsWiba, prixKg])
 

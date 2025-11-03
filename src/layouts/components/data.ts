@@ -196,7 +196,7 @@ export const menuItems: MenuItemType[] = [
     key: 'Caisse & Financement',
     label: 'Caisse & Financement',
     icon: GiMoneyStack,
-    url: '/users/contacts',
+    url: '/crm/caisse',
     // children: [
     //   { key: 'Caisse', label: 'Caisse', url: '/users/contacts' },
     //   { key: 'Saisie dépenses', label: 'Saisie dépenses', url: '/users/profile' },
