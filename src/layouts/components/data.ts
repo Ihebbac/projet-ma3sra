@@ -187,23 +187,10 @@ export const menuItems: MenuItemType[] = [
     // { key: 'Qantité Zit', label: 'Qantité Zit',icon: LuRss, url: '/crm/Qteclientzit' },
     // ],
   },
-  { key: 'Fitoura', label: 'Fitoura', icon: ImTruck, url: '/crm/fitoura' },
-
+ 
   // { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
   { key: 'Stock propriétaire', label: 'Stock propriétaire', icon: FaStoreAlt, url: '/crm/Qteproprietaire' },
   { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire', icon: GiCardExchange, url: '/crm/TransfertStockproprietaire' },
-  {
-    key: 'Caisse & Financement',
-    label: 'Caisse & Financement',
-    icon: GiMoneyStack,
-    url: '/crm/caisse',
-    // children: [
-    //   { key: 'Caisse', label: 'Caisse', url: '/users/contacts' },
-    //   { key: 'Saisie dépenses', label: 'Saisie dépenses', url: '/users/profile' },
-    //   { key: 'Saisie recettes', label: 'Saisie recettes', url: '/users/roles' },
-    //   { key: 'Historique transactions', label: 'Historique transactions', url: '/users/roles-details' },
-    // ],
-  },
   {
     key: 'Employés',
     label: 'Liste des Employés',
@@ -216,18 +203,33 @@ export const menuItems: MenuItemType[] = [
 
     // ],
   },
+  { key: 'Fitoura', label: 'Fitoura', icon: ImTruck, url: '/crm/fitoura' },
+
   {
-    key: 'users',
-    label: 'Users',
-    icon: TbUsers,
-    children: [
-      // { key: 'contacts', label: 'Contacts', url: '/users/contacts' },
-      // { key: 'profile', label: 'Profile', url: '/users/profile' },
-      { key: 'roles', label: 'Roles', url: '/users/roles' },
-      { key: 'roles-details', label: 'Roles Details', url: '/users/roles-details' },
-      { key: 'permissions', label: 'Permissions', url: '/users/permissions' },
-    ],
+    key: 'Caisse & Financement',
+    label: 'Caisse & Financement',
+    icon: GiMoneyStack,
+    url: '/crm/caisse',
+    // children: [
+    //   { key: 'Caisse', label: 'Caisse', url: '/users/contacts' },
+    //   { key: 'Saisie dépenses', label: 'Saisie dépenses', url: '/users/profile' },
+    //   { key: 'Saisie recettes', label: 'Saisie recettes', url: '/users/roles' },
+    //   { key: 'Historique transactions', label: 'Historique transactions', url: '/users/roles-details' },
+    // ],
   },
+
+  // {
+  //   key: 'users',
+  //   label: 'Users',
+  //   icon: TbUsers,
+  //   children: [
+  //     // { key: 'contacts', label: 'Contacts', url: '/users/contacts' },
+  //     // { key: 'profile', label: 'Profile', url: '/users/profile' },
+  //     { key: 'roles', label: 'Roles', url: '/users/roles' },
+  //     { key: 'roles-details', label: 'Roles Details', url: '/users/roles-details' },
+  //     { key: 'permissions', label: 'Permissions', url: '/users/permissions' },
+  //   ],
+  // },
 
   // { key: 'social-feed', label: 'Social Feed', icon: LuRss, url: '/social-feed' },
   // {

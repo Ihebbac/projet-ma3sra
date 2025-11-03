@@ -26,6 +26,7 @@ type CustomerType = {
   huileParQfza?: number
   prixFinal?: number;
   prixKg?: number
+  nomutilisatuer:string
 }
 
 type CustomerModalProps = {
@@ -96,8 +97,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
             <div className="text-muted fs-6">Détails du client</div>
           </div></Col>
             <Col xs>      <h3 className="mb-0 d-flex align-items-center">
-                <Badge bg="success">ajouter Par : {(customer?.nomutilisatuer).split('@')[0]}</Badge>
-                
+            <Badge bg="success">Ajouté par : {customer?.nomutilisatuer?.split('@')[0] || "Non défini"}</Badge>                
               </h3></Col>
           </Row>
          
