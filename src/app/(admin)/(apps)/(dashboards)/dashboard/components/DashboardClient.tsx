@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, ChangeEvent, useCallback } from 'react'
+import { useEffect, useMemo, useState, ChangeEvent, useCallback, JSX } from 'react'
 import { Row, Col, Card, CardBody, Button, ButtonGroup, Form, Modal, Badge } from 'react-bootstrap'
 import {
   TbDropletFilled,
@@ -140,24 +140,15 @@ const classifyStatus = (s?: string): 'payé' | 'non payé' | 'other' => {
 }
 
 // Modern Card Component
-const ModernCard = ({ 
-  children, 
-  className = '',
-  hover = false 
-}: { 
-  children: React.ReactNode
-  className?: string
-  hover?: boolean
-}) => (
-  <Card 
+const ModernCard = ({ children, className = '', hover = false }: { children: React.ReactNode; className?: string; hover?: boolean }) => (
+  <Card
     className={`modern-card ${hover ? 'card-hover' : ''} ${className}`}
     style={{
       border: 'none',
       borderRadius: '12px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
       transition: 'all 0.3s ease',
-    }}
-  >
+    }}>
     {children}
   </Card>
 )
@@ -196,24 +187,16 @@ const StatCard = ({
     <ModernCard hover>
       <CardBody className="p-3">
         <div className="d-flex justify-content-between align-items-start mb-2">
-          <div 
-            className={`stat-icon bg-${color}-subtle text-${color} rounded-2 p-2`}
-            style={{ fontSize: '20px' }}
-          >
+          <div className={`stat-icon bg-${color}-subtle text-${color} rounded-2 p-2`} style={{ fontSize: '20px' }}>
             {icon}
           </div>
           {onOpenFilters && (
-            <Button 
-              variant="link" 
-              className="p-0 text-muted" 
-              onClick={onOpenFilters}
-              style={{ minWidth: 'auto', padding: '4px!important' }}
-            >
+            <Button variant="link" className="p-0 text-muted" onClick={onOpenFilters} style={{ minWidth: 'auto', padding: '4px!important' }}>
               <TbFilter size={16} />
             </Button>
           )}
         </div>
-        
+
         <div className="mt-2">
           <h4 className="fw-bold mb-1">
             {loading ? (
@@ -224,12 +207,7 @@ const StatCard = ({
               <>
                 <CountUpClient end={Number(value) || 0} suffix={suffix} />
                 {trend && trend !== 'neutral' && (
-                  <Badge 
-                    bg={`${trendConfig.color}-subtle`} 
-                    text={trendConfig.color}
-                    className="ms-2"
-                    style={{ fontSize: '0.7em' }}
-                  >
+                  <Badge bg={`${trendConfig.color}-subtle`} text={trendConfig.color} className="ms-2" style={{ fontSize: '0.7em' }}>
                     {trendConfig.icon} {trendValue}
                   </Badge>
                 )}
@@ -237,9 +215,7 @@ const StatCard = ({
             )}
           </h4>
           <p className="text-muted mb-1 small">{title}</p>
-          {sub && (
-            <p className="text-muted small mb-0">{sub}</p>
-          )}
+          {sub && <p className="text-muted small mb-0">{sub}</p>}
         </div>
       </CardBody>
     </ModernCard>
@@ -273,17 +249,12 @@ const DateFilterSection = ({
             <span className="fw-medium">Période</span>
           </div>
         </Col>
-        
+
         <Col md="auto">
           <ButtonGroup size="sm">
             {(['today', 'month', 'year', 'all'] as const).map((q) => (
-              <Button 
-                key={q}
-                variant={quick === q ? 'primary' : 'outline-secondary'}
-                onClick={() => setQuick(q)}
-                className="rounded-2"
-              >
-                {q === 'today' ? 'Aujourd\'hui' : q === 'month' ? 'Ce mois' : q === 'year' ? 'Cette année' : 'Tout'}
+              <Button key={q} variant={quick === q ? 'primary' : 'outline-secondary'} onClick={() => setQuick(q)} className="rounded-2">
+                {q === 'today' ? "Aujourd'hui" : q === 'month' ? 'Ce mois' : q === 'year' ? 'Cette année' : 'Tout'}
               </Button>
             ))}
           </ButtonGroup>
@@ -292,12 +263,7 @@ const DateFilterSection = ({
         <Col md="auto">
           <ButtonGroup size="sm">
             {(['day', 'month', 'year'] as const).map((g) => (
-              <Button 
-                key={g}
-                variant={granularity === g ? 'secondary' : 'outline-secondary'}
-                onClick={() => setGranularity(g)}
-                className="rounded-2"
-              >
+              <Button key={g} variant={granularity === g ? 'secondary' : 'outline-secondary'} onClick={() => setGranularity(g)} className="rounded-2">
                 {g === 'day' ? 'Jour' : g === 'month' ? 'Mois' : 'Année'}
               </Button>
             ))}
@@ -305,7 +271,7 @@ const DateFilterSection = ({
         </Col>
 
         <Col md={2}>
-          <Form.Select 
+          <Form.Select
             size="sm"
             value={year}
             onChange={(e) => {
@@ -314,17 +280,18 @@ const DateFilterSection = ({
               if (y === 'all') setMonth('all')
               setQuick('all')
             }}
-            className="rounded-2"
-          >
+            className="rounded-2">
             <option value="all">Toutes années</option>
             {yearsOptions.map((y: number) => (
-              <option key={y} value={y}>{y}</option>
+              <option key={y} value={y}>
+                {y}
+              </option>
             ))}
           </Form.Select>
         </Col>
 
         <Col md={2}>
-          <Form.Select 
+          <Form.Select
             size="sm"
             value={month}
             onChange={(e) => {
@@ -332,8 +299,7 @@ const DateFilterSection = ({
               setQuick('all')
             }}
             disabled={year === 'all'}
-            className="rounded-2"
-          >
+            className="rounded-2">
             <option value="all">Tous mois</option>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
@@ -348,14 +314,14 @@ const DateFilterSection = ({
             size="sm"
             type="date"
             value={from}
-            onChange={(e) => {
+            onChange={(e: any) => {
               setFrom(getVal(e))
               setQuick('all')
             }}
             className="rounded-2"
           />
         </Col>
-        
+
         <Col md={1} className="text-center">
           <span className="text-muted">à</span>
         </Col>
@@ -365,7 +331,7 @@ const DateFilterSection = ({
             size="sm"
             type="date"
             value={to}
-            onChange={(e) => {
+            onChange={(e: any) => {
               setTo(getVal(e))
               setQuick('all')
             }}
@@ -374,20 +340,10 @@ const DateFilterSection = ({
         </Col>
 
         <Col md="auto" className="d-flex gap-2">
-          <Button 
-            variant="outline-secondary" 
-            size="sm"
-            onClick={onReset}
-            className="rounded-2"
-          >
+          <Button variant="outline-secondary" size="sm" onClick={onReset} className="rounded-2">
             Réinitialiser
           </Button>
-          <Button 
-            variant="outline-primary" 
-            size="sm"
-            onClick={onRefresh}
-            className="rounded-2 d-flex align-items-center gap-1"
-          >
+          <Button variant="outline-primary" size="sm" onClick={onRefresh} className="rounded-2 d-flex align-items-center gap-1">
             <TbRefresh size={16} />
             Actualiser
           </Button>
@@ -460,13 +416,16 @@ export default function ModernDashboardClient() {
   }, [fetchData])
 
   // All your existing calculations and useMemo hooks remain exactly the same
-  const allDates = useMemo(() => [
-    ...clients.map((x) => x.dateCreation),
-    ...fitoura.map((x) => x.createdAt || x.dateSortie),
-    ...transactions.map((x) => x.date),
-    ...caisse.map((x) => x.date),
-    ...employes.flatMap((e) => [...(e.joursPayes || []), ...(e.joursTravailles || []).map((j) => j.date)]),
-  ], [clients, fitoura, transactions, caisse, employes])
+  const allDates = useMemo(
+    () => [
+      ...clients.map((x) => x.dateCreation),
+      ...fitoura.map((x) => x.createdAt || x.dateSortie),
+      ...transactions.map((x) => x.date),
+      ...caisse.map((x) => x.date),
+      ...employes.flatMap((e) => [...(e.joursPayes || []), ...(e.joursTravailles || []).map((j) => j.date)]),
+    ],
+    [clients, fitoura, transactions, caisse, employes],
+  )
 
   const yearsOptions = useMemo(() => {
     const s = new Set<number>()
@@ -734,7 +693,6 @@ export default function ModernDashboardClient() {
     <div className="modern-dashboard">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-
         <Badge bg="light" text="dark" className="fs-6">
           {clientsF.length} clients
         </Badge>
@@ -758,8 +716,8 @@ export default function ModernDashboardClient() {
         onRefresh={fetchData}
         onReset={handleReset}
       />
-<Row>
-<Col lg={4}>
+      <Row>
+        <Col lg={4}>
           <ModernCard>
             <CardBody>
               <h6 className="card-title mb-3">Production d'huile</h6>
@@ -856,7 +814,7 @@ export default function ModernDashboardClient() {
             </CardBody>
           </ModernCard>
         </Col>
-</Row>
+      </Row>
       {/* KPI Cards - Modern Layout */}
       <Row className="g-3 mt-3">
         <Col xl={2} lg={4} md={6}>
@@ -928,19 +886,19 @@ export default function ModernDashboardClient() {
           />
         </Col>
       </Row>
-<Row>
-<Col lg={12}>
+      <Row>
+        <Col lg={12}>
           <ModernCard>
             <CardBody>
               <h6 className="card-title mb-3">Top 5 clients - Production d'huile</h6>
               <div style={{ height: 250 }}>
                 <Bar
                   data={{
-                    labels: topClients.map(c => c.nomPrenom),
+                    labels: topClients.map((c) => c.nomPrenom),
                     datasets: [
                       {
                         label: 'Huile (L)',
-                        data: topClients.map(c => c.quantiteHuile || 0),
+                        data: topClients.map((c) => c.quantiteHuile || 0),
                         backgroundColor: colors.primaryA,
                         borderColor: colors.primary,
                         borderWidth: 1,
@@ -959,10 +917,9 @@ export default function ModernDashboardClient() {
             </CardBody>
           </ModernCard>
         </Col>
-</Row>
+      </Row>
       {/* Secondary KPIs */}
       <Row className="g-3 mt-2">
-        
         <Col xl={2} lg={4} md={6}>
           <StatCard
             icon={<TbUsers />}
@@ -995,13 +952,7 @@ export default function ModernDashboardClient() {
           />
         </Col>
         <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbReceipt2 />}
-            color="info"
-            title="Crédits clients"
-            value={Number(kCreditsClients.toFixed(2))}
-            loading={loading}
-          />
+          <StatCard icon={<TbReceipt2 />} color="info" title="Crédits clients" value={Number(kCreditsClients.toFixed(2))} loading={loading} />
         </Col>
         <Col xl={2} lg={4} md={6}>
           <StatCard
@@ -1028,12 +979,7 @@ export default function ModernDashboardClient() {
 
       {/* Charts Section */}
 
-
-      <Row className="g-3 mt-3">
-       
-
-      
-      </Row>
+      <Row className="g-3 mt-3"></Row>
 
       {/* Keep your existing modal code exactly as is */}
       <Modal show={!!showModal} onHide={closeModal} centered>
@@ -1094,16 +1040,16 @@ export default function ModernDashboardClient() {
         .modern-dashboard {
           padding: 1rem;
         }
-        
+
         .modern-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
-        
+
         .stat-icon {
           transition: all 0.3s ease;
         }
-        
+
         .modern-card:hover .stat-icon {
           transform: scale(1.1);
         }

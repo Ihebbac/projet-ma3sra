@@ -29,20 +29,18 @@ function monthLabel(d: Date) {
   return d.toLocaleString('fr-FR', { month: 'long', year: 'numeric' })
 }
 
-const ViewEmployeModal = ({ show, onHide, employe }: ViewEmployeModalProps) => {
-  if (!employe) return null
-
+const ViewEmployeModal = ({ show, onHide, employe }: any) => {
   // Sets pour comparaison “jour par jour” (en neutralisant l’heure)
   const paidSet = useMemo(() => {
     const s = new Set<string>()
-    ;(employe.joursPayes || []).forEach((iso) => s.add(new Date(iso).toDateString()))
+    ;(employe.joursPayes || []).forEach((iso: any) => s.add(new Date(iso).toDateString()))
     return s
   }, [employe.joursPayes])
 
   // Normalisation des jours travaillés en lignes détaillées
   const entries = useMemo(() => {
     const list =
-      (employe.joursTravailles || []).map((jt) => {
+      (employe.joursTravailles || []).map((jt: any) => {
         const d = new Date(jt.date)
         const base = employe.montantJournalier || 0
         const hs = jt.heuresSup || 0
@@ -61,7 +59,7 @@ const ViewEmployeModal = ({ show, onHide, employe }: ViewEmployeModalProps) => {
       }) || []
 
     // Tri chronologique ascendant
-    return list.sort((a, b) => a.date.getTime() - b.date.getTime())
+    return list.sort((a: any, b: any) => a.date.getTime() - b.date.getTime())
   }, [employe.joursTravailles, employe.montantJournalier, employe.montantHeure, paidSet])
 
   // Groupement par mois
@@ -75,7 +73,7 @@ const ViewEmployeModal = ({ show, onHide, employe }: ViewEmployeModalProps) => {
       }
     > = {}
 
-    entries.forEach((e) => {
+    entries.forEach((e: any) => {
       const key = `${e.date.getFullYear()}-${String(e.date.getMonth() + 1).padStart(2, '0')}`
       if (!map[key]) {
         const anyDate = new Date(e.date.getFullYear(), e.date.getMonth(), 1)
@@ -102,7 +100,7 @@ const ViewEmployeModal = ({ show, onHide, employe }: ViewEmployeModalProps) => {
   // Totaux globaux
   const totals = useMemo(() => {
     return entries.reduce(
-      (acc, e) => {
+      (acc: any, e: any) => {
         acc.days += 1
         acc.paidDays += e.isPaid ? 1 : 0
         acc.base += e.base
@@ -114,6 +112,8 @@ const ViewEmployeModal = ({ show, onHide, employe }: ViewEmployeModalProps) => {
       { days: 0, paidDays: 0, base: 0, overtimePay: 0, total: 0, hours: 0 },
     )
   }, [entries])
+
+  if (!employe) return null
 
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
@@ -213,7 +213,7 @@ const ViewEmployeModal = ({ show, onHide, employe }: ViewEmployeModalProps) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {m.items.map((e) => (
+                        {m.items.map((e: any) => (
                           <tr key={e.key}>
                             <td>{e.dateStr}</td>
                             <td className="text-capitalize">{e.weekday}</td>

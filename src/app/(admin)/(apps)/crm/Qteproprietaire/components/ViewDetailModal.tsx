@@ -2,9 +2,9 @@
 import { Button, Col, Modal, ModalFooter, ModalHeader, ModalTitle, Row, Table } from 'react-bootstrap'
 
 interface ViewDetailModalProps {
-  show: boolean;
-  toggleModal: () => void;
-  data: CustomerType;
+  show: boolean
+  toggleModal: () => void
+  data: any
 }
 
 const ViewDetailModal = ({ show, toggleModal, data }: ViewDetailModalProps) => {
@@ -18,7 +18,9 @@ const ViewDetailModal = ({ show, toggleModal, data }: ViewDetailModalProps) => {
         <Table striped bordered responsive>
           <tbody>
             <tr>
-              <td className="fw-semibold" style={{ width: '30%' }}>Propriétaire</td>
+              <td className="fw-semibold" style={{ width: '30%' }}>
+                Propriétaire
+              </td>
               <td>{data.nomPrenom}</td>
             </tr>
             <tr>
@@ -35,11 +37,11 @@ const ViewDetailModal = ({ show, toggleModal, data }: ViewDetailModalProps) => {
             </tr>
             <tr>
               <td className="fw-semibold">Kattou3</td>
-              <td>{(data.kattou3).toFixed(2) || 0} %</td>
+              <td>{data.kattou3.toFixed(2) || 0} %</td>
             </tr>
             <tr>
               <td className="fw-semibold">Nisba</td>
-              <td>{(data.nisba).toFixed(2) || 0} %</td>
+              <td>{data.nisba.toFixed(2) || 0} %</td>
             </tr>
             <tr>
               <td className="fw-semibold">Date création</td>

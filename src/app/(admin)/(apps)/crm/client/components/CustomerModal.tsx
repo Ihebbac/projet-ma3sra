@@ -26,7 +26,7 @@ const toNumber = (v: any): number | undefined => {
   return isNaN(n) ? undefined : n
 }
 
-const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, onClientSaved,user }) => {
+const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, user }) => {
   const [openOlive, setOpenOlive] = useState(true)
   const [openHuile, setOpenHuile] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -58,7 +58,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
     nombreQfza: 0,
     huileParQfza: 0,
     prixFinal: 0,
-    nomutilisatuer:user?.email,
+    nomutilisatuer: user?.email,
   })
 
   const [formValues, setFormValues] = useState(getInitialFormData())
@@ -101,7 +101,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
     return nQfza > 0 ? huile / nQfza : 0
   }
 
-  const calculatePrixFinal = (huile: number, prixKg: number) => Math.round (huile > 0 && prixKg > 0 ? huile * prixKg : 0)
+  const calculatePrixFinal = (huile: number, prixKg: number) => Math.round(huile > 0 && prixKg > 0 ? huile * prixKg : 0)
 
   // === RE-CALCUL AUTOMATIQUE ===
   useEffect(() => {
@@ -129,8 +129,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
       nisbaReelle: nisba,
       prixFinal,
       prixKg: prixKg,
-      nomutilisatuer:user?.email,
-
+      nomutilisatuer: user?.email,
     }))
   }, [formValues.quantiteOlive, formValues.nombreCaisses, formValues.quantiteHuile, poidsWiba, prixKg])
 
@@ -200,8 +199,8 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
       console.error(err)
       showAlert({
         icon: 'error',
-        text: 'Erreur : impossible d\'ajouter le client',
-        confirmButtonText: 'OK'
+        text: "Erreur : impossible d'ajouter le client",
+        confirmButtonText: 'OK',
       })
     } finally {
       setLoading(false)
@@ -226,29 +225,29 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Nom & Prénom</Form.Label>
-                  <Form.Control 
-                    name="nomPrenom" 
-                    value={formValues.nomPrenom} 
-                    onChange={handleChange} 
-                    placeholder="Ex: Ahmed Trabelsi" 
+                  <Form.Control
+                    name="nomPrenom"
+                    value={formValues.nomPrenom}
+                    onChange={(e: any) => handleChange(e)}
+                    placeholder="Ex: Ahmed Trabelsi"
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Téléphone</Form.Label>
-                  <Form.Control 
-                    name="numTelephone" 
-                    value={formValues.numTelephone} 
-                    onChange={handleChange} 
-                    placeholder="Ex: 96 458 362" 
+                  <Form.Control
+                    name="numTelephone"
+                    value={formValues.numTelephone}
+                    onChange={(e: any) => handleChange(e)}
+                    placeholder="Ex: 96 458 362"
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Type</Form.Label>
-                  <Form.Select name="type" value={formValues.type} onChange={handleChange}>
+                  <Form.Select name="type" value={formValues.type} onChange={(e: any) => handleChange(e)}>
                     <option value="">Sélectionner...</option>
                     <option value="فلاح">فلاح</option>
                     <option value="كيال">كيال</option>
@@ -285,34 +284,24 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nombre de caisses</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="nombreCaisses" 
-                      value={formValues.nombreCaisses || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="nombreCaisses" value={formValues.nombreCaisses || ''} onChange={(e: any) => handleChange(e)} />
                     <Form.Text className="text-muted">olive net = olive - (caisses × 30)</Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive (kg)</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteOlive" 
-                      value={formValues.quantiteOlive || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="quantiteOlive" value={formValues.quantiteOlive || ''} onChange={(e: any) => handleChange(e)} />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive(Net kg) الزيتون</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteOliveNet" 
-                      value={format(formValues.quantiteOliveNet)} 
-                      // readOnly 
+                    <Form.Control
+                      type="number"
+                      name="quantiteOliveNet"
+                      value={format(formValues.quantiteOliveNet)}
+                      // readOnly
                     />
                   </Form.Group>
                 </Col>
@@ -333,23 +322,18 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Huile (NET kg) الزيت</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteHuile" 
-                      value={formValues.quantiteHuile || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="quantiteHuile" value={formValues.quantiteHuile || ''} onChange={(e: any) => handleChange(e)} />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nisba % (النسبة)</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="nisba" 
-                      value={format(formValues.nisba)} 
-                      onChange={handleChange} 
-                      // readOnly 
+                    <Form.Control
+                      type="number"
+                      name="nisba"
+                      value={format(formValues.nisba)}
+                      onChange={(e: any) => handleChange(e)}
+                      // readOnly
                     />
                     <Form.Text className="text-muted">= (huile / olive net) × 100</Form.Text>
                   </Form.Group>
@@ -357,12 +341,12 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Ktou3 (القطوع)</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="kattou3" 
-                      value={format(formValues.kattou3)} 
-                      onChange={handleChange} 
-                      // readOnly 
+                    <Form.Control
+                      type="number"
+                      name="kattou3"
+                      value={format(formValues.kattou3)}
+                      onChange={(e: any) => handleChange(e)}
+                      // readOnly
                     />
                   </Form.Group>
                 </Col>
@@ -374,22 +358,14 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ show, onHide, onAdded, on
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>💵 Prix du kilo (DT/kg)</Form.Label>
-                  <Form.Control 
-                    type="number" 
-                    value={prixKg} 
-                    onChange={(e) => setPrixKilo(parseFloat(e.target.value) || 0)} 
-                  />
+                  <Form.Control type="number" value={prixKg} onChange={(e) => setPrixKilo(parseFloat(e.target.value) || 0)} />
                   <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>🪣 Quantité Wiba (KG)</Form.Label>
-                  <Form.Control 
-                    type="number" 
-                    value={poidsWiba} 
-                    onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)} 
-                  />
+                  <Form.Control type="number" value={poidsWiba} onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)} />
                   <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
                 </Form.Group>
               </Col>

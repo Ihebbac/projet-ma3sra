@@ -24,13 +24,16 @@ type Caisse = {
   type?: string
   date?: string | null
   commentaire?: string
+
+  caisse: any
 }
 
 type Props = {
   show: boolean
   onHide: () => void
-  caisse: Caisse | null
+  caisse: any | null
   onUpdated?: () => void
+  isCaissier: any
 }
 
 const toNumberOrUndefined = (v: any) => {
@@ -39,7 +42,7 @@ const toNumberOrUndefined = (v: any) => {
   return Number.isNaN(n) ? undefined : n
 }
 
-const CaisseEditModal = ({ show, onHide, caisse, onUpdated }: Props) => {
+const CaisseEditModal = ({ show, onHide, caisse, onUpdated, isCaissier }: Props) => {
   const [loading, setLoading] = useState(false)
 
   if (!caisse) return null

@@ -15,7 +15,6 @@ interface CustomerType {
   _id?: string
   nomPrenom: string
 
-
   type: string
   dateCreation: string
   nombreCaisses: number
@@ -30,7 +29,6 @@ interface CustomerType {
   nombreWiba: number
   nombreQfza: number
   huileParQfza: number
-
 }
 
 interface EditModalProps {
@@ -40,7 +38,7 @@ interface EditModalProps {
   onSave: (data: CustomerType) => void
 }
 
-const EditModal = ({ show, toggleModal, data, onSave }: EditModalProps) => {
+const EditModal = ({ show, toggleModal, data, onSave }: any) => {
   const [openOlive, setOpenOlive] = useState(true)
   const [openHuile, setOpenHuile] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -51,10 +49,7 @@ const EditModal = ({ show, toggleModal, data, onSave }: EditModalProps) => {
   useEffect(() => {
     if (show && data) {
       setFormValues(data)
-      setPoidsWiba(data.nombreWiba > 0 && data.quantiteOliveNet > 0 
-        ? data.quantiteOliveNet / data.nombreWiba 
-        : POIDS_WIBA_DEFAUT)
-    
+      setPoidsWiba(data.nombreWiba > 0 && data.quantiteOliveNet > 0 ? data.quantiteOliveNet / data.nombreWiba : POIDS_WIBA_DEFAUT)
     }
   }, [data, show])
 
@@ -109,7 +104,6 @@ const EditModal = ({ show, toggleModal, data, onSave }: EditModalProps) => {
       differenceHuile: diff,
       huileParQfza,
       nisbaReelle: nisba,
-     
     }))
   }, [formValues.quantiteOlive, formValues.nombreCaisses, formValues.quantiteHuile, poidsWiba])
 
@@ -157,7 +151,7 @@ const EditModal = ({ show, toggleModal, data, onSave }: EditModalProps) => {
         },
         body: JSON.stringify({
           ...formValues,
-          dateCreation: new Date(formValues.dateCreation).toISOString()
+          dateCreation: new Date(formValues.dateCreation).toISOString(),
         }),
       })
 
@@ -180,7 +174,7 @@ const EditModal = ({ show, toggleModal, data, onSave }: EditModalProps) => {
       showAlert({
         icon: 'error',
         text: 'Erreur : impossible de modifier le propriétaire',
-        confirmButtonText: 'OK'
+        confirmButtonText: 'OK',
       })
     } finally {
       setLoading(false)
@@ -204,27 +198,22 @@ const EditModal = ({ show, toggleModal, data, onSave }: EditModalProps) => {
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Nom & Prénom</Form.Label>
-                  <Form.Control 
-                    name="nomPrenom" 
+                  <Form.Control
+                    name="nomPrenom"
                     defaultValue="proprietaire"
                     // onChange={handleChange}
                     disabled
                   />
                 </Form.Group>
               </Col>
-      
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Type</Form.Label>
-                  <Form.Select 
-                    name="type" 
-                    defaultValue="proprietaire" 
-disabled                  >
-             
-                  </Form.Select>
+                  <Form.Select name="type" defaultValue="proprietaire" disabled></Form.Select>
                 </Form.Group>
               </Col>
-              
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Date création</Form.Label>
@@ -238,8 +227,6 @@ disabled                  >
                   />
                 </Form.Group>
               </Col>
-
-          
             </Row>
 
             {/* --- Section Olive --- */}
@@ -256,35 +243,20 @@ disabled                  >
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nombre de caisses</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="nombreCaisses" 
-                      value={formValues.nombreCaisses || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="nombreCaisses" value={formValues.nombreCaisses || ''} onChange={(e: any) => handleChange(e)} />
                     <Form.Text className="text-muted">olive net = olive - (caisses × 30)</Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive (kg)</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteOlive" 
-                      value={formValues.quantiteOlive || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="quantiteOlive" value={formValues.quantiteOlive || ''} onChange={(e: any) => handleChange(e)} />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive Net (kg) الزيتون</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="quantiteOliveNet" 
-                      value={format(formValues.quantiteOliveNet)} 
-                      readOnly 
-                    />
+                    <Form.Control type="text" name="quantiteOliveNet" value={format(formValues.quantiteOliveNet)} readOnly />
                   </Form.Group>
                 </Col>
               </Row>
@@ -304,35 +276,20 @@ disabled                  >
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Huile (NET kg) الزيت</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteHuile" 
-                      value={formValues.quantiteHuile || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="quantiteHuile" value={formValues.quantiteHuile || ''} onChange={(e: any) => handleChange(e)} />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nisba % (النسبة)</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="nisba" 
-                      value={format(formValues.nisba)} 
-                      readOnly 
-                    />
+                    <Form.Control type="text" name="nisba" value={format(formValues.nisba)} readOnly />
                     <Form.Text className="text-muted">= (huile / olive net) × 100</Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Ktou3 (القطوع)</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="kattou3" 
-                      value={format(formValues.kattou3)} 
-                      readOnly 
-                    />
+                    <Form.Control type="text" name="kattou3" value={format(formValues.kattou3)} readOnly />
                   </Form.Group>
                 </Col>
               </Row>
@@ -340,15 +297,10 @@ disabled                  >
 
             {/* --- Prix du kilo et Wiba --- */}
             <Row className="g-3 mb-4">
-     
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>🪣 Poid Wiba (KG)</Form.Label>
-                  <Form.Control 
-                    type="number" 
-                    value={poidsWiba} 
-                    onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)} 
-                  />
+                  <Form.Control type="number" value={poidsWiba} onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)} />
                   <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
                 </Form.Group>
               </Col>
@@ -377,7 +329,6 @@ disabled                  >
                   <h6>Kattou3</h6>
                   <p className="fw-bold text-info">{format(formValues.kattou3)}</p>
                 </Col>
-         
               </Row>
             </Card>
           </Container>

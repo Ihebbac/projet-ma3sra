@@ -22,16 +22,8 @@ type EmployeTableType = Employe & {
 /**
  * Prépare les données et les en-têtes pour l'exportation des employés.
  */
-const prepareEmployeData = (rows: Row<EmployeTableType>[]) => {
-  const keysToExport: (keyof EmployeTableType)[] = [
-    'nomComplet',
-    'telephone',
-    'poste',
-    'montantJournalier',
-    'montantHeure',
-    'joursPayes',
-    'joursTravailles',
-  ]
+const prepareEmployeData = (rows: Row<any>[]) => {
+  const keysToExport: (keyof any)[] = ['nomComplet', 'telephone', 'poste', 'montantJournalier', 'montantHeure', 'joursPayes', 'joursTravailles']
 
   const headersMap: Record<string, string> = {
     nomComplet: 'Nom Complet',
@@ -43,7 +35,7 @@ const prepareEmployeData = (rows: Row<EmployeTableType>[]) => {
     joursTravailles: 'Jours Travaillés (Heures Sup)',
   }
 
-  const header = keysToExport.map((key) => headersMap[key])
+  const header = keysToExport.map((key: any) => headersMap[key])
 
   const body = rows.map((row) => {
     let totalMontantJournalier = 0

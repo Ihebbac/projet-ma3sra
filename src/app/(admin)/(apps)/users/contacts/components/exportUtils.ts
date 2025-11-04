@@ -50,7 +50,7 @@ export const exportToPDF = (data: ExportData[], title: string, subtitle: string,
 
     doc.setFontSize(10)
     doc.setTextColor(40)
-    doc.setFont(undefined, 'bold')
+    doc.setFont('bold')
     doc.text('TOTAUX', 14, finalY)
 
     autoTable(doc, {

@@ -19,13 +19,13 @@ type FitouraType = {
 
 // 📍 Informations société
 const COMPANY_INFO = {
-  name: "SOCIÉTÉ DE TRANSPORT FITOURA S.A.R.L.",
+  name: 'SOCIÉTÉ DE TRANSPORT FITOURA S.A.R.L.',
   address: "Rue de l'Export, 1001 Tunis",
-  mf: "1234567X/A/M/000",
-  rc: "B12345672025",
-  rib: "12 345 678 9012 3456 7890 12",
+  mf: '1234567X/A/M/000',
+  rc: 'B12345672025',
+  rib: '12 345 678 9012 3456 7890 12',
   tvaRate: 0.19,
-  stampDuty: 1.000,
+  stampDuty: 1.0,
 }
 
 // ⚙️ Préparation des données
@@ -43,15 +43,22 @@ const prepareData = (rows: Row<FitouraType>[]) => {
   }
 
   const keysToExport: (keyof FitouraType)[] = [
-    'matriculeCamion', 'chauffeur', 'poidsEntree', 'poidsSortie',
-    'poidsNet', 'prixUnitaire', 'montantTotal', 'status', 'dateSortie',
+    'matriculeCamion',
+    'chauffeur',
+    'poidsEntree',
+    'poidsSortie',
+    'poidsNet',
+    'prixUnitaire',
+    'montantTotal',
+    'status',
+    'dateSortie',
   ]
 
-  const header = keysToExport.map(key => headersMap[key])
+  const header = keysToExport.map((key) => headersMap[key])
   let totalHT = 0
 
-  const body = rows.map(row => {
-    const rowData = keysToExport.map(key => {
+  const body = rows.map((row) => {
+    const rowData = keysToExport.map((key) => {
       const value = row.original[key]
       if (value === undefined || value === null) return ''
       if (key === 'montantTotal' && typeof value === 'number') totalHT += value
@@ -82,10 +89,10 @@ export const exportToXLSX = (rows: Row<FitouraType>[], filename = 'export_fitour
 export const exportToPDF = async (
   rows: Row<FitouraType>[],
   filename = 'facture_fitoura',
-  clientName = "CLIENT PROFESSIONNEL S.A.R.L.",
-  clientMF = "7654321B/M/A/000",
-  clientAddress = "12 Rue de la Logistique, 8050 Hammam Sousse",
-  invoiceNumber = "2025-0012",
+  clientName = 'CLIENT PROFESSIONNEL S.A.R.L.',
+  clientMF = '7654321B/M/A/000',
+  clientAddress = '12 Rue de la Logistique, 8050 Hammam Sousse',
+  invoiceNumber = '2025-0012',
 ) => {
   if (typeof window === 'undefined') return
 
@@ -101,25 +108,25 @@ export const exportToPDF = async (
 
     // 🧾 EN-TÊTE
     let y = 15
-    doc.setFontSize(14).setFont(undefined, 'bold')
+    doc.setFontSize(14).setFont('bold')
     doc.text(COMPANY_INFO.name, margin, y)
-    doc.setFontSize(9).setFont(undefined, 'normal')
+    doc.setFontSize(9).setFont('normal')
     doc.text(`Adresse: ${COMPANY_INFO.address}`, margin, y + 5)
     doc.text(`MF: ${COMPANY_INFO.mf} | RC: ${COMPANY_INFO.rc}`, margin, y + 9)
     doc.text(`RIB: ${COMPANY_INFO.rib}`, margin, y + 13)
 
     // Bloc "FACTURE" à droite
-    doc.setFontSize(18).setFont(undefined, 'bold')
+    doc.setFontSize(18).setFont('bold')
     doc.text('FACTURE', pageWidth - margin, 20, { align: 'right' })
-    doc.setFontSize(10).setFont(undefined, 'normal')
+    doc.setFontSize(10).setFont('normal')
     doc.text(`N° Facture: ${invoiceNumber}`, pageWidth - margin, 26, { align: 'right' })
     doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - margin, 30, { align: 'right' })
 
     // Infos client
     y += 25
-    doc.setFontSize(10).setFont(undefined, 'bold')
+    doc.setFontSize(10).setFont('bold')
     doc.text('FACTURÉ À :', margin, y)
-    doc.setFontSize(10).setFont(undefined, 'normal')
+    doc.setFontSize(10).setFont('normal')
     doc.text(clientName, margin, y + 5)
     doc.setFontSize(8)
     doc.text(`Adresse: ${clientAddress}`, margin, y + 9)
@@ -128,7 +135,7 @@ export const exportToPDF = async (
 
     // 🧩 TABLEAU DES LIGNES
     const serviceHeader = ['DÉSIGNATION DU SERVICE', 'POIDS NET (kg)', 'PRIX UNIT. (DT/kg)', 'MONTANT HT (DT)']
-    const simplifiedBody = rows.map(r => [
+    const simplifiedBody = rows.map((r) => [
       `Transport Fitoura - Camion: ${r.original.matriculeCamion} / Chauffeur: ${r.original.chauffeur}`,
       (r.original.poidsNet || 0).toFixed(3),
       r.original.prixUnitaire.toFixed(3),
@@ -162,18 +169,18 @@ export const exportToPDF = async (
     doc.setLineWidth(0.4)
     doc.line(labelX, finalY + 13, rightX, finalY + 13)
 
-    doc.setFontSize(11).setFont(undefined, 'bold')
+    doc.setFontSize(11).setFont('bold')
     doc.text(`NET À PAYER TTC :`, labelX, finalY + 20)
     doc.text(`${totalTTC.toFixed(3)} DT`, rightX, finalY + 20, { align: 'right' })
 
     // 🪶 Mentions légales & signature
     const footY = finalY + 35
-    doc.setFontSize(8).setFont(undefined, 'normal')
+    doc.setFontSize(8).setFont('normal')
     doc.text(`Arrêté la présente facture à la somme de : [montant en lettres] Dinars Tunisiens`, margin, footY)
     doc.text(`Conditions de paiement : 30 jours net date de facture.`, margin, footY + 8)
     doc.text(`Virement Bancaire (RIB) : ${COMPANY_INFO.rib}`, margin, footY + 12)
     doc.text(`Pénalités de retard : Taux légal en vigueur + 5 points.`, margin, footY + 16)
-    doc.setFont(undefined, 'bold')
+    doc.setFont('bold')
     doc.text(`Cachet et signature du fournisseur`, rightX, footY + 16, { align: 'right' })
 
     // 💾 Sauvegarde

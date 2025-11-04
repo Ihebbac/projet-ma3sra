@@ -1,6 +1,22 @@
 import React, { useState } from 'react'
 import { Modal, Button, Table, Container, Row, Col, Card, Collapse, Badge } from 'react-bootstrap'
-import { User, Calendar, Phone, Hash, Box, Droplet, Percent, Gauge, ChevronDown, ChevronUp, Calculator, Scale, Package, TrendingUp, BarChart3 } from 'lucide-react'
+import {
+  User,
+  Calendar,
+  Phone,
+  Hash,
+  Box,
+  Droplet,
+  Percent,
+  Gauge,
+  ChevronDown,
+  ChevronUp,
+  Calculator,
+  Scale,
+  Package,
+  TrendingUp,
+  BarChart3,
+} from 'lucide-react'
 
 // Définitions de types (ajustées pour inclure tous les champs de l'API)
 type CustomerType = {
@@ -12,11 +28,11 @@ type CustomerType = {
   dateCreation: string // format YYYY-MM-DD
   nombreCaisses?: number
   quantiteOlive?: number
-  quantiteOliveNet?: number 
+  quantiteOliveNet?: number
   quantiteHuile?: number
   kattou3?: number
   nisba?: number
-  
+
   // Champs supplémentaires de calculs (selon votre exemple JSON)
   nisbaReelle?: number
   quantiteHuileTheorique?: number
@@ -24,9 +40,9 @@ type CustomerType = {
   nombreWiba?: number
   nombreQfza?: number
   huileParQfza?: number
-  prixFinal?: number;
+  prixFinal?: number
   prixKg?: number
-  nomutilisatuer:string
+  nomutilisatuer: string
 }
 
 type CustomerModalProps = {
@@ -57,19 +73,21 @@ const formatValueAndRound = (value: number | undefined, unit: string = '', decim
 // Fonction pour déterminer la couleur du badge type
 const getTypeBadgeVariant = (type: string) => {
   switch (type) {
-    case 'فلاح': return 'success'
-    case 'كيال': return 'primary'
-    default: return 'secondary'
+    case 'فلاح':
+      return 'success'
+    case 'كيال':
+      return 'primary'
+    default:
+      return 'secondary'
   }
 }
 
-const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalProps) => {
+const CustomerModalViewDetail = ({ show, onHide, customer, user }: any) => {
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const format = (v: number) => (v > 0 ? v.toFixed(2) : '')
-  console.log("customer",customer)
+  console.log('customer', customer)
 
   if (!customer) return null
-  
-  const [showAdvanced, setShowAdvanced] = useState(false) 
 
   // Constantes pour les messages d'aide dans les calculs
   const POIDS_CAISSE = 30
@@ -77,13 +95,12 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
   const WIBA_PAR_QFIZ = 16
 
   // Pré-calculs
-  const quantiteOliveNet = customer.quantiteOliveNet ?? Math.max(0, (customer.quantiteOlive ?? 0) - ((customer.nombreCaisses ?? 0) * POIDS_CAISSE))
+  const quantiteOliveNet = customer.quantiteOliveNet ?? Math.max(0, (customer.quantiteOlive ?? 0) - (customer.nombreCaisses ?? 0) * POIDS_CAISSE)
   const nombreWiba = customer.nombreWiba ?? (quantiteOliveNet > 0 ? quantiteOliveNet / POIDS_WIBA : 0)
   const nombreQfza = customer.nombreQfza ?? (nombreWiba > 0 ? nombreWiba / WIBA_PAR_QFIZ : 0)
 
   // Calcul de l'efficacité
-  const efficacite = customer.nisbaReelle && customer.nisba ? 
-    ((customer.nisbaReelle - customer.nisba) / customer.nisba * 100) : 0
+  const efficacite = customer.nisbaReelle && customer.nisba ? ((customer.nisbaReelle - customer.nisba) / customer.nisba) * 100 : 0
 
   return (
     <Modal show={show} onHide={onHide} size="xl" centered className="customer-detail-modal">
@@ -91,25 +108,27 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
         <Modal.Title className="d-flex align-items-center">
           <User className="me-2 text-primary" size={24} />
           <Row>
-
-            <Col xs> <div>
-            <div className="fw-bold fs-4">{customer.nomPrenom}</div>
-            <div className="text-muted fs-6">Détails du client</div>
-          </div></Col>
-            <Col xs>      <h3 className="mb-0 d-flex align-items-center">
-            <Badge bg="success">Ajouté par : {customer?.nomutilisatuer?.split('@')[0] || "Non défini"}</Badge>                
-              </h3></Col>
+            <Col xs>
+              {' '}
+              <div>
+                <div className="fw-bold fs-4">{customer.nomPrenom}</div>
+                <div className="text-muted fs-6">Détails du client</div>
+              </div>
+            </Col>
+            <Col xs>
+              {' '}
+              <h3 className="mb-0 d-flex align-items-center">
+                <Badge bg="success">Ajouté par : {customer?.nomutilisatuer?.split('@')[0] || 'Non défini'}</Badge>
+              </h3>
+            </Col>
           </Row>
-         
         </Modal.Title>
       </Modal.Header>
 
       <Modal.Body className="p-0">
         <Container fluid className="py-3">
-          
           {/* Section 1: Informations du Client */}
           <Card className="border-0 shadow-sm mb-4">
-       
             <Card.Body>
               <Row className="g-3">
                 <Col xs>
@@ -135,7 +154,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                     </div>
                   </div>
                 </Col>
-                
+
                 <Col xs>
                   <div className="d-flex align-items-center p-3 bg-light rounded">
                     <div className="bg-warning rounded-circle p-2 me-3">
@@ -149,7 +168,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                     </div>
                   </div>
                 </Col>
-                
+
                 <Col xs>
                   <div className="d-flex align-items-center p-3 bg-light rounded">
                     <div className="bg-secondary rounded-circle p-2 me-3">
@@ -184,9 +203,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                         <div>
                           <small className="text-muted d-block">Olive Brute</small>
                           <h4 className="mb-0">{formatValueAndRound(customer.quantiteOlive, ' kg')}</h4>
-                          <small className="text-muted">
-                            {customer.nombreCaisses ?? 0} caisses
-                          </small>
+                          <small className="text-muted">{customer.nombreCaisses ?? 0} caisses</small>
                         </div>
                       </div>
                     </Card.Body>
@@ -202,9 +219,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                         <div>
                           <small className="text-muted d-block">Olive Nette</small>
                           <h4 className="mb-0">{formatValueAndRound(quantiteOliveNet, ' kg')}</h4>
-                          <small className="text-muted">
-                            Net après caisses
-                          </small>
+                          <small className="text-muted">Net après caisses</small>
                         </div>
                       </div>
                     </Card.Body>
@@ -220,9 +235,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                         <div>
                           <small className="text-muted d-block">Huile Produite</small>
                           <h4 className="mb-0">{formatValueAndRound(customer.quantiteHuile, ' kg')}</h4>
-                          <small className="text-muted">
-                            Production totale
-                          </small>
+                          <small className="text-muted">Production totale</small>
                         </div>
                       </div>
                     </Card.Body>
@@ -238,9 +251,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                         <div>
                           <small className="text-muted d-block">Nisba</small>
                           <h4 className="mb-0">{formatValueAndRound(customer.nisba, ' %')}</h4>
-                          <small className="text-muted">
-                            Rendement
-                          </small>
+                          <small className="text-muted">Rendement</small>
                         </div>
                       </div>
                     </Card.Body>
@@ -262,9 +273,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
               <Row className="g-3">
                 <Col md={4}>
                   <div className="text-center p-3 border rounded">
-                    <div className="fs-5 fw-bold text-primary">
-                      {formatValueAndRound(customer.nisbaReelle, '%')}
-                    </div>
+                    <div className="fs-5 fw-bold text-primary">{formatValueAndRound(customer.nisbaReelle, '%')}</div>
                     <small className="text-muted">النسبة الفعلية</small>
                     <div className="mt-2">
                       <Badge bg={customer.nisbaReelle && customer.nisba && customer.nisbaReelle > customer.nisba ? 'success' : 'danger'}>
@@ -277,9 +286,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
 
                 <Col md={4}>
                   <div className="text-center p-3 border rounded">
-                    <div className="fs-5 fw-bold text-success">
-                      {formatValueAndRound(customer.quantiteHuileTheorique, ' kg')}
-                    </div>
+                    <div className="fs-5 fw-bold text-success">{formatValueAndRound(customer.quantiteHuileTheorique, ' kg')}</div>
                     <small className="text-muted">الزيت المتوقع</small>
                   </div>
                 </Col>
@@ -295,16 +302,16 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                 </Col>
               </Row>
               <Row>
-              <Col md={4}>
+                <Col md={4}>
                   <div className="text-center p-3 border rounded">
                     <div className={`fs-5 fw-bold ${customer.prixKg && customer.prixKg > 0 ? 'text-success' : 'text-danger'}`}>
                       {customer.prixKg && customer.prixKg > 0 ? '+' : ''}
-                      {format(customer.prixKg  )}
+                      {format(customer.prixKg)}
                     </div>
                     <small className="text-muted">Prix par Kg</small>
                   </div>
                 </Col>
-              <Col md={4}>
+                <Col md={4}>
                   <div className="text-center p-3 border rounded">
                     <div className={`fs-5 fw-bold ${customer.prixFinal && customer.prixFinal > 0 ? 'text-success' : 'text-danger'}`}>
                       {customer.prixFinal && customer.prixFinal > 0 ? '+' : ''}
@@ -319,11 +326,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
 
           {/* Bouton Voir Plus / Voir Moins */}
           <div className="text-center mb-4">
-            <Button 
-              variant="outline-primary" 
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="d-inline-flex align-items-center"
-            >
+            <Button variant="outline-primary" onClick={() => setShowAdvanced(!showAdvanced)} className="d-inline-flex align-items-center">
               <Calculator size={16} className="me-2" />
               {showAdvanced ? 'Masquer les détails techniques' : 'Afficher les détails techniques'}
               {showAdvanced ? <ChevronUp size={16} className="ms-2" /> : <ChevronDown size={16} className="ms-2" />}
@@ -346,11 +349,14 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                       <Table bordered size="sm" className="mb-0">
                         <tbody>
                           <tr>
-                            <td className="fw-bold bg-light" style={{width: '60%'}}> القطوع</td>
+                            <td className="fw-bold bg-light" style={{ width: '60%' }}>
+                              {' '}
+                              القطوع
+                            </td>
                             <td>{formatValueAndRound(customer.kattou3)}</td>
                           </tr>
                           <tr>
-                            <td className="fw-bold bg-light"> الزيت  في كل قفيز </td>
+                            <td className="fw-bold bg-light"> الزيت في كل قفيز </td>
                             <td>{formatValueAndRound(customer.huileParQfza, ' L/Qfiz')}</td>
                           </tr>
                           <tr>
@@ -364,7 +370,9 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
                       <Table bordered size="sm" className="mb-0">
                         <tbody>
                           <tr>
-                            <td className="fw-bold bg-light" style={{width: '60%'}}>عدد القفزة</td>
+                            <td className="fw-bold bg-light" style={{ width: '60%' }}>
+                              عدد القفزة
+                            </td>
                             <td>{formatValueAndRound(customer.nombreQfza, '', 3)}</td>
                           </tr>
                           <tr>
@@ -383,7 +391,6 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
               </Card>
             </div>
           </Collapse>
-          
         </Container>
       </Modal.Body>
 
@@ -391,9 +398,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer,user }: CustomerModalP
         <Button variant="outline-secondary" onClick={onHide}>
           Fermer
         </Button>
-        <Button variant="primary">
-          Exporter les Données
-        </Button>
+        <Button variant="primary">Exporter les Données</Button>
       </Modal.Footer>
     </Modal>
   )

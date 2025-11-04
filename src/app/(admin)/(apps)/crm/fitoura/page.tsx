@@ -12,19 +12,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useState, useEffect } from 'react'
-import {
-  Button,
-  Card,
-  CardFooter,
-  CardHeader,
-  Col,
-  Container,
-  Row,
-  Form,
-  InputGroup,
-  Dropdown,
-  Badge,
-} from 'react-bootstrap'
+import { Button, Card, CardFooter, CardHeader, Col, Container, Row, Form, InputGroup, Dropdown, Badge } from 'react-bootstrap'
 import { LuSearch, LuGlobe } from 'react-icons/lu'
 import { TbEdit, TbEye, TbPlus, TbTrash, TbFileExport } from 'react-icons/tb'
 import { RiAddFill } from 'react-icons/ri'
@@ -112,9 +100,7 @@ const FitouraCard = () => {
   // ✅ Supprimer les lignes sélectionnées
   const handleDelete = async () => {
     const selectedIds = Object.keys(selectedRowIds)
-    await Promise.all(
-      selectedIds.map((id) => fetch(`http://localhost:8170/fitoura/${id}`, { method: 'DELETE' }))
-    )
+    await Promise.all(selectedIds.map((id) => fetch(`http://localhost:8170/fitoura/${id}`, { method: 'DELETE' })))
     setSelectedRowIds({})
     await fetchData()
   }
@@ -187,21 +173,18 @@ const FitouraCard = () => {
     },
     columnHelper.accessor('matriculeCamion', { header: 'Matricule Camion' }),
     columnHelper.accessor('chauffeur', { header: 'Chauffeur' }),
-    columnHelper.accessor('poidsEntree', { header: 'Poids Entrée (kg)',cell: (info) => (
-      <Badge bg="warning">
-        {info.getValue() != null ? info.getValue().toFixed(2) : 'N/A'}
-      </Badge>
-    ), }),
-    columnHelper.accessor('poidsSortie', { header: 'Poids Sortie (kg)',cell: (info) => (
-      <Badge bg="success">
-        {info.getValue() != null ? info.getValue().toFixed(2) : 'N/A'}
-      </Badge>
-    ), }),
-    columnHelper.accessor('poidsNet', { header: 'Poids Net (kg)',cell: (info) => (
-      <Badge bg="danger">
-        {info.getValue() != null ? info.getValue().toFixed(2) : 'N/A'}
-      </Badge>
-    ), }),
+    columnHelper.accessor('poidsEntree', {
+      header: 'Poids Entrée (kg)',
+      cell: (info) => <Badge bg="warning">{info.getValue() != null ? info.getValue()?.toFixed(2) : 'N/A'}</Badge>,
+    }),
+    columnHelper.accessor('poidsSortie', {
+      header: 'Poids Sortie (kg)',
+      cell: (info) => <Badge bg="success">{info.getValue() != null ? info.getValue()?.toFixed(2) : 'N/A'}</Badge>,
+    }),
+    columnHelper.accessor('poidsNet', {
+      header: 'Poids Net (kg)',
+      cell: (info) => <Badge bg="danger">{info.getValue() != null ? info.getValue()?.toFixed(2) : 'N/A'}</Badge>,
+    }),
     columnHelper.accessor('prixUnitaire', { header: 'Prix Unitaire (DT/kg)' }),
     columnHelper.accessor('montantTotal', { header: 'Montant Total (DT)' }),
     columnHelper.accessor('status', {
@@ -211,10 +194,10 @@ const FitouraCard = () => {
           row.original.status === 'Bloqué'
             ? ' bg-danger-subtle text-danger badge-label'
             : row.original.status === 'EN_COURS'
-            ? 'bg-danger-subtle text-danger badge-label'
-            : row.original.status === 'TERMINE'
-            ? 'bg-success-subtle text-success badge-label'
-            : 'bg-secondary-subtle text-secondary badge-label'
+              ? 'bg-danger-subtle text-danger badge-label'
+              : row.original.status === 'TERMINE'
+                ? 'bg-success-subtle text-success badge-label'
+                : 'bg-secondary-subtle text-secondary badge-label'
         return <span className={`badge ${color}`}>{row.original.status}</span>
       },
       filterFn: 'equals',
@@ -222,7 +205,7 @@ const FitouraCard = () => {
     }),
     columnHelper.accessor('dateSortie', {
       header: 'Date Sortie',
-      cell: (info) => formatDateDDMMYYYY(info.getValue() as string) 
+      cell: (info) => formatDateDDMMYYYY(info.getValue() as string),
     }),
     {
       header: 'Actions',
@@ -425,12 +408,7 @@ const FitouraCard = () => {
 
       {/* Modals */}
       <FitouraAddModal show={showAddModal} onHide={() => setShowAddModal(false)} onSubmit={handleAdd} />
-      <FitouraEditModal
-        show={showEditModal}
-        onHide={() => setShowEditModal(false)}
-        operation={currentOperation}
-        onSubmit={handleEdit}
-      />
+      <FitouraEditModal show={showEditModal} onHide={() => setShowEditModal(false)} operation={currentOperation} onSubmit={handleEdit} />
       <FitouraDetailModal show={showDetailModal} onHide={() => setShowDetailModal(false)} operation={currentOperation} />
       <FitouraEditAllModal show={showEdit} onHide={() => setShowEdit(false)} operation={currentOperation} fetchData={fetchData} />
       <DeleteConfirmationModal

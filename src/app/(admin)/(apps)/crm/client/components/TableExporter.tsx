@@ -29,7 +29,6 @@ type CustomerType = {
 
 // 📍 Informations société
 const COMPANY_INFO = {
-
   tvaRate: 0.19,
   stampDuty: 0.6,
 }
@@ -76,14 +75,14 @@ const prepareData = (rows: Row<CustomerType>[]) => {
     'status',
   ]
 
-  const header = keysToExport.map(key => headersMap[key])
+  const header = keysToExport.map((key) => headersMap[key])
   let totalHT = 0
   let totalOlive = 0
   let totalHuile = 0
 
-  const body = rows.map(row => {
+  const body = rows.map((row) => {
     const r = row.original
-    const rowData = keysToExport.map(key => {
+    const rowData = keysToExport.map((key) => {
       const value = r[key]
       if (value === undefined || value === null) return ''
       if (['quantiteOlive', 'quantiteOliveNet', 'quantiteHuile', 'prixKg', 'prixFinal'].includes(key) && typeof value === 'number')
@@ -132,7 +131,7 @@ const preparePdfData = (rows: Row<CustomerType>[]) => {
   let totalPaye = 0
   let totalNonPaye = 0
 
-  rows.forEach(r => {
+  rows.forEach((r) => {
     const prix = Number(r.original.prixFinal || 0)
     totalPrixFinal += prix
     totalHuile += Number(r.original.quantiteHuile || 0)
@@ -166,7 +165,7 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
     // doc.text(`Tél: ${COMPANY_INFO.phone}`, pageWidth - margin, 22, { align: 'right' })
 
     y = 35
-    doc.setTextColor(0, 0, 0).setFontSize(14).setFont(undefined, 'bold')
+    doc.setTextColor(0, 0, 0).setFontSize(14)
     doc.text('Rapport des Clients', pageWidth / 2, y, { align: 'center' })
     y += 8
     doc.setFontSize(10)
@@ -175,7 +174,7 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
     // === Tableau principal ===
     y += 8
     const headers = ['Nom & Prénom', 'Téléphone', 'Qté Olive Net (kg)', 'Qté Huile (L)', 'Prix Final (DT)', 'Statut']
-    const body = rows.map(r => [
+    const body = rows.map((r) => [
       r.original.nomPrenom || '—',
       r.original.numTelephone || '—',
       (r.original.quantiteOliveNet || 0).toFixed(2),
@@ -211,13 +210,13 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
     const labelX = pageWidth - 70
     const valueX = pageWidth - margin
 
-    doc.setFontSize(11).setFont(undefined, 'bold').setTextColor(41, 128, 185)
-    doc.text('RÉSUMÉ DES TOTAUX', labelX , finalY)
+    doc.setFontSize(11).setFont('bold').setTextColor(41, 128, 185)
+    doc.text('RÉSUMÉ DES TOTAUX', labelX, finalY)
 
-    doc.setTextColor(0, 0, 0).setFontSize(10).setFont(undefined, 'normal')
+    doc.setTextColor(0, 0, 0).setFontSize(10).setFont('normal')
     let currentY = finalY + 6
-    const addRow = (label: string, value: string, color = [0, 0, 0]) => {
-      doc.setTextColor(...color)
+    const addRow = (label: string, value: string, color = [0, 0, 0] as any) => {
+      doc.setTextColor(color)
       doc.text(label, labelX, currentY, { align: 'right' })
       doc.text(value, valueX, currentY, { align: 'right' })
       currentY += 6

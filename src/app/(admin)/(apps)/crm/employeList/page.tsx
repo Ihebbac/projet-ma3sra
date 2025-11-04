@@ -38,7 +38,7 @@ interface Employe {
 
 type EmployeTableType = Employe & { nomComplet: string }
 
-const columnHelper = createColumnHelper<EmployeTableType>()
+const columnHelper = createColumnHelper<any>()
 const API_BASE_URL = 'http://localhost:8170/employes'
 
 const EmployeCard = () => {
@@ -212,7 +212,7 @@ const EmployeCard = () => {
         </div>
       ),
     },
-  ]
+  ] as any
 
   const table = useReactTable({
     data,

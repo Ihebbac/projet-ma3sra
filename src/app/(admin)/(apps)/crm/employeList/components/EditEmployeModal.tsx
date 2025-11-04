@@ -38,7 +38,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: name === 'montantJournalier' ? parseFloat(value) : value }))
+    setForm((prev: any) => ({ ...prev, [name]: name === 'montantJournalier' ? parseFloat(value) : value }))
   }
 
   const ajouterDateSpecifique = () => {
@@ -50,7 +50,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
       const datesExistantes: JourTravaille[] = form.joursTravailles || []
 
       if (!datesExistantes.some((j: JourTravaille) => j.date === nouvelleDate)) {
-        setForm((prev) => ({
+        setForm((prev: any) => ({
           ...prev,
           joursTravailles: [...datesExistantes, { date: nouvelleDate, heuresSup: 0 }],
         }))
@@ -60,7 +60,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
   }
 
   const toggleJourManuel = (dateISO: string) => {
-    setJoursTravaillesManuels((prev) => (prev.includes(dateISO) ? prev.filter((d) => d !== dateISO) : [...prev, dateISO]))
+    setJoursTravaillesManuels((prev: any) => (prev.includes(dateISO) ? prev.filter((d: any) => d !== dateISO) : [...prev, dateISO]))
   }
 
   const ajouterJoursManuels = () => {
@@ -74,17 +74,17 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
       }
     })
 
-    setForm((prev) => ({ ...prev, joursTravailles: nouvellesDates }))
+    setForm((prev: any) => ({ ...prev, joursTravailles: nouvellesDates }))
     setJoursTravaillesManuels([])
   }
 
   const supprimerDate = (index: number) => {
     const nouvellesDates = form.joursTravailles.filter((_: any, i: number) => i !== index)
-    setForm((prev) => ({ ...prev, joursTravailles: nouvellesDates }))
+    setForm((prev: any) => ({ ...prev, joursTravailles: nouvellesDates }))
   }
 
   const updateHeuresSup = (index: number, value: number) => {
-    setForm((prev) => {
+    setForm((prev: any) => {
       const updated = [...prev.joursTravailles]
       updated[index].heuresSup = value
       return { ...prev, joursTravailles: updated }
@@ -159,13 +159,13 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Nom</FormLabel>
-                <FormControl name="nom" value={form.nom} onChange={handleChange} required />
+                <FormControl name="nom" value={form.nom} onChange={(e: any) => handleChange(e)} required />
               </FormGroup>
             </Col>
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Prénom</FormLabel>
-                <FormControl name="prenom" value={form.prenom} onChange={handleChange} required />
+                <FormControl name="prenom" value={form.prenom} onChange={(e: any) => handleChange(e)} required />
               </FormGroup>
             </Col>
 
@@ -173,14 +173,14 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Salaire Journalier (DT)</FormLabel>
-                <FormControl name="montantJournalier" type="number" value={form.montantJournalier} onChange={handleChange} required />
+                <FormControl name="montantJournalier" type="number" value={form.montantJournalier} onChange={(e: any) => handleChange(e)} required />
               </FormGroup>
             </Col>
 
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Salaire Heure (DT)</FormLabel>
-                <FormControl name="montantHeure" type="number" value={form.montantHeure} onChange={handleChange} />
+                <FormControl name="montantHeure" type="number" value={form.montantHeure} onChange={(e: any) => handleChange(e)} />
               </FormGroup>
             </Col>
 

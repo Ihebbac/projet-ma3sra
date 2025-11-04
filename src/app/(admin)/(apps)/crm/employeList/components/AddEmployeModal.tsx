@@ -40,38 +40,44 @@ const AddEmployeModal = ({ show, onHide, onSubmit }: AddEmployeModalProps) => {
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Nom</FormLabel>
-                <FormControl name="nom" value={form.nom} onChange={handleChange} required />
+                <FormControl name="nom" value={form.nom} onChange={(e: any) => handleChange(e)} required />
               </FormGroup>
             </Col>
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Prénom</FormLabel>
-                <FormControl name="prenom" value={form.prenom} onChange={handleChange} required />
+                <FormControl name="prenom" value={form.prenom} onChange={(e: any) => handleChange(e)} required />
               </FormGroup>
             </Col>
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Téléphone</FormLabel>
-                <FormControl name="numTel" value={form.numTel} onChange={handleChange} required />
+                <FormControl name="numTel" value={form.numTel} onChange={(e: any) => handleChange(e)} required />
               </FormGroup>
             </Col>
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Poste</FormLabel>
-                <FormControl name="poste" value={form.poste} onChange={handleChange} required />
+                <FormControl name="poste" value={form.poste} onChange={(e: any) => handleChange(e)} required />
               </FormGroup>
             </Col>
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Salaire Journalier (DT)</FormLabel>
-                <FormControl name="montantJournalier" type="number" value={form.montantJournalier} onChange={handleChange} required />
+                <FormControl
+                  name="montantJournalier"
+                  type="number"
+                  value={form?.montantJournalier || 0}
+                  onChange={(e: any) => handleChange(e)}
+                  required
+                />
               </FormGroup>
             </Col>
 
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Salaire Heure (DT)</FormLabel>
-                <FormControl name="montantHeure" type="number" value={form.montantHeure} onChange={handleChange} />
+                <FormControl name="montantHeure" type="number" value={form?.montantHeure || 0} onChange={(e: any) => handleChange(e)} />
               </FormGroup>
             </Col>
           </Row>

@@ -32,7 +32,6 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
   const getInitialFormData = () => ({
     nomPrenom: 'Propriétaire',
 
-
     type: 'proprietaire',
     dateCreation: getTodayDate(),
     nombreCaisses: 0,
@@ -47,7 +46,6 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
     nombreWiba: 0,
     nombreQfza: 0,
     huileParQfza: 0,
-
   })
 
   const [formValues, setFormValues] = useState(getInitialFormData())
@@ -153,7 +151,7 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
+
     try {
       const response = await fetch('http://localhost:8170/proprietaires', {
         method: 'POST',
@@ -162,14 +160,14 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
         },
         body: JSON.stringify({
           ...formValues,
-          dateCreation: new Date(formValues.dateCreation).toISOString()
+          dateCreation: new Date(formValues.dateCreation).toISOString(),
         }),
       })
 
       if (!response.ok) {
         throw new Error('Failed to create proprietaire')
       }
-      
+
       showAlert({
         icon: 'success',
         text: 'Propriétaire ajouté avec succès!',
@@ -184,7 +182,7 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
       setPrixKilo(0)
 
       toggleModal()
-      
+
       // Callback pour rafraîchir les données
       if (onProprietaireCreated) {
         onProprietaireCreated()
@@ -193,8 +191,8 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
       console.error('Error creating proprietaire:', error)
       showAlert({
         icon: 'error',
-        text: 'Erreur : impossible d\'ajouter le propriétaire',
-        confirmButtonText: 'OK'
+        text: "Erreur : impossible d'ajouter le propriétaire",
+        confirmButtonText: 'OK',
       })
     } finally {
       setLoading(false)
@@ -218,29 +216,22 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Nom & Prénom</Form.Label>
-                  <Form.Control 
-                    name="nomPrenom" 
-                    value={formValues.nomPrenom}
-                    onChange={handleChange}
-                    disabled
-                  />
+                  <Form.Control name="nomPrenom" value={formValues.nomPrenom} onChange={(e: any) => handleChange(e)} disabled />
                 </Form.Group>
               </Col>
-      
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Type</Form.Label>
-                  <Form.Control 
-                    name="type" 
-                    defaultValue="proprietaire" 
+                  <Form.Control
+                    name="type"
+                    defaultValue="proprietaire"
                     disabled
-                    // onChange={handleChange}
-                  >
-                
-                  </Form.Control>
+                    //    onChange={(e: any) => handleChange(e)}
+                  ></Form.Control>
                 </Form.Group>
               </Col>
-              
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Date création</Form.Label>
@@ -271,35 +262,20 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nombre de caisses</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="nombreCaisses" 
-                      value={formValues.nombreCaisses || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="nombreCaisses" value={formValues.nombreCaisses || ''} onChange={(e: any) => handleChange(e)} />
                     <Form.Text className="text-muted">olive net = olive - (caisses × 30)</Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive (kg)</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteOlive" 
-                      value={formValues.quantiteOlive || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="quantiteOlive" value={formValues.quantiteOlive || ''} onChange={(e: any) => handleChange(e)} />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive Net (kg) الزيتون</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="quantiteOliveNet" 
-                      value={format(formValues.quantiteOliveNet)} 
-                      readOnly 
-                    />
+                    <Form.Control type="text" name="quantiteOliveNet" value={format(formValues.quantiteOliveNet)} readOnly />
                   </Form.Group>
                 </Col>
               </Row>
@@ -319,35 +295,20 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Huile (NET kg) الزيت</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteHuile" 
-                      value={formValues.quantiteHuile || ''} 
-                      onChange={handleChange} 
-                    />
+                    <Form.Control type="number" name="quantiteHuile" value={formValues.quantiteHuile || ''} onChange={(e: any) => handleChange(e)} />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nisba % (النسبة)</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="nisba" 
-                      value={format(formValues.nisba)} 
-                      readOnly 
-                    />
+                    <Form.Control type="text" name="nisba" value={format(formValues.nisba)} readOnly />
                     <Form.Text className="text-muted">= (huile / olive net) × 100</Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Ktou3 (القطوع)</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="kattou3" 
-                      value={format(formValues.kattou3)} 
-                      readOnly 
-                    />
+                    <Form.Control type="text" name="kattou3" value={format(formValues.kattou3)} readOnly />
                   </Form.Group>
                 </Col>
               </Row>
@@ -355,15 +316,10 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
 
             {/* --- Prix du kilo et Wiba --- */}
             <Row className="g-3 mb-4">
-    
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>🪣 Quantité Wiba (KG)</Form.Label>
-                  <Form.Control 
-                    type="number" 
-                    value={poidsWiba} 
-                    onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)} 
-                  />
+                  <Form.Control type="number" value={poidsWiba} onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)} />
                   <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
                 </Form.Group>
               </Col>
@@ -392,7 +348,6 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
                   <h6>Kattou3</h6>
                   <p className="fw-bold text-info">{format(formValues.kattou3)}</p>
                 </Col>
-      
               </Row>
             </Card>
           </Container>
