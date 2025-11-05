@@ -51,14 +51,14 @@ const TransfertModal = ({
 
     try {
       // Mettre à jour le propriétaire source
-      await fetch(`http://localhost:8170/proprietaires/${proprietaireSource._id}/stock`, {
+      await fetch(`http://92.112.181.241:8170/proprietaires/${proprietaireSource._id}/stock`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: typeStock, quantite: -quantite })
       })
 
       // Mettre à jour le propriétaire cible
-      await fetch(`http://localhost:8170/proprietaires/${proprietaireCibleId}/stock`, {
+      await fetch(`http://92.112.181.241:8170/proprietaires/${proprietaireCibleId}/stock`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: typeStock, quantite })

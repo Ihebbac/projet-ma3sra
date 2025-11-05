@@ -153,7 +153,7 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:8170/proprietaires', {
+      const response = await fetch('http://92.112.181.241:8170/proprietaires', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

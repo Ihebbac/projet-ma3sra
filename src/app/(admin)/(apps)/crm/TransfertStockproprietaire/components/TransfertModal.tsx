@@ -85,7 +85,7 @@ const TransfertModal = ({
         date: new Date().toISOString()
       }
 
-      const transactionResponse = await fetch('http://localhost:8170/transactions', {
+      const transactionResponse = await fetch('http://92.112.181.241:8170/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(transactionData)
@@ -99,7 +99,7 @@ const TransfertModal = ({
       }
 
       // ✅ Mettre à jour les stocks (répartition proportionnelle)
-      const proprietairesResponse = await fetch('http://localhost:8170/proprietaires')
+      const proprietairesResponse = await fetch('http://92.112.181.241:8170/proprietaires')
       if (proprietairesResponse.ok) {
         const proprietaires = await proprietairesResponse.json()
         for (const prop of proprietaires) {
@@ -108,7 +108,7 @@ const TransfertModal = ({
           const quantiteARetirer = quantite * proportion
 
           if (quantiteARetirer > 0) {
-            await fetch(`http://localhost:8170/proprietaires/${prop._id}/stock`, {
+            await fetch(`http://92.112.181.241:8170/proprietaires/${prop._id}/stock`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

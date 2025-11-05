@@ -39,7 +39,7 @@ interface Employe {
 type EmployeTableType = Employe & { nomComplet: string }
 
 const columnHelper = createColumnHelper<any>()
-const API_BASE_URL = 'http://localhost:8170/employes'
+const API_BASE_URL = 'http://92.112.181.241:8170/employes'
 
 const EmployeCard = () => {
   const [data, setData] = useState<EmployeTableType[]>([])

@@ -65,7 +65,7 @@ const FitouraCard = () => {
   // 🌀 Récupération des données
   const fetchData = async () => {
     try {
-      const res = await fetch('http://localhost:8170/fitoura')
+      const res = await fetch('http://92.112.181.241:8170/fitoura')
       const result = await res.json()
       setData(result)
     } catch (error) {
@@ -79,7 +79,7 @@ const FitouraCard = () => {
 
   // ✅ Ajouter une entrée
   const handleAdd = async (formData: any) => {
-    await fetch('http://localhost:8170/fitoura/entree', {
+    await fetch('http://92.112.181.241:8170/fitoura/entree', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
@@ -89,7 +89,7 @@ const FitouraCard = () => {
 
   // ✅ Modifier une sortie
   const handleEdit = async (id: string, formData: any) => {
-    await fetch(`http://localhost:8170/fitoura/sortie/${id}`, {
+    await fetch(`http://92.112.181.241:8170/fitoura/sortie/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
@@ -100,7 +100,7 @@ const FitouraCard = () => {
   // ✅ Supprimer les lignes sélectionnées
   const handleDelete = async () => {
     const selectedIds = Object.keys(selectedRowIds)
-    await Promise.all(selectedIds.map((id) => fetch(`http://localhost:8170/fitoura/${id}`, { method: 'DELETE' })))
+    await Promise.all(selectedIds.map((id) => fetch(`http://92.112.181.241:8170/fitoura/${id}`, { method: 'DELETE' })))
     setSelectedRowIds({})
     await fetchData()
   }

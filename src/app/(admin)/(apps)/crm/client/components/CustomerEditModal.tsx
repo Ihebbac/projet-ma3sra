@@ -258,7 +258,7 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
         poidsWiba: poidsWiba,
       }
 
-      const res = await fetch(`http://localhost:8170/clients/${clientId}`, {
+      const res = await fetch(`http://92.112.181.241:8170/clients/${clientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

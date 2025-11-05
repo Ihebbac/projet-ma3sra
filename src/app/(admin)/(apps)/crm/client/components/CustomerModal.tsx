@@ -177,7 +177,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
         dateCreation: formValues.dateCreation,
       }
 
-      const res = await fetch('http://localhost:8170/clients', {
+      const res = await fetch('http://92.112.181.241:8170/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

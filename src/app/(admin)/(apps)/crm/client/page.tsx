@@ -280,7 +280,7 @@ const CustomersCard = () => {
   // fetch clients
   const fetchClients = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:8170/clients')
+      const res = await fetch('http://92.112.181.241:8170/clients')
       if (!res.ok) throw new Error('Fetch clients failed')
       const json = await res.json()
       const normalized = json.map((c: any) => ({
@@ -326,7 +326,7 @@ const CustomersCard = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8170/clients/${customer._id}/status`, {
+      const response = await fetch(`http://92.112.181.241:8170/clients/${customer._id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -341,7 +341,7 @@ const CustomersCard = () => {
       }
 
       if (newStatus !== 'payé') {
-        await fetch(`http://localhost:8170/caisse/removeByUniqueId/${customer._id}`, {
+        await fetch(`http://92.112.181.241:8170/caisse/removeByUniqueId/${customer._id}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
         })
@@ -357,7 +357,7 @@ const CustomersCard = () => {
         quantiteOliveNet : ${customer.quantiteOliveNet} `,
         }
 
-        await fetch('http://localhost:8170/caisse', {
+        await fetch('http://92.112.181.241:8170/caisse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -635,7 +635,7 @@ const CustomersCard = () => {
 
   const handleDelete = async () => {
     const selectedIds = Object.keys(selectedRowIds)
-    await Promise.all(selectedIds.map((id) => fetch(`http://localhost:8170/clients/${id}`, { method: 'DELETE' })))
+    await Promise.all(selectedIds.map((id) => fetch(`http://92.112.181.241:8170/clients/${id}`, { method: 'DELETE' })))
     setSelectedRowIds({})
     setShowDeleteModal(false)
     setShowMultiDeleteModal(false)

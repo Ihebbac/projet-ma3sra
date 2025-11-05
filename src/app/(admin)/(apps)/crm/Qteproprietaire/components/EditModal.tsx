@@ -144,7 +144,7 @@ const EditModal = ({ show, toggleModal, data, onSave }: any) => {
     setLoading(true)
 
     try {
-      const response = await fetch(`http://localhost:8170/proprietaires/${formValues._id}`, {
+      const response = await fetch(`http://92.112.181.241:8170/proprietaires/${formValues._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

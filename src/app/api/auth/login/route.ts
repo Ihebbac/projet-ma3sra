@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { signSession } from '@/lib/jwt'
 import { json } from 'stream/consumers'
 
-const API = 'http://localhost:8170'!
+const API = 'http://92.112.181.241:8170'!
 
 export async function POST(req: Request) {
   try {

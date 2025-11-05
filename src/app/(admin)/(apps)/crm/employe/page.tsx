@@ -37,7 +37,7 @@ interface PresenceEvent {
   }
 }
 
-const API_BASE_URL = 'http://localhost:8170'
+const API_BASE_URL = 'http://92.112.181.241:8170'
 
 const Page = () => {
   const [employes, setEmployes] = useState<Employe[]>([])

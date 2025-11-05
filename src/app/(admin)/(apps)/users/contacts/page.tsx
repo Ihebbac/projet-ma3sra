@@ -78,7 +78,7 @@ const CustomersCard = () => {
   // fetch caisses
   const fetchCaisses = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:8170/caisse')
+      const res = await fetch('http://92.112.181.241:8170/caisse')
       if (!res.ok) throw new Error('Fetch caisses failed')
       const json = await res.json()
       const normalized: Caisse[] = (Array.isArray(json) ? json : []).map((c: any) => ({
@@ -323,7 +323,7 @@ const CustomersCard = () => {
     const idsToDelete = new Set<string>(selectedRows.map((r) => r.original._id))
 
     // 🔒 API DELETE – décommente si ton backend l'expose:
-    await Promise.all([...idsToDelete].map((id) => fetch(`http://localhost:8170/caisse/${id}`, { method: 'DELETE' }).catch(() => null)))
+    await Promise.all([...idsToDelete].map((id) => fetch(`http://92.112.181.241:8170/caisse/${id}`, { method: 'DELETE' }).catch(() => null)))
 
     setData((old) => old.filter((item) => !idsToDelete.has(item._id)))
     setRowSelection({})

@@ -46,7 +46,7 @@ const FitouraEditAllModal = ({ show, onHide, operation, fetchData }: FitouraEdit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const res = await fetch(`http://localhost:8170/fitoura/modifier/${operation._id}`, {
+      const res = await fetch(`http://92.112.181.241:8170/fitoura/modifier/${operation._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

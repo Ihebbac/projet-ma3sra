@@ -250,7 +250,7 @@ export default function CaissesHistoryModal({
 
     setTransferLoading(true)
     try {
-      const res = await fetch('http://localhost:8170/caisse', {
+      const res = await fetch('http://92.112.181.241:8170/caisse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

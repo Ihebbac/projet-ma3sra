@@ -178,7 +178,7 @@ const Qteclient = () => {
     const fetchProprietaires = async () => {
       try {
         setLoading(true)
-        const response = await fetch('http://localhost:8170/proprietaires')
+        const response = await fetch('http://92.112.181.241:8170/proprietaires')
         if (!response.ok) {
           throw new Error('Failed to fetch data')
         }
@@ -235,7 +235,7 @@ const Qteclient = () => {
 
   const handleSaveEdit = async (updatedData: CustomerType) => {
     try {
-      const response = await fetch(`http://localhost:8170/proprietaires/${updatedData._id}`, {
+      const response = await fetch(`http://92.112.181.241:8170/proprietaires/${updatedData._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ const Qteclient = () => {
       }
 
       // Refresh data after update
-      const refreshResponse = await fetch('http://localhost:8170/proprietaires')
+      const refreshResponse = await fetch('http://92.112.181.241:8170/proprietaires')
       const refreshedData: CustomerType[] = await refreshResponse.json()
       setData(refreshedData)
       
@@ -263,7 +263,7 @@ const Qteclient = () => {
       const selectedIds = Object.keys(selectedRowIds)
       const deletePromises = selectedIds.map(id => {
         const rowId = data[parseInt(id)]._id
-        return fetch(`http://localhost:8170/proprietaires/${rowId}`, {
+        return fetch(`http://92.112.181.241:8170/proprietaires/${rowId}`, {
           method: 'DELETE',
         })
       })
@@ -271,7 +271,7 @@ const Qteclient = () => {
       await Promise.all(deletePromises)
 
       // Refresh data after deletion
-      const response = await fetch('http://localhost:8170/proprietaires')
+      const response = await fetch('http://92.112.181.241:8170/proprietaires')
       const refreshedData: CustomerType[] = await response.json()
       setData(refreshedData)
       
@@ -286,7 +286,7 @@ const Qteclient = () => {
   const refreshData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:8170/proprietaires')
+      const response = await fetch('http://92.112.181.241:8170/proprietaires')
       if (!response.ok) {
         throw new Error('Failed to fetch data')
       }

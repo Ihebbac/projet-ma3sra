@@ -95,7 +95,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
     const { date, heuresSup } = form.joursTravailles[index]
 
     try {
-      const res = await fetch(`http://localhost:8170/employes/${form._id}/payer`, {
+      const res = await fetch(`http://92.112.181.241:8170/employes/${form._id}/payer`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date, heuresSup }),
@@ -116,7 +116,7 @@ const EditEmployeModal = ({ show, onHide, employe, onSubmit }: EditEmployeModalP
           commentaire: `Paiement de ${form.nom} ${form.prenom} pour le ${new Date(date).toLocaleDateString('fr-FR')}`,
         }
 
-        await fetch('http://localhost:8170/caisse', {
+        await fetch('http://92.112.181.241:8170/caisse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
