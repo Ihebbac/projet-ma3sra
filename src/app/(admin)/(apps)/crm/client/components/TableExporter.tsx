@@ -73,6 +73,7 @@ const prepareData = (rows: Row<CustomerType>[]) => {
     'prixKg',
     'prixFinal',
     'status',
+    'dateCreation',
   ]
 
   const header = keysToExport.map((key) => headersMap[key])
@@ -123,7 +124,7 @@ export const exportToXLSX = (rows: Row<CustomerType>[], filename = 'export_clien
   XLSX.writeFile(wb, `${filename}.xlsx`)
 }
 
-// 🧮 Préparation pour PDF
+// 🧮 Totaux PDF
 const preparePdfData = (rows: Row<CustomerType>[]) => {
   let totalPrixFinal = 0
   let totalHuile = 0
@@ -143,41 +144,33 @@ const preparePdfData = (rows: Row<CustomerType>[]) => {
   return { totalPrixFinal, totalHuile, totalOlive, totalPaye, totalNonPaye }
 }
 
-// ✅ Export PDF Professionnel
+// ✅ Export PDF (Noir & Blanc)
 export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport_Clients') => {
   if (typeof window === 'undefined') return
   try {
     const { default: jsPDF } = await import('jspdf')
     const autoTable = (await import('jspdf-autotable')).default
+
     const totals = preparePdfData(rows)
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
     const pageWidth = doc.internal.pageSize.width
     const margin = 10
-    let y = 15
+    let y = 20
 
-    // === En-tête professionnel ===
-    // doc.setFillColor(41, 128, 185)
-    // doc.rect(0, 0, pageWidth, 25, 'F')
-    // doc.setTextColor(255, 255, 255).setFontSize(18).setFont(undefined, 'bold')
-    // doc.text(COMPANY_INFO.name, margin, 17)
-    // doc.setFontSize(10)
-    // doc.text(COMPANY_INFO.address, margin, 22)
-    // doc.text(`Tél: ${COMPANY_INFO.phone}`, pageWidth - margin, 22, { align: 'right' })
-
-    y = 35
-    doc.setTextColor(0, 0, 0).setFontSize(14)
+    doc.setFontSize(14).setTextColor(0)
     doc.text('Rapport des Clients', pageWidth / 2, y, { align: 'center' })
-    y += 8
+
+    y += 10
     doc.setFontSize(10)
     doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')} | Nombre de clients : ${rows.length}`, margin, y)
 
     // === Tableau principal ===
     y += 8
-    const headers = ['Nom & Prénom', 'Téléphone', 'Qté Olive Net (kg)', 'Qté Huile (L)', 'Prix Final (DT)', 'Statut']
+    const headers = ['Nom & Prénom', 'Téléphone','date', 'Qté Olive Net (kg)', 'Qté Huile (L)', 'Prix Final (DT)', 'Statut']
     const body = rows.map((r) => [
       r.original.nomPrenom || '—',
       r.original.numTelephone || '—',
-      (r.original.quantiteOliveNet || 0).toFixed(2),
+      r.original.dateCreation ? new Date(r.original.dateCreation).toLocaleDateString() : '—',      (r.original.quantiteOliveNet || 0).toFixed(2),
       (r.original.quantiteHuile || 0).toFixed(2),
       (r.original.prixFinal || 0).toFixed(2),
       r.original.status || '—',
@@ -188,35 +181,23 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
       body,
       startY: y,
       theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 2 },
-      headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: 'center' },
-      didParseCell: (data) => {
-        if (data.column.index === 5 && data.section === 'body') {
-          const status = data.cell.raw
-          if (status === 'payé') {
-            data.cell.styles.fillColor = [223, 240, 216]
-            data.cell.styles.textColor = [0, 100, 0]
-          } else if (status === 'non payé') {
-            data.cell.styles.fillColor = [252, 228, 236]
-            data.cell.styles.textColor = [180, 0, 0]
-          }
-        }
-      },
+      styles: { fontSize: 9, textColor: 0, lineColor: 0 },
+      headStyles: { fillColor: [230, 230, 230], textColor: 0 },
       margin: { left: margin, right: margin },
     })
 
-    // === Section Totaux Pro ===
+    // === Totaux ===
     const finalY = (doc as any).lastAutoTable.finalY + 10
     const labelX = pageWidth - 70
     const valueX = pageWidth - margin
 
-    doc.setFontSize(11).setFont('bold').setTextColor(41, 128, 185)
+    doc.setFontSize(11).setFont('bold')
     doc.text('RÉSUMÉ DES TOTAUX', labelX, finalY)
 
-    doc.setTextColor(0, 0, 0).setFontSize(10).setFont('normal')
+    doc.setFontSize(10).setFont('normal')
     let currentY = finalY + 6
-    const addRow = (label: string, value: string, color = [0, 0, 0] as any) => {
-      doc.setTextColor(color)
+
+    const addRow = (label: string, value: string) => {
       doc.text(label, labelX, currentY, { align: 'right' })
       doc.text(value, valueX, currentY, { align: 'right' })
       currentY += 6
@@ -224,15 +205,15 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
 
     addRow('Total Olive (kg) :', `${totals.totalOlive.toFixed(2)} kg`)
     addRow('Total Huile (L) :', `${totals.totalHuile.toFixed(2)} L`)
-    addRow('Total Payé :', `${totals.totalPaye.toFixed(2)} DT`, [0, 100, 0])
-    addRow('Total Non Payé :', `${totals.totalNonPaye.toFixed(2)} DT`, [180, 0, 0])
-    addRow('TOTAL GÉNÉRAL :', `${totals.totalPrixFinal.toFixed(2)} DT`, [41, 128, 185])
+    addRow('Total Payé :', `${totals.totalPaye.toFixed(2)} DT`)
+    addRow('Total Non Payé :', `${totals.totalNonPaye.toFixed(2)} DT`)
+    addRow('TOTAL GÉNÉRAL :', `${totals.totalPrixFinal.toFixed(2)} DT`)
 
-    // === Pied de page professionnel ===
+    // === Pied de page ===
     const pageHeight = doc.internal.pageSize.height
-    doc.setDrawColor(200, 200, 200)
+    doc.setDrawColor(150)
     doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15)
-    doc.setFontSize(8).setTextColor(100)
+    doc.setFontSize(8)
     doc.text('Document généré automatiquement - Olive Plus © 2025', pageWidth / 2, pageHeight - 10, { align: 'center' })
 
     // 💾 Sauvegarde

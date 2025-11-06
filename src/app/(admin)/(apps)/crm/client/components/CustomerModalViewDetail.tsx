@@ -84,7 +84,7 @@ const getTypeBadgeVariant = (type: string) => {
 
 const CustomerModalViewDetail = ({ show, onHide, customer, user }: any) => {
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const format = (v: number) => (v > 0 ? v.toFixed(2) : '')
+  const format = (v: number) => (v > 0 ? v.toFixed(3) : '')
   console.log('customer', customer)
 
   if (!customer) return null

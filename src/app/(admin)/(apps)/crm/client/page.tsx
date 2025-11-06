@@ -128,9 +128,11 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   const num = `#${ticketId.slice(-6)}`
   const olive = customer.quantiteOliveNet?.toFixed(2) ?? '-'
   const huile = customer.quantiteHuile?.toFixed(2) ?? '-'
+  const kattou3 = customer.kattou3?.toFixed(1) ?? '-'
+  const nisba = customer.nisba?.toFixed(1) ?? '-'
   const nom = customer.nomPrenom.slice(0, W)
   const tel = customer.numTelephone ?? '-'
-  const caisier = customer.nomutilisatuer.split('@')[0]
+  const caisier = customer.nomutilisatuer.split('@')[0]??'N/A'
   // === TICKET PRINCIPAL ===
   content.push(center(LOGO_PLACEHOLDER))
   content.push(LINE)
@@ -144,12 +146,17 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   content.push(center(String(`${olive}kg`)))
   content.push(bi(`Huile`, 'زيت'))
   content.push(center(String(`${huile}kg`)))
+  content.push(LINE)
+  content.push(bi(`القطوع`, 'القطوع'))
+  content.push(center(String(`${kattou3}%`)))
+  content.push(bi(`النسبة `, 'النسبة '))
+  content.push(center(String(`${nisba} %`)))
 
   // Montant
   if (customer.prixFinal && customer.prixKg) {
     content.push(SEP)
     content.push(bi('Montant total', 'المبلغ الجملي'))
-    content.push(center(`💵💵${customer.prixFinal.toFixed(2)}💵💵 TND`))
+    content.push(center(`⇒ <b>${customer.prixFinal.toFixed(2)} TND </b>`))
     content.push(SEP)
   } else {
     content.push(center('---------'))
@@ -183,7 +190,7 @@ const CustomersCard = () => {
   const [data, setData] = useState<CustomerType[]>([])
   const [filteredData, setFilteredData] = useState<CustomerType[]>([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [selectedDates, setSelectedDates] = useState<Date[]>([])
+  const [selectedDates, setSelectedDates] = useState<Date[]>([new Date()])
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
   const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({})
@@ -792,7 +799,7 @@ const CustomersCard = () => {
                 </Dropdown>
               </div>
               <Row>
-                <Col>
+                <Col >
                   <div className="app-search">
                     <input
                       type="text"
@@ -804,9 +811,9 @@ const CustomersCard = () => {
                     <LuSearch className="app-search-icon text-muted" />
                   </div>
                 </Col>
-                <Col>
-                  <div className="d-flex gap-2 align-items-center">
-                    <span className="app-search">Filtrer:</span>
+                <Col xs ={8}>
+                  <div className="app-search">
+                    <span className="app-search">Date : </span>
                     <Flatpickr
                       className="form-control"
                       options={{

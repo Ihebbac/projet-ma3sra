@@ -150,21 +150,47 @@ const EmployeCard = () => {
     columnHelper.accessor('joursTravailles', {
       header: 'Jours Travaillés',
       cell: (info) => {
-        const joursTravailles = info.getValue()
-        if (!joursTravailles || !Array.isArray(joursTravailles)) return '-'
-
-        const sortedDates = [...joursTravailles].sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-
+        const raw = info.getValue() as any
+    
+        // sécurité : pas un tableau → affichage simple
+        if (!Array.isArray(raw) || raw.length === 0) return '-'
+    
+        // normalise en objets { date: Date, heuresSup: number } et filtre les entrées invalides
+        const parsed = raw
+          .map((item: any) => {
+            const dateStr = typeof item === 'string' ? item : item?.date
+            const d = dateStr ? new Date(dateStr) : null
+            if (!d || isNaN(d.getTime())) return null
+            return { date: d, heuresSup: Number(item?.heuresSup || 0) }
+          })
+          .filter(Boolean) as { date: Date; heuresSup: number }[]
+    
+        if (parsed.length === 0) return '-'
+    
+        // tri du plus récent au plus ancien
+        parsed.sort((a, b) => b.date.getTime() - a.date.getTime())
+    
+        // utilitaire local pour formater la date en FR
+        const formatDate = (d: Date) =>
+          d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+    
+        // première (plus récente)
+        const latest = parsed[0]
+    
         return (
           <div className="d-flex flex-column align-items-start gap-1">
-            <span className="badge bg-outline-primary">
-              {sortedDates.length} jour{sortedDates.length > 1 ? 's' : ''}
+            <span className="badge bg-primary">
+              {parsed.length} jour{parsed.length > 1 ? 's' : ''}
             </span>
-            {sortedDates.length > 0 && <small className="text-muted">Dernier: {formatDate(sortedDates[0]?.date)}</small>}
+            <small className="text-muted">
+              Dernier : {formatDate(latest.date)}{latest.heuresSup ? ` · HS: ${latest.heuresSup}` : ''}
+            </small>
           </div>
         )
       },
     }),
+    
+    
     {
       header: 'Actions',
       cell: ({ row }: { row: TableRow<EmployeTableType> }) => (
