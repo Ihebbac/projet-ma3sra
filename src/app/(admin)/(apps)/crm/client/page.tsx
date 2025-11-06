@@ -1,31 +1,31 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import {
-  createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  SortingState,
-  Row as TableRow,
-  Table as TableType,
-} from '@tanstack/react-table'
-import { Badge, Button, Card, CardFooter, CardHeader, Col, Container, Row, Dropdown, CardBody } from 'react-bootstrap'
-import { LuGlobe, LuSearch } from 'react-icons/lu'
-import { CgUnavailable } from 'react-icons/cg'
-import { TbEdit, TbEye, TbPlus, TbTrash, TbPrinter, TbCash, TbFileExport, TbChartBar } from 'react-icons/tb'
-import Flatpickr from 'react-flatpickr'
-import 'flatpickr/dist/flatpickr.css'
 import logo from '@/assets/images/logo.jpg'
+import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
 import TablePagination from '@/components/table/TablePagination'
-import CustomerModal from './components/CustomerModal'
-import CustomerModalViewDetail from '../client/components/CustomerModalViewDetail'
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  Row as TableRow,
+  Table as TableType,
+  useReactTable,
+} from '@tanstack/react-table'
+import 'flatpickr/dist/flatpickr.css'
+import { useCallback, useEffect, useState } from 'react'
+import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Col, Container, Dropdown, Row } from 'react-bootstrap'
+import Flatpickr from 'react-flatpickr'
+import { CgUnavailable } from 'react-icons/cg'
+import { LuGlobe, LuSearch } from 'react-icons/lu'
+import { TbCash, TbChartBar, TbEdit, TbEye, TbFileExport, TbPlus, TbPrinter, TbTrash } from 'react-icons/tb'
 import CustomerEditModal from '../client/components/CustomerEditModal'
-import PageBreadcrumb from '@/components/PageBreadcrumb'
+import CustomerModalViewDetail from '../client/components/CustomerModalViewDetail'
+import CustomerModal from './components/CustomerModal'
 import { exportToPDF, exportToXLSX } from './components/TableExporter'
 // import { cookies } from 'next/headers'
 
@@ -132,11 +132,11 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   const nisba = customer.nisba?.toFixed(1) ?? '-'
   const nom = customer.nomPrenom.slice(0, W)
   const tel = customer.numTelephone ?? '-'
-  const caisier = customer.nomutilisatuer.split('@')[0]??'N/A'
+  const caissier = customer?.nomutilisatuer ? customer.nomutilisatuer.split('@')[0] : '—'
   // === TICKET PRINCIPAL ===
   content.push(center(LOGO_PLACEHOLDER))
   content.push(LINE)
-  content.push(`${num} ${date} ${time} ${caisier}`)
+  content.push(`${num} ${date} ${time} ${caissier}`)
   content.push(bi('Client', 'الحريف'))
   content.push(center(nom))
   content.push(bi('Téléphone', 'الهاتف'))
