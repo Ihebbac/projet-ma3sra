@@ -393,7 +393,7 @@ const EmployeCard = () => {
         }}
       />
 
-      <ViewEmployeModal show={showViewModal} onHide={() => setShowViewModal(false)} employe={currentEmploye} />
+      <ViewEmployeModal show={showViewModal} onHide={() => setShowViewModal(false)} employe={currentEmploye ?? undefined} />
     </Container>
   )
 }

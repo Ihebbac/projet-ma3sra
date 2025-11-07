@@ -128,6 +128,16 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   const num = `#${ticketId.slice(-6)}`
   const olive = customer.quantiteOliveNet?.toFixed(2) ?? '-'
   const huile = customer.quantiteHuile?.toFixed(2) ?? '-'
+  const masseVolumiqueHuile = 0.918; // kg/L
+
+const huileKg = customer.quantiteHuile ?? 0;
+const huileLitres = huileKg / masseVolumiqueHuile;
+const totalGalba = huileLitres / 10;
+
+const galbaEntier = Math.floor(totalGalba);
+const resteGalba = (totalGalba - galbaEntier).toFixed(1);
+const huile_converti = huileLitres.toFixed(1);
+const GALBA = `${galbaEntier} GALBA (${resteGalba} فاصل)`;
   const kattou3 = customer.kattou3?.toFixed(1) ?? '-'
   const nisba = customer.nisba?.toFixed(1) ?? '-'
   const nom = customer.nomPrenom.slice(0, W)
@@ -151,12 +161,14 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   content.push(center(String(`${kattou3}%`)))
   content.push(bi(`النسبة `, 'النسبة '))
   content.push(center(String(`${nisba} %`)))
+  content.push(bi(`عدد القلبات `, 'اللتر'))
+  content.push(center(String(`${huile_converti} L = ${GALBA} `)))
 
   // Montant
   if (customer.prixFinal && customer.prixKg) {
     content.push(SEP)
     content.push(bi('Montant total', 'المبلغ الجملي'))
-    content.push(center(`⇒ <b>${customer.prixFinal.toFixed(2)} TND </b>`))
+    content.push(center(`########### <b>${customer.prixFinal.toFixed(2)} TND </b> ########`))
     content.push(SEP)
   } else {
     content.push(center('---------'))

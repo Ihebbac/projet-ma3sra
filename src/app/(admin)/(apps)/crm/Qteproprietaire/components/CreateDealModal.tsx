@@ -23,6 +23,9 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
   const [loading, setLoading] = useState(false)
   const [poidsWiba, setPoidsWiba] = useState<number>(POIDS_WIBA_DEFAUT)
   const [prixKg, setPrixKilo] = useState<number>(0)
+  
+  // AJOUT: State pour la sync bidirectionnelle
+  const [lastEdited, setLastEdited] = useState<'olive' | 'oliveNet' | null>(null)
 
   const getTodayDate = () => {
     const today = new Date()
@@ -31,7 +34,6 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
 
   const getInitialFormData = () => ({
     nomPrenom: 'Propriétaire',
-
     type: 'proprietaire',
     dateCreation: getTodayDate(),
     nombreCaisses: 0,
@@ -58,6 +60,8 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
       setPrixKilo(0)
       setOpenOlive(true)
       setOpenHuile(true)
+      // AJOUT: Reset lastEdited
+      setLastEdited(null)
     }
   }, [show])
 
@@ -88,6 +92,25 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
 
   const calculatePrixFinal = (huile: number, prixKg: number) => (huile > 0 && prixKg > 0 ? huile * prixKg : 0)
 
+  // AJOUT: Sync bidirectionnelle olive ↔ oliveNet
+  useEffect(() => {
+    const olive = Number(formValues.quantiteOlive ?? 0)
+    const oliveNet = Number(formValues.quantiteOliveNet ?? 0)
+    const caisses = Number(formValues.nombreCaisses ?? 0)
+
+    if (lastEdited === 'olive') {
+      const computedNet = calculateNetQuantity(olive, caisses)
+      if (computedNet !== oliveNet) {
+        setFormValues((prev) => ({ ...prev, quantiteOliveNet: computedNet }))
+      }
+    } else if (lastEdited === 'oliveNet') {
+      const computedOlive = oliveNet + caisses * POIDS_CAISSE
+      if (computedOlive !== olive) {
+        setFormValues((prev) => ({ ...prev, quantiteOlive: computedOlive }))
+      }
+    }
+  }, [formValues.quantiteOlive, formValues.quantiteOliveNet, formValues.nombreCaisses, lastEdited])
+
   // === RE-CALCUL AUTOMATIQUE ===
   useEffect(() => {
     const { quantiteOlive, nombreCaisses, quantiteHuile } = formValues
@@ -103,7 +126,8 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
 
     setFormValues((prev) => ({
       ...prev,
-      quantiteOliveNet: oliveNet,
+      // AJOUT: Respect de lastEdited pour la sync
+      quantiteOliveNet: lastEdited === 'oliveNet' ? prev.quantiteOliveNet : oliveNet,
       nisba,
       kattou3,
       nombreWiba: nWiba,
@@ -114,7 +138,7 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
       nisbaReelle: nisba,
       prixFinal,
     }))
-  }, [formValues.quantiteOlive, formValues.nombreCaisses, formValues.quantiteHuile, poidsWiba, prixKg])
+  }, [formValues.quantiteOlive, formValues.nombreCaisses, formValues.quantiteHuile, poidsWiba, prixKg, lastEdited])
 
   const ReactSwal = withReactContent(Swal)
 
@@ -130,6 +154,21 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     const isText = ['nomPrenom', 'type', 'dateCreation', 'numTelephone'].includes(name)
+
+    // AJOUT: Sync bidirectionnelle
+    if (name === 'quantiteOlive') {
+      setLastEdited('olive')
+      const numeric = parseFloat(value) || 0
+      setFormValues((prev) => ({ ...prev, quantiteOlive: numeric }))
+      return
+    }
+    if (name === 'quantiteOliveNet') {
+      setLastEdited('oliveNet')
+      const numeric = parseFloat(value) || 0
+      setFormValues((prev) => ({ ...prev, quantiteOliveNet: numeric }))
+      return
+    }
+
     setFormValues((prev) => ({
       ...prev,
       [name]: isText ? value : parseFloat(value) || 0,
@@ -275,7 +314,13 @@ const CreateDealModal = ({ show, toggleModal, onProprietaireCreated }: CreateDea
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive Net (kg) الزيتون</Form.Label>
-                    <Form.Control type="text" name="quantiteOliveNet" value={format(formValues.quantiteOliveNet)} readOnly />
+                    {/* CHANGEMENT: Champ éditable pour la sync */}
+                    <Form.Control 
+                      type="number" 
+                      name="quantiteOliveNet" 
+                      value={formValues.quantiteOliveNet || ''} 
+                      onChange={(e: any) => handleChange(e)} 
+                    />
                   </Form.Group>
                 </Col>
               </Row>

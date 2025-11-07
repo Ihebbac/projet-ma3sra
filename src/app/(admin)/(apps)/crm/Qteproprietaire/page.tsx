@@ -31,6 +31,7 @@ type CustomerType = {
   nombreCaisses?: number
   quantiteOlive?: number
   quantiteHuile?: number
+  quantiteOliveNet?:number
   kattou3?: number
   nisba?: number
   numCIN?: number
@@ -53,7 +54,8 @@ const defaultRowData: CustomerType = {
   quantiteOlive: 0,
   quantiteHuile: 0,
   kattou3: 0,
-  nisba: 0
+  nisba: 0,
+  quantiteOliveNet:0,
 }
 
 const Qteclient = () => {
@@ -93,10 +95,10 @@ const Qteclient = () => {
         <span>{row.original.nombreCaisses || 0}</span>
       ),
     }),
-    columnHelper.accessor('quantiteOlive', {
-      header: 'Quantité Olive (kg)',
+    columnHelper.accessor('quantiteOliveNet', {
+      header: 'Quantité Olive net  (kg)',
       cell: ({ row }) => (
-        <span>{(row.original.quantiteOlive?.toFixed(2)) || 0}</span>
+        <span>{(row.original.quantiteOliveNet?.toFixed(2)) || 0}</span>
       ),
     }),
     columnHelper.accessor('quantiteHuile', {
@@ -301,7 +303,7 @@ const Qteclient = () => {
 
   return (
     <Container fluid>
-      <PageBreadcrumb title={'Quantités Clients'} subtitle={'Gestion'} />
+      <PageBreadcrumb title={'Stock Ma3sra'} subtitle={'Gestion'} />
       
       <Row>
         <Col xs={12}>
