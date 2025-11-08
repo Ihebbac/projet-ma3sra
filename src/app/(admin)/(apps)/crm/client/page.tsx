@@ -18,7 +18,7 @@ import {
 } from '@tanstack/react-table'
 import 'flatpickr/dist/flatpickr.css'
 import { useCallback, useEffect, useState } from 'react'
-import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Col, Container, Dropdown, Row } from 'react-bootstrap'
+import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Col, Container, Dropdown, Modal, Row } from 'react-bootstrap'
 import Flatpickr from 'react-flatpickr'
 import { CgUnavailable } from 'react-icons/cg'
 import { LuGlobe, LuSearch } from 'react-icons/lu'
@@ -128,16 +128,16 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   const num = `#${ticketId.slice(-6)}`
   const olive = customer.quantiteOliveNet?.toFixed(2) ?? '-'
   const huile = customer.quantiteHuile?.toFixed(2) ?? '-'
-  const masseVolumiqueHuile = 0.918; // kg/L
+  const masseVolumiqueHuile = 0.918 // kg/L
 
-const huileKg = customer.quantiteHuile ?? 0;
-const huileLitres = huileKg / masseVolumiqueHuile;
-const totalGalba = huileLitres / 10;
+  const huileKg = customer.quantiteHuile ?? 0
+  const huileLitres = huileKg / masseVolumiqueHuile
+  const totalGalba = huileLitres / 10
 
-const galbaEntier = Math.floor(totalGalba);
-const resteGalba = (totalGalba - galbaEntier).toFixed(1);
-const huile_converti = huileLitres.toFixed(1);
-const GALBA = `${galbaEntier} GALBA (${resteGalba} فاصل)`;
+  const galbaEntier = Math.floor(totalGalba)
+  const resteGalba = (totalGalba - galbaEntier).toFixed(1)
+  const huile_converti = huileLitres.toFixed(1)
+  const GALBA = `${galbaEntier} GALBA (${resteGalba} فاصل)`
   const kattou3 = customer.kattou3?.toFixed(1) ?? '-'
   const nisba = customer.nisba?.toFixed(1) ?? '-'
   const nom = customer.nomPrenom.slice(0, W)
@@ -215,7 +215,9 @@ const CustomersCard = () => {
   const [dailyStats, setDailyStats] = useState<any | null>(null)
   const [showStats, setShowStats] = useState(false)
   const [user, setuser] = useState<any>()
-
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPaymentDate, setSelectedPaymentDate] = useState<Date | null>(new Date())
+  const [customerToPay, setCustomerToPay] = useState<CustomerType | null>(null)
   // Fonction pour calculer les statistiques quotidiennes
   const calculateDailyStats = useCallback((customers: CustomerType[], dateFilter: Date[] = []) => {
     let clientsToCalculate = customers
@@ -337,53 +339,71 @@ const CustomersCard = () => {
     setPagination({ ...pagination, pageIndex: 0 })
   }
 
+  const handleConfirmPayment = async () => {
+    if (!customerToPay || !selectedPaymentDate) return
+
+    try {
+      const body = {
+        motif: `Payment Client`,
+        uniqueId: customerToPay._id,
+        montant: customerToPay.prixFinal,
+        nomutilisatuer: customerToPay.nomutilisatuer,
+        type: 'credit',
+        date: selectedPaymentDate.toISOString(), // ✅ nouvelle date choisie
+        commentaire: `payment de Client : ${customerToPay.nomPrenom} Telephone :${customerToPay?.numTelephone ?? ''} - quantiteHuile : ${customerToPay.quantiteHuile}
+        quantiteOliveNet : ${customerToPay.quantiteOliveNet}`,
+      }
+
+      await fetch('http://92.112.181.241:8170/caisse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      await fetch(`http://92.112.181.241:8170/clients/${customerToPay._id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'payé' }),
+      })
+
+      setShowPaymentModal(false)
+      setCustomerToPay(null)
+      await fetchClients()
+    } catch (error) {
+      console.error('Erreur:', error)
+      alert('Erreur lors du paiement du client')
+    }
+  }
+
   const handleTogglePaymentStatus = async (customer: CustomerType) => {
     const newStatus = customer.status === 'payé' ? 'non payé' : 'payé'
 
-    if (!confirm(`Voulez-vous vraiment marquer ce client comme "${newStatus}" ?`)) {
+    if (newStatus === 'payé') {
+      // ✅ Ouvre le modal pour choisir la date
+      setCustomerToPay(customer)
+      setSelectedPaymentDate(new Date())
+      setShowPaymentModal(true)
       return
     }
+
+    // Si on passe de payé → non payé, on supprime de la caisse
+    if (!confirm(`Voulez-vous vraiment marquer ce client comme "${newStatus}" ?`)) return
 
     try {
       const response = await fetch(`http://92.112.181.241:8170/clients/${customer._id}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
       })
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la mise à jour du statut')
-      }
+      if (!response.ok) throw new Error('Erreur lors de la mise à jour du statut')
 
-      if (newStatus !== 'payé') {
-        await fetch(`http://92.112.181.241:8170/caisse/removeByUniqueId/${customer._id}`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-        })
-      } else {
-        const body = {
-          motif: `Payment Client`,
-          uniqueId: customer._id,
-          montant: customer.prixFinal,
-          nomutilisatuer: customer.nomutilisatuer,
-          type: 'credit',
-          date: new Date().toISOString(),
-          commentaire: `payment de Client : ${customer.nomPrenom} Telephone :${customer?.numTelephone ?? ''} - quantiteHuile : ${customer.quantiteHuile}
-        quantiteOliveNet : ${customer.quantiteOliveNet} `,
-        }
+      await fetch(`http://92.112.181.241:8170/caisse/removeByUniqueId/${customer._id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      })
 
-        await fetch('http://92.112.181.241:8170/caisse', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-      }
-
-      fetchClients()
+      await fetchClients()
     } catch (error) {
       console.error('Erreur:', error)
       alert('Erreur lors du changement de statut')
@@ -515,15 +535,15 @@ const CustomersCard = () => {
     }),
     columnHelper.accessor('kattou3', {
       header: 'القطوع',
-      cell: (info) => <Badge bg="warning">{info?.getValue() != null ? info?.getValue()?.toFixed(3) : 'N/A'}%</Badge>,
+      cell: (info) => <h5>{info?.getValue() != null ? info?.getValue()?.toFixed(2) : 'N/A'} %</h5>,
     }),
     columnHelper.accessor('nisbaReelle', {
       header: 'النسبة %',
-      cell: (info) => <Badge bg="success">{info?.getValue() != null ? info?.getValue()?.toFixed(3) : 'N/A'}%</Badge>,
+      cell: (info) => <Badge bg="success">{info?.getValue() != null ? info?.getValue()?.toFixed(2) : 'N/A'}%</Badge>,
     }),
     columnHelper.accessor('prixFinal', {
       header: 'الثمن',
-      cell: (info) => <Badge bg="secondary">{info?.getValue() != null ? info?.getValue()?.toFixed(3) : 'N/A'}TND</Badge>,
+      cell: (info) => <Badge bg="secondary">{info?.getValue() != null ? info?.getValue()?.toFixed(2) : 'N/A'}TND</Badge>,
     }),
     columnHelper.accessor('numTelephone', { header: 'الهاتف' }),
     columnHelper.accessor('dateCreation', {
@@ -811,7 +831,7 @@ const CustomersCard = () => {
                 </Dropdown>
               </div>
               <Row>
-                <Col >
+                <Col>
                   <div className="app-search">
                     <input
                       type="text"
@@ -823,7 +843,7 @@ const CustomersCard = () => {
                     <LuSearch className="app-search-icon text-muted" />
                   </div>
                 </Col>
-                <Col xs ={8}>
+                <Col xs={8}>
                   <div className="app-search">
                     <span className="app-search">Date : </span>
                     <Flatpickr
@@ -887,6 +907,39 @@ const CustomersCard = () => {
 
       <CustomerModalViewDetail show={showModalDetail} onHide={() => setShowModalDetail(false)} customer={selectedCustomer} user={user} />
       <CustomerEditModal show={showModalEdit} onHide={() => setShowModalEdit(false)} customer={selectedCustomer} onClientSaved={handleClientSaved} />
+      {/* === Modal de confirmation paiement === */}
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmer le paiement</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {customerToPay && (
+            <>
+              <p>
+                Client : <strong>{customerToPay.nomPrenom}</strong>
+              </p>
+              <p>
+                Montant : <strong>{customerToPay.prixFinal?.toFixed(3)} TND</strong>
+              </p>
+              <p>Choisir la date de paiement :</p>
+              <Flatpickr
+                value={selectedPaymentDate}
+                onChange={(dates) => setSelectedPaymentDate(dates[0])}
+                className="form-control"
+                options={{ dateFormat: 'Y-m-d' }}
+              />
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>
+            Annuler
+          </Button>
+          <Button variant="success" onClick={handleConfirmPayment}>
+            Confirmer
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   )
 }

@@ -401,31 +401,39 @@ export default function ModernDashboardClient() {
         fetch(`${API_BASE}/caisse`).then((r) => r.json()),
         fetch(`${API_BASE}/employes`).then((r) => r.json()),
       ])
-      setClients(c1 ?? [])
-      setFitoura(f1 ?? [])
-      setTransactions(t1 ?? [])
-      setCaisse(ca1 ?? [])
-      setEmployes(e1 ?? [])
+  
+      // ✅ Sécuriser la structure des données
+      setClients(Array.isArray(c1) ? c1 : c1.data || [])
+      setFitoura(Array.isArray(f1) ? f1 : f1.data || [])
+      setTransactions(Array.isArray(t1) ? t1 : t1.data || [])
+      setCaisse(Array.isArray(ca1) ? ca1 : ca1.data || [])
+      setEmployes(Array.isArray(e1) ? e1 : e1.data || [])
+    } catch (err) {
+      console.error("Erreur lors du chargement des données :", err)
     } finally {
       setLoading(false)
     }
   }, [])
+  
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
   // All your existing calculations and useMemo hooks remain exactly the same
-  const allDates = useMemo(
-    () => [
-      ...clients.map((x) => x.dateCreation),
-      ...fitoura.map((x) => x.createdAt || x.dateSortie),
-      ...transactions.map((x) => x.date),
-      ...caisse.map((x) => x.date),
-      ...employes.flatMap((e) => [...(e.joursPayes || []), ...(e.joursTravailles || []).map((j) => j.date)]),
-    ],
-    [clients, fitoura, transactions, caisse, employes],
-  )
+  const allDates = useMemo(() => [
+    ...(Array.isArray(clients) ? clients.map((x) => x.dateCreation) : []),
+    ...(Array.isArray(fitoura) ? fitoura.map((x) => x.createdAt || x.dateSortie) : []),
+    ...(Array.isArray(transactions) ? transactions.map((x) => x.date) : []),
+    ...(Array.isArray(caisse) ? caisse.map((x) => x.date) : []),
+    ...(Array.isArray(employes)
+      ? employes.flatMap((e) => [
+          ...(e.joursPayes || []),
+          ...(e.joursTravailles || []).map((j) => j.date),
+        ])
+      : []),
+  ], [clients, fitoura, transactions, caisse, employes])
+  
 
   const yearsOptions = useMemo(() => {
     const s = new Set<number>()
