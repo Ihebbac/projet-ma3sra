@@ -18,11 +18,11 @@ import {
 } from '@tanstack/react-table'
 import 'flatpickr/dist/flatpickr.css'
 import { useCallback, useEffect, useState } from 'react'
-import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Col, Container, Dropdown, Modal, Row } from 'react-bootstrap'
 import Flatpickr from 'react-flatpickr'
 import { CgUnavailable } from 'react-icons/cg'
 import { LuGlobe, LuSearch } from 'react-icons/lu'
-import { TbCash, TbChartBar, TbEdit, TbEye, TbFileExport, TbPlus, TbPrinter, TbTrash } from 'react-icons/tb'
+import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Col, Container, Dropdown, Modal, Row, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { TbCash, TbChartBar, TbEdit, TbEye, TbFileExport, TbPlus, TbPrinter, TbTrash, TbNote } from 'react-icons/tb'
 import CustomerEditModal from '../client/components/CustomerEditModal'
 import CustomerModalViewDetail from '../client/components/CustomerModalViewDetail'
 import CustomerModal from './components/CustomerModal'
@@ -32,7 +32,7 @@ import { exportToPDF, exportToXLSX } from './components/TableExporter'
 type CustomerType = {
   _id: string
   nomPrenom: string
-  numCIN: number
+  commentaire: string;
   numTelephone: number
   type: string
   dateCreation: string
@@ -544,6 +544,34 @@ const CustomersCard = () => {
     columnHelper.accessor('prixFinal', {
       header: 'الثمن',
       cell: (info) => <Badge bg="secondary">{info?.getValue() != null ? info?.getValue()?.toFixed(2) : 'N/A'}TND</Badge>,
+    }),
+    columnHelper.accessor('commentaire', {
+      header: 'Note', // Un titre plus court
+      cell: (info) => {
+        const comment = info.getValue()
+
+        // S'il n'y a pas de commentaire, ne rien afficher
+        if (!comment || comment.trim() === '') {
+          return <span className="text-muted">-</span>
+        }
+
+        // S'il y a un commentaire, afficher une icône avec un tooltip au survol
+        return (
+          <OverlayTrigger
+            placement="top"
+            overlay={
+              <Tooltip id={`tooltip-comment-${info.row.id}`}>
+                {comment}
+              </Tooltip>
+            }
+          >
+            {/* Le span est nécessaire pour que le Tooltip ait une cible */}
+            <span style={{ cursor: 'help' }}>
+              <TbNote className="fs-lg text-info" />
+            </span>
+          </OverlayTrigger>
+        )
+      },
     }),
     columnHelper.accessor('numTelephone', { header: 'الهاتف' }),
     columnHelper.accessor('dateCreation', {

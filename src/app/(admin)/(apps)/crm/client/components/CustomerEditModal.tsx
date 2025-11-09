@@ -27,6 +27,7 @@ type Customer = {
   numTelephone?: number | string
   dateCreation?: string
   type?: string
+  commentaire?: string // <-- AJOUTÉ
   nombreCaisses?: number
   quantiteOlive?: number
   quantiteHuile?: number
@@ -48,6 +49,7 @@ type FormValues = {
   numTelephone: string | number
   type: string
   dateCreation: string
+  commentaire: string // <-- AJOUTÉ
   nombreCaisses: number
   quantiteOlive: number
   quantiteHuile: number
@@ -134,6 +136,7 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
       type: c.type ?? '',
       // CORRECTION DATE: Utilise la date du client ou aujourd'hui si non définie
       dateCreation: c.dateCreation ? c.dateCreation.split('T')[0] : getTodayDate(),
+      commentaire: c.commentaire ?? '', // <-- AJOUTÉ
       nombreCaisses: nCaisses,
       quantiteOlive: qOlive,
       quantiteHuile: qHuile,
@@ -210,15 +213,16 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
       nisbaReelle: nisba,
       prixFinal,
     }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formValues.quantiteOlive, formValues.nombreCaisses, formValues.quantiteHuile, poidsWiba, prixKg, lastEdited,formValues.prixFinal])
 
   if (!customer) return null
 
   const clientId = customer._id ?? customer.id
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { // <-- AJOUTÉ HTMLTextAreaElement
     const { name, value } = e.target
-    const isText = ['nomPrenom', 'type', 'dateCreation'].includes(name)
+    const isText = ['nomPrenom', 'type', 'dateCreation', 'commentaire'].includes(name) // <-- AJOUTÉ 'commentaire'
 
     // Sync bidirectionnelle
     if (name === 'quantiteOlive') {
@@ -263,6 +267,7 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
         numTelephone: toNumber(formValues.numTelephone),
         type: formValues.type,
         dateCreation: formValues.dateCreation,
+        commentaire: formValues.commentaire, // <-- AJOUTÉ
         nombreCaisses: formValues.nombreCaisses,
         quantiteOlive: formValues.quantiteOlive,
         quantiteHuile: formValues.quantiteHuile,
@@ -274,7 +279,7 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
         poidsWiba: poidsWiba,
       }
 
-      const res = await fetch(`http://92.112.181.241:8170/clients/${clientId}`, {
+      const res = await fetch(`http://localhost:8170/clients/${clientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -305,6 +310,8 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
           <Container fluid>
             {/* --- Infos Client --- */}
             <h5>Informations du client</h5>
+            
+            {/* === LAYOUT MODIFIÉ (similaire à l'ajout) === */}
             <Row className="g-3 mb-4">
               <Col md={6}>
                 <Form.Group>
@@ -319,6 +326,21 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
                 </Form.Group>
               </Col>
 
+              {/* === CHAMP COMMENTAIRE AJOUTÉ === */}
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Commentaire</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    name="commentaire"
+                    value={formValues.commentaire || ''} // || '' pour éviter "undefined"
+                    onChange={handleChange}
+                    placeholder="Ajouter un commentaire..."
+                  />
+                </Form.Group>
+              </Col>
+              
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Téléphone</Form.Label>
@@ -331,6 +353,7 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
                   />
                 </Form.Group>
               </Col>
+              
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Type</Form.Label>
@@ -341,6 +364,7 @@ const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, custome
                   </Form.Select>
                 </Form.Group>
               </Col>
+              
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Date création</Form.Label>

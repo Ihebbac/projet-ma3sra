@@ -47,10 +47,11 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
 
   // État initial du formulaire (dateCreation est géré séparément)
   const getInitialFormData = () => ({
-    nomPrenom: '',
+    nomPrenom: '', // Corrigé (était nomPrneom)
     prixKg: 0,
     numTelephone: '',
     type: '',
+    commentaire: '', // Corrigé (était commentaire1)
     // dateCreation retiré d'ici (géré dans dateCreation)
     nombreCaisses: 0,
     quantiteOlive: 0,
@@ -201,9 +202,11 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
   }
 
   // === CHANGEMENTS INPUT ===
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { // Ajout de HTMLTextAreaElement
     const { name, value } = e.target
-    const isText = ['nomPrenom', 'type', 'dateCreation'].includes(name)
+    
+    // Corrigé : 'commentaire' (au lieu de ' commentaire1')
+    const isText = ['nomPrenom', 'type', 'dateCreation', 'commentaire'].includes(name)
 
     // pour quantiteOlive ou quantiteOliveNet -> marquer lastEdited et set la valeur brute
     if (name === 'quantiteOlive') {
@@ -247,7 +250,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
         dateCreation: dateCreation, // envoyer la date séparée
       }
 
-      const res = await fetch('http://92.112.181.241:8170/clients', {
+      const res = await fetch('http://localhost:8170/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -298,6 +301,23 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
                   <Form.Control name="nomPrenom" value={formValues.nomPrenom} onChange={(e: any) => handleChange(e)} placeholder="Ex: Ahmed Trabelsi" />
                 </Form.Group>
               </Col>
+              
+              {/* === CHAMP COMMENTAIRE CORRIGÉ ET AGRANDI === */}
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Commentaire</Form.Label>
+                  <Form.Control
+                    as="textarea" // <-- Rend le champ multi-lignes
+                    rows={3} // <-- Définit la hauteur par défaut
+                    name="commentaire" // <-- Corrigé (était 'commentaire')
+                    value={formValues.commentaire} // <-- Corrigé (était 'commentaire1')
+                    onChange={(e: any) => handleChange(e)}
+                    placeholder="Ajouter un commentaire..."
+                  />
+                </Form.Group>
+              </Col>
+              {/* ============================================= */}
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Téléphone</Form.Label>

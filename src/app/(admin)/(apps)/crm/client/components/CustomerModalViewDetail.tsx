@@ -23,6 +23,7 @@ type CustomerType = {
   _id: string
   nomPrenom: string
   numCIN: number
+  commentaire:string
   numTelephone: number
   type: 'fallah' | 'kayyel' | string
   dateCreation: string // format YYYY-MM-DD
@@ -168,6 +169,7 @@ const CustomerModalViewDetail = ({ show, onHide, customer, user }: any) => {
                     </div>
                   </div>
                 </Col>
+            
 
                 <Col xs>
                   <div className="d-flex align-items-center p-3 bg-light rounded">
@@ -177,6 +179,19 @@ const CustomerModalViewDetail = ({ show, onHide, customer, user }: any) => {
                     <div>
                       <small className="text-muted d-block">Date de Création</small>
                       <h5 className="mb-0">{formatDate(customer.dateCreation)}</h5>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+              <Row>
+              <Col >
+                  <div className="d-flex align-items-center p-3 bg-light rounded">
+                   
+                    <div>
+                      <small className="text-muted d-block">commentaire</small>
+                   
+                       <h3>{customer.commentaire}</h3> 
+                     
                     </div>
                   </div>
                 </Col>
