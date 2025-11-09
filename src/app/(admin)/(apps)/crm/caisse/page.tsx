@@ -15,7 +15,7 @@ import {
 import { Button, Card, CardFooter, CardHeader, Col, Container, Row, Badge, ButtonGroup } from 'react-bootstrap'
 import { LuSearch } from 'react-icons/lu'
 import { CgUnavailable } from 'react-icons/cg'
-import { TbEdit, TbEye, TbPlus, TbTrash, TbHistory, TbFileExport } from 'react-icons/tb'
+import { TbEdit, TbEye, TbPlus, TbTrash, TbHistory, TbFileExport, TbRefresh } from 'react-icons/tb'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
 
@@ -171,7 +171,6 @@ const CustomersCard = () => {
   const filteredNet = filteredCredit - filteredDebit
 
 
-  // Fonctions d'export
   const handleExportPDF = useCallback(() => {
     const exportData = filteredData.map((item) => ({
       Motif: item.motif,
@@ -181,13 +180,23 @@ const CustomersCard = () => {
       Commentaire: item.commentaire,
       nomutilisatuer: item.nomutilisatuer,
     }))
-
+  
+    const totalCredit = filteredData
+      .filter(it => isCredit(it.type))
+      .reduce((a, b) => a + (b.montant || 0), 0)
+  
+    const totalDebit = filteredData
+      .filter(it => isDebit(it.type))
+      .reduce((a, b) => a + (b.montant || 0), 0)
+  
+    const totalNet = totalCredit - totalDebit
+  
     const totals = {
-      'Total Crédit': `${fmtMoney(filteredData.filter((it) => isCredit(it.type)).reduce((a, b) => a + (b.montant || 0), 0))} DT`,
-      'Total Débit': `${fmtMoney(filteredData.filter((it) => isDebit(it.type)).reduce((a, b) => a + (b.montant || 0), 0))} DT`,
-      'Total Net': `${filteredNet >= 0 ? '+' : '-'} ${fmtMoney(Math.abs(filteredNet))} DT`,
+      'Total Crédit': totalCredit,
+      'Total Débit': totalDebit,
+      'Total Net': totalNet,
     }
-
+  
     exportToPDF(
       exportData,
       'Rapport_Caisses',
@@ -427,7 +436,16 @@ const CustomersCard = () => {
   return (
     <Container fluid>
       <PageBreadcrumb title="Caisses" subtitle="CRM" />
-
+      <Row className="mb-4 align-items-center">
+        <Col>
+         
+        </Col>
+        <Col xs="auto" className="d-flex gap-2">
+          <Button variant="outline-primary" onClick={fetchCaisses}>
+            <TbRefresh className="me-1" /> Actualiser
+          </Button>
+        </Col>
+      </Row>
       <Row className="g-3">
         <Col xl={3} md={6}>
           <Card className="h-100">

@@ -3,7 +3,7 @@
 import AppLogo from '@/components/AppLogo'
 import { appName, currentYear } from '@/helpers'
 import Link from 'next/link'
-import { Card, CardBody, Col, FormControl, Row } from 'react-bootstrap'
+import { Card, CardBody, Col, FormControl, Row, Spinner } from 'react-bootstrap'
 import { LuCircleUser, LuKeyRound } from 'react-icons/lu'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
@@ -31,16 +31,12 @@ const Page = () => {
       })
 
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(data?.error || 'Identifiants invalides')
-      }      
+      if (!res.ok) throw new Error(data?.error || 'Identifiants invalides')
+
       window.localStorage.setItem('user', JSON.stringify(data.data))
-
-
-
       router.replace(nextPath)
     } catch (err: any) {
-      setErrorMsg(`impossible de se connecter ${err?.message}` || 'Une erreur est survenue. Réessayez.')
+      setErrorMsg(`Impossible de se connecter : ${err?.message}` || 'Une erreur est survenue. Réessayez.')
     } finally {
       setSubmitting(false)
     }
@@ -50,10 +46,39 @@ const Page = () => {
     <div className="auth-box p-0 w-100">
       <Row className="w-100 g-0">
         <Col md={'auto'}>
-          <Card className="auth-box-form border-0 mb-0">
-            <div className="position-absolute top-0 end-0" style={{ width: 180 }}>
-              {/* … ton SVG décoratif inchangé … */}
-            </div>
+          <Card className="auth-box-form border-0 mb-0 position-relative">
+            {/* 🔵 Barre de progression animée */}
+            {submitting && (
+              <div
+                className="position-absolute top-0 start-0 w-100"
+                style={{
+                  height: 4,
+                  overflow: 'hidden',
+                  borderRadius: 0,
+                }}
+              >
+                <div
+                  className="bg-primary"
+                  style={{
+                    width: '50%',
+                    height: '100%',
+                    animation: 'moveBar 1.2s linear infinite',
+                  }}
+                ></div>
+
+                {/* Animation CSS */}
+                <style jsx>{`
+                  @keyframes moveBar {
+                    0% {
+                      transform: translateX(-100%);
+                    }
+                    100% {
+                      transform: translateX(200%);
+                    }
+                  }
+                `}</style>
+              </div>
+            )}
 
             <CardBody className="min-vh-100 d-flex flex-column justify-content-center">
               <div className="auth-brand mb-0 text-center">
@@ -61,15 +86,16 @@ const Page = () => {
               </div>
 
               <div className="mt-auto">
-                <h1>معصرة زيتون بوشامة</h1>
+                <h1 className="text-center mb-4">معصرة زيتون بوشامة</h1>
 
-                {/* Alerte d'erreur */}
+                {/* 🔴 Message d'erreur */}
                 {errorMsg && (
                   <div className="alert alert-danger mt-3" role="alert">
                     {errorMsg}
                   </div>
                 )}
 
+                {/* 🧾 Formulaire */}
                 <form className="mt-4" onSubmit={onSubmit}>
                   <div className="mb-3">
                     <label htmlFor="userEmail" className="form-label">
@@ -109,8 +135,16 @@ const Page = () => {
                     </div>
                   </div>
 
+                  {/* 🔘 Bouton de soumission */}
                   <div className="d-grid">
-                    <button type="submit" className="btn btn-primary fw-bold py-2" disabled={submitting}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary fw-bold py-2 d-flex align-items-center justify-content-center gap-2"
+                      disabled={submitting}
+                    >
+                      {submitting && (
+                        <Spinner animation="border" size="sm" role="status" />
+                      )}
                       {submitting ? 'Connexion…' : 'Se connecter'}
                     </button>
                   </div>

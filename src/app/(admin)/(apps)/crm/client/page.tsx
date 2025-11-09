@@ -22,7 +22,7 @@ import Flatpickr from 'react-flatpickr'
 import { CgUnavailable } from 'react-icons/cg'
 import { LuGlobe, LuSearch } from 'react-icons/lu'
 import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Col, Container, Dropdown, Modal, Row, OverlayTrigger, Tooltip } from 'react-bootstrap'
-import { TbCash, TbChartBar, TbEdit, TbEye, TbFileExport, TbPlus, TbPrinter, TbTrash, TbNote } from 'react-icons/tb'
+import { TbCash, TbChartBar, TbEdit, TbEye, TbFileExport, TbPlus, TbPrinter, TbTrash, TbNote, TbRefresh } from 'react-icons/tb'
 import CustomerEditModal from '../client/components/CustomerEditModal'
 import CustomerModalViewDetail from '../client/components/CustomerModalViewDetail'
 import CustomerModal from './components/CustomerModal'
@@ -769,7 +769,16 @@ const CustomersCard = () => {
           </Col>
         </Row>
       )}
-
+      <Row className="mb-4 align-items-center">
+        <Col>
+         
+        </Col>
+        <Col xs="auto" className="d-flex gap-2">
+          <Button variant="outline-primary" onClick={fetchClients}>
+            <TbRefresh className="me-1" /> Actualiser
+          </Button>
+        </Col>
+      </Row>
       <Row className="justify-content-md-center">
         <Col xs>
           <Card className="border-light">

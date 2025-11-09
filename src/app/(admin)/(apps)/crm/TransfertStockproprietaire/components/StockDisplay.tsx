@@ -9,7 +9,7 @@ const StockDisplay = ({ proprietaire }: { proprietaire: ProprietaireType }) => {
           <div className="d-flex align-items-center justify-content-between p-3 bg-white rounded shadow-sm">
             <div>
               <small className="text-muted d-block">Stock Olive</small>
-              <h3 className="mb-0">{proprietaire.quantiteOlive || 0}</h3>
+              <h3 className="mb-0">{proprietaire?.quantiteOlive?.toFixed(2) || 0}</h3>
               <small className="text-muted">kg</small>
             </div>
             <div className="fs-1">🫒</div>
@@ -19,7 +19,7 @@ const StockDisplay = ({ proprietaire }: { proprietaire: ProprietaireType }) => {
           <div className="d-flex align-items-center justify-content-between p-3 bg-white rounded shadow-sm">
             <div>
               <small className="text-muted d-block">Stock Huile</small>
-              <h3 className="mb-0">{proprietaire.quantiteHuile || 0}</h3>
+              <h3 className="mb-0">{proprietaire?.quantiteHuile?.toFixed(2) || 0}</h3>
               <small className="text-muted">litres</small>
             </div>
             <div className="fs-1">🫙</div>
