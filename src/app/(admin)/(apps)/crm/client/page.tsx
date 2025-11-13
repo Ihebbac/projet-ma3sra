@@ -348,10 +348,11 @@ const CustomersCard = () => {
         uniqueId: customerToPay._id,
         montant: customerToPay.prixFinal,
         nomutilisatuer: customerToPay.nomutilisatuer,
+        dateCreation: customerToPay.dateCreation,
         type: 'credit',
         date: selectedPaymentDate.toISOString(), // ✅ nouvelle date choisie
-        commentaire: `payment de Client : ${customerToPay.nomPrenom} Telephone :${customerToPay?.numTelephone ?? ''} - quantiteHuile : ${customerToPay.quantiteHuile}
-        quantiteOliveNet : ${customerToPay.quantiteOliveNet}`,
+        commentaire: `payment de Client : ${customerToPay.nomPrenom} Téléphone :${customerToPay?.numTelephone ?? ''} - quantiteHuileNet : ${customerToPay.quantiteHuile}
+        quantiteOliveNet : ${customerToPay.quantiteOliveNet} - date de création : ${formatDateDDMMYYYY(customerToPay.dateCreation)}`,
       }
 
       await fetch('http://92.112.181.241:8170/caisse', {

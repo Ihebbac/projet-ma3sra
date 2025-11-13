@@ -1,27 +1,39 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import {
-  createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  SortingState,
-  Row as TableRow,
-  Table as TableType,
-} from '@tanstack/react-table'
+// import {
+//   createColumnHelper,
+//   useReactTable,
+//   getCoreRowModel,
+//   getSortedRowModel,
+//   getFilteredRowModel,
+//   getPaginationRowModel,
+//   SortingState,
+//   Row as TableRow,
+//   Table as TableType,
+// } from '@tanstack/react-table'
 import { Button, Card, CardFooter, CardHeader, Col, Container, Row, Badge, ButtonGroup } from 'react-bootstrap'
 import { LuSearch } from 'react-icons/lu'
 import { CgUnavailable } from 'react-icons/cg'
 import { TbEdit, TbEye, TbPlus, TbTrash, TbHistory, TbFileExport, TbRefresh } from 'react-icons/tb'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
-
 import DataTable from '@/components/table/DataTable'
-import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
 import TablePagination from '@/components/table/TablePagination'
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  Row as TableRow,
+  Table as TableType,
+  useReactTable,
+} from '@tanstack/react-table'
+// import DataTable from '@/components/table/DataTable'
+import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
+// import TablePagination from '@/components/table/TablePagination'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 
 import CaisseViewModal from './components/CustomerModalViewDetail'
@@ -36,6 +48,7 @@ type Caisse = {
   montant: number
   type: string
   date: string | null // ISO string
+  dateCreation: string 
   commentaire: string
   nomutilisatuer:string
 }
@@ -80,6 +93,7 @@ const CustomersCard = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({})
 
   // 2. CHARGEMENT DU RÔLE DEPUIS LOCALSTORAGE
   useEffect(() => {
@@ -216,7 +230,7 @@ const CustomersCard = () => {
       Motif: item.motif,
       Montant: item.montant,
       Type: isCredit(item.type) ? 'Crédit' : 'Débit',
-      Date: item.date ? new Date(item.date) : null,
+      Date: item.date ? new Date(item.date).toISOString().split('T')[0] : '',
       Commentaire: item.commentaire,
       nomutilisatuer: item.nomutilisatuer,
       Signe: isCredit(item.type) ? '+' : '-',
@@ -292,6 +306,7 @@ const CustomersCard = () => {
         header: 'Date',
         cell: (ctx) => formatDateDDMMYYYY(ctx.getValue()),
       }),
+   
       columnHelper.accessor('commentaire', {
         header: 'Commentaire',
         cell: (ctx) => <span className="text-muted">{ctx.getValue()}</span>,
@@ -370,17 +385,31 @@ const CustomersCard = () => {
     [isCaissier], 
   )
 
+  // const table = useReactTable({
+  //   data: filteredData,
+  //   columns,
+  //   state: { sorting, globalFilter, pagination, rowSelection },
+  //   onSortingChange: setSorting,
+  //   onPaginationChange: setPagination,
+  //   onRowSelectionChange: setRowSelection,
+  //   getCoreRowModel: getCoreRowModel(),
+  //   getSortedRowModel: getSortedRowModel(),
+  //   getFilteredRowModel: getFilteredRowModel(),
+  //   getPaginationRowModel: getPaginationRowModel(),
+  // })
   const table = useReactTable({
     data: filteredData,
     columns,
-    state: { sorting, globalFilter, pagination, rowSelection },
+    state: { sorting, globalFilter, pagination, rowSelection: selectedRowIds },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: setSelectedRowIds,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+    enableRowSelection: true,
   })
 
   const pageIndex = table.getState().pagination.pageIndex

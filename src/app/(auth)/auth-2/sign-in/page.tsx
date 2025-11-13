@@ -80,10 +80,10 @@ const Page = () => {
               </div>
             )}
 
-            <CardBody className="min-vh-100 d-flex flex-column justify-content-center">
-              <div className="auth-brand mb-0 text-center">
+            <CardBody className="min-vh-100  flex-column justify-content-center">
+              {/* <div className="auth-brand mb-0 text-center">
                 <AppLogo />
-              </div>
+              </div> */}
 
               <div className="mt-auto">
                 <h1 className="text-center mb-4">معصرة زيتون بوشامة</h1>
