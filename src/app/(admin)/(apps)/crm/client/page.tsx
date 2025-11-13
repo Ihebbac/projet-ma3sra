@@ -178,13 +178,20 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   content.push(center('سعداء بخدمتكم'))
   content.push(center('52 417 792-52 112 478'))
   content.push(LINE)
+  // === COPIE CAISSE ===
+  content.push(center('✂ مركز توزيع الزيت ✂'))
+  content.push(`${num} ${date}`)
+  content.push(center(nom))
 
+  content.push(center(`huile: ${huile} Kg`))
+  content.push(center(`GALBA: ${galbaEntier} + ${resteGalba} L`))
+  content.push(LINE)
   // === COPIE CAISSE ===
   content.push(center('✂ CAISSE / صندوق ✂'))
   content.push(`${num} ${date}`)
   content.push(center(nom))
   content.push(center(`Olive: ${olive} Kg`))
-  content.push(center(`Olive: ${huile} Kg`))
+  content.push(center(`huile: ${huile} Kg`))
 
   if (customer.prixFinal && customer.prixKg) {
     content.push(SEP)
@@ -192,7 +199,7 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
     content.push(center(`${customer.prixFinal.toFixed(2)} TND`))
     content.push(SEP)
   } else {
-    content.push(center('GRATUIT'))
+    content.push(center('------'))
   }
 
   content.push('')
@@ -861,7 +868,7 @@ const CustomersCard = () => {
                           alert('Aucune donnée à exporter.')
                           return
                         }
-                        exportToPDF(rows, 'fitoura_data')
+                        exportToPDF(rows, 'Rapport_clients')
                       }}>
                       🧾 Exporter en PDF
                     </Dropdown.Item>

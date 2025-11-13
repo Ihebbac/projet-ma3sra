@@ -99,7 +99,18 @@ const CustomerModalViewDetail = ({ show, onHide, customer, user }: any) => {
   const quantiteOliveNet = customer.quantiteOliveNet ?? Math.max(0, (customer.quantiteOlive ?? 0) - (customer.nombreCaisses ?? 0) * POIDS_CAISSE)
   const nombreWiba = customer.nombreWiba ?? (quantiteOliveNet > 0 ? quantiteOliveNet / POIDS_WIBA : 0)
   const nombreQfza = customer.nombreQfza ?? (nombreWiba > 0 ? nombreWiba / WIBA_PAR_QFIZ : 0)
+  const olive = customer.quantiteOliveNet?.toFixed(2) ?? '-'
+  const huile = customer.quantiteHuile?.toFixed(2) ?? '-'
+  const masseVolumiqueHuile = 0.918 // kg/L
 
+  const huileKg = customer.quantiteHuile ?? 0
+  const huileLitres = huileKg / masseVolumiqueHuile
+  const totalGalba = huileLitres / 10
+
+  const galbaEntier = Math.floor(totalGalba)
+  const resteGalba = (totalGalba - galbaEntier).toFixed(1)
+  const huile_converti = huileLitres.toFixed(1)
+  const GALBA = `${galbaEntier} GALBA (${resteGalba} فاصل)`
   // Calcul de l'efficacité
   const efficacite = customer.nisbaReelle && customer.nisba ? ((customer.nisbaReelle - customer.nisba) / customer.nisba) * 100 : 0
 
@@ -267,6 +278,20 @@ const CustomerModalViewDetail = ({ show, onHide, customer, user }: any) => {
                           <small className="text-muted d-block">Nisba</small>
                           <h4 className="mb-0">{formatValueAndRound(customer.nisba, ' %')}</h4>
                           <small className="text-muted">Rendement</small>
+                        </div>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={6} lg={3}>
+                  <Card className="border-start border-start-4 border-start-primary h-100">
+                    <Card.Body>
+                      <div className="d-flex align-items-center">
+                        <Percent className="text-primary me-3" size={24} />
+                        <div>
+                          <small className="text-muted d-block">GALBA</small>
+                          <h4 className="mb-0">{GALBA}</h4>
+                          <small className="text-muted">GALBA</small>
                         </div>
                       </div>
                     </Card.Body>

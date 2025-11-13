@@ -205,9 +205,9 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
 
     addRow('Total Olive (kg) :', `${totals.totalOlive.toFixed(2)} kg`)
     addRow('Total Huile (L) :', `${totals.totalHuile.toFixed(2)} L`)
-    addRow('Total Payé :', `${totals.totalPaye.toFixed(2)} DT`)
-    addRow('Total Non Payé :', `${totals.totalNonPaye.toFixed(2)} DT`)
-    addRow('TOTAL GÉNÉRAL :', `${totals.totalPrixFinal.toFixed(2)} DT`)
+    // addRow('Total Payé :', `${totals.totalPaye.toFixed(2)} DT`)
+    // addRow('Total Non Payé :', `${totals.totalNonPaye.toFixed(2)} DT`)
+    // addRow('TOTAL GÉNÉRAL :', `${totals.totalPrixFinal.toFixed(2)} DT`)
 
     // === Pied de page ===
     const pageHeight = doc.internal.pageSize.height
