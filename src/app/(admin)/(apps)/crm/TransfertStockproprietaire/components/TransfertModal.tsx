@@ -29,7 +29,7 @@ const TransfertModal = ({
 
   const stockDisponible =
     typeStock === 'olive'
-      ? proprietaire.quantiteOlive || 0
+      ? proprietaire.quantiteOliveNet || 0
       : proprietaire.quantiteHuile || 0
 
   const selectedClient = clients.find(c => c._id === clientId)

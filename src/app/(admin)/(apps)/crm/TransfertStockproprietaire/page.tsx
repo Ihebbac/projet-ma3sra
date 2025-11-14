@@ -31,7 +31,7 @@ const TransfertStockProprietaire = () => {
 
       const stockTotal = data.reduce(
         (acc, prop) => ({
-          quantiteOlive: acc.quantiteOlive + (prop.quantiteOlive || 0),
+          quantiteOlive: acc.quantiteOlive + (prop.quantiteOliveNet || 0),
           quantiteHuile: acc.quantiteHuile + (prop.quantiteHuile || 0),
           nombreCaisses: acc.nombreCaisses + (prop.nombreCaisses || 0),
         }),

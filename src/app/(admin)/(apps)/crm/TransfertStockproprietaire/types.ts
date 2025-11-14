@@ -4,6 +4,7 @@ export type ProprietaireType = {
     dateCreation: string
     nombreCaisses?: number
     quantiteOlive?: number
+    quantiteOliveNet?: number
     quantiteHuile?: number
     kattou3?: number
     nisba?: number

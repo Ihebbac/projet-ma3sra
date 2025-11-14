@@ -102,7 +102,7 @@ const Qteclient = () => {
       ),
     }),
     columnHelper.accessor('quantiteHuile', {
-      header: 'Quantité Huile (L)',
+      header: 'Quantité Huile (KG)',
       cell: ({ row }) => (
         <span>{(row.original.quantiteHuile?.toFixed(2)) || 0}</span>
       ),
@@ -234,6 +234,29 @@ const Qteclient = () => {
     setSelectedRow(rowData)
     setShowEditModal(true)
   }
+// ---- Calcul des Totaux ----
+const totals = {
+  nombreCaisses: table.getFilteredRowModel().rows.reduce(
+    (sum, row) => sum + (row.original.nombreCaisses || 0),
+    0
+  ),
+  quantiteOliveNet: table.getFilteredRowModel().rows.reduce(
+    (sum, row) => sum + (row.original.quantiteOliveNet || 0),
+    0
+  ),
+  quantiteHuile: table.getFilteredRowModel().rows.reduce(
+    (sum, row) => sum + (row.original.quantiteHuile || 0),
+    0
+  ),
+  kattou3: table.getFilteredRowModel().rows.reduce(
+    (sum, row) => sum + (row.original.kattou3 || 0),
+    0
+  ) / table.getFilteredRowModel().rows.length || 0,
+  nisba: table.getFilteredRowModel().rows.reduce(
+    (sum, row) => sum + (row.original.nisba || 0),
+    0
+  ) / table.getFilteredRowModel().rows.length || 0,
+}
 
   const handleSaveEdit = async (updatedData: CustomerType) => {
     try {
@@ -339,9 +362,9 @@ const Qteclient = () => {
                     value={(table.getColumn('quantiteHuile')?.getFilterValue() as string) ?? 'All'}
                     onChange={(e) => table.getColumn('quantiteHuile')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}>
                     <option value="All">Quantité Huile</option>
-                    <option value="0-50">0-50 L</option>
-                    <option value="51-200">51-200 L</option>
-                    <option value="201+">201+ L</option>
+                    <option value="0-50">0-50 KG</option>
+                    <option value="51-200">51-200 KG</option>
+                    <option value="201+">201+ KG</option>
                   </select>
                   <LuShuffle className="app-search-icon text-muted" />
                 </div>
@@ -374,6 +397,19 @@ const Qteclient = () => {
                   emptyMessage="Aucun propriétaire trouvé" 
                 />
               )}
+              <div className="px-3 py-2 border-top bg-light fw-bold">
+    <div className="row text-center">
+
+      <div className="col">Totaux :</div>
+
+      <div className="col">Nbre caisses : {totals.nombreCaisses}</div>
+      <div className="col">Olive Net : {totals.quantiteOliveNet.toFixed(2)} kg</div>
+      <div className="col">Huile Net : {totals.quantiteHuile.toFixed(2)} kg</div>
+   
+
+      {/* Colonnes Actions + Nom + Date → vides */}
+    </div>
+  </div>
             </div>
 
             {!loading && table.getRowModel().rows.length > 0 && (
