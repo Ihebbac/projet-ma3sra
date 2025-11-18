@@ -464,119 +464,119 @@ const CustomersCard = () => {
   //   setFilteredData(result)
   //   setPagination((p) => ({ ...p, pageIndex: 0 }))
   // }, [globalFilter, selectedDates, data])
-  const fuzzySequenceMatch = (text: string, term: string): boolean => {
-    if (!text || !term) return false;
-  
-    let matches = 0;
-    let t = 0;
-  
-    for (let i = 0; i < text.length && t < term.length; i++) {
-      if (text[i] === term[t]) {
-        matches++;
-        t++;
-      }
-    }
-  
-    // % minimal de similarité (ajustable)
-    const similarity = matches / term.length;
-  
-    return similarity >= 0.6; // 60% de lettres retrouvées
-  };
-  const normalize = (str: string | undefined | null) =>
-    str
-      ?.normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim() ?? "";
-  
-  const fuzzyIncludes = (text: string, term: string): boolean => {
-    if (!text || !term) return false;
-  
-    // match direct
-    if (text.includes(term)) return true;
-  
-    // fuzzy : "mhmd" → "mohamed"
-    let t = 0;
-    for (let i = 0; i < text.length && t < term.length; i++) {
-      if (text[i] === term[t]) t++;
-    }
-    return t === term.length;
-  };
-  const fuzzyMatch = (text: string, term: string) => {
-    const normText = normalize(text);
-    const normTerm = normalize(term);
-  
-    return (
-      normText.includes(normTerm) ||        // match simple
-      fuzzySequenceMatch(normText, normTerm) // match fuzzy évolué
-    );
-  };
-  //  const useAdvancedFilter = (
-  //   data: CustomerType[],
-  //   globalFilter: string,
-  //   selectedDates: Date[],
-  //   setFilteredData: (data: CustomerType[]) => void,
-  //   setPagination: React.Dispatch<
-  //     React.SetStateAction<{ pageIndex: number; pageSize: number }>
-  //   >
-  // ) => {
-    useEffect(() => {
-      let result = [...data];
-  
-      // --------- FILTRE GLOBAL ---------
-      if (globalFilter.trim() !== "") {
-        const term = normalize(globalFilter);
-        const terms = term.split(" ").filter(Boolean);
-  
-        result = result.filter((item) => {
-          const name = normalize(item.nomPrenom);
-          const phone = String(item.numTelephone ?? "");
-          const id = item._id ?? "";
-  
-          // ordre inversé "ali mohamed" ↔ "mohamed ali"
-          const nameReversed = name.split(" ").reverse().join(" ");
-  
-          // chaque mot doit matcher quelque part
-          const matchesAll = terms.every((t) => {
-            return (
-              fuzzyMatch(name, t) ||
-              fuzzyMatch(nameReversed, t) ||
-              phone.includes(t) ||
-              id.includes(t)
-            );
-          });
-  
-          return matchesAll;
-        });
-      }
-  
-      // --------- FILTRE DATES ---------
-  
-      if (selectedDates.length === 1) {
-        const d = selectedDates[0];
-  
-        result = result.filter((item) => {
-          if (!item.dateCreation) return false;
-          const dt = new Date(item.dateCreation);
-          return (
-            dt.getFullYear() === d.getFullYear() &&
-            dt.getMonth() === d.getMonth() &&
-            dt.getDate() === d.getDate()
+  // ----------------------------
+// ----------------------------
+// Normalisation
+// ----------------------------
+const normalize = (str: string | undefined | null) =>
+  str
+    ?.toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim() ?? "";
+
+// ----------------------------
+// Distance de Levenshtein
+// ----------------------------
+const levenshtein = (a: string, b: string): number => {
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b[i - 1] === a[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] =
+          Math.min(
+            matrix[i - 1][j] + 1,    // suppression
+            matrix[i][j - 1] + 1,    // insertion
+            matrix[i - 1][j - 1] + 1 // substitution
           );
-        });
-      } else if (selectedDates.length === 2) {
-        const [start, end] = selectedDates;
-  
-        result = result.filter((item) => {
-          if (!item.dateCreation) return false;
-          const dt = new Date(item.dateCreation);
-          return dt >= start && dt <= end;
-        });
       }
-  
-      setFilteredData(result);
-      setPagination((p) => ({ ...p, pageIndex: 0 }));
-    }, [globalFilter, selectedDates, data]);
+    }
+  }
+
+  return matrix[b.length][a.length];
+};
+
+// ----------------------------
+// Fuzzy match avancé
+// ----------------------------
+const fuzzyMatch = (text: string, term: string): boolean => {
+  const normText = normalize(text);
+  const normTerm = normalize(term);
+
+  if (!normText || !normTerm) return false;
+
+  // match direct
+  if (normText.includes(normTerm)) return true;
+
+  // distance de Levenshtein
+  const dist = levenshtein(normText, normTerm);
+  const tolerance = Math.floor(normTerm.length * 0.4); // tolérance 40%
+  return dist <= tolerance;
+};
+
+// ----------------------------
+// useEffect filtre
+// ----------------------------
+useEffect(() => {
+  let result = [...data];
+
+  if (globalFilter.trim() !== "") {
+    const terms = normalize(globalFilter).split(" ").filter(Boolean);
+
+    result = result.filter((item) => {
+      const name = normalize(item.nomPrenom);
+      const nameReversed = name.split(" ").reverse().join(" ");
+      const phone = normalize(String(item.numTelephone));
+      const id = normalize(item._id);
+
+      return terms.every((t) => {
+        return (
+          fuzzyMatch(name, t) ||
+          fuzzyMatch(nameReversed, t) ||
+          phone.includes(t) ||
+          id.includes(t)
+        );
+      });
+    });
+  }
+
+  // Filtre par date
+  if (selectedDates.length === 1) {
+    const d = selectedDates[0];
+    result = result.filter((item) => {
+      if (!item.dateCreation) return false;
+      const dt = new Date(item.dateCreation);
+      return (
+        dt.getFullYear() === d.getFullYear() &&
+        dt.getMonth() === d.getMonth() &&
+        dt.getDate() === d.getDate()
+      );
+    });
+  } else if (selectedDates.length === 2) {
+    const [start, end] = selectedDates;
+    result = result.filter((item) => {
+      if (!item.dateCreation) return false;
+      const dt = new Date(item.dateCreation);
+      return dt >= start && dt <= end;
+    });
+  }
+
+  setFilteredData(result);
+  setPagination((p) => ({ ...p, pageIndex: 0 }));
+}, [globalFilter, selectedDates, data]);
+
+
   
 
   const handlePrintTicket = (customer: CustomerType) => {
@@ -877,10 +877,10 @@ const CustomersCard = () => {
                     <h6>Quantité Olive Net (kg)</h6>
                     <h4 className="mb-0 text-success">{dailyStats.totalQuantiteOlive.toFixed(2)}</h4>
                   </Col>
-                  <Col xs>
+                  {/* <Col xs>
                     <h6>Total Paiements (DT)</h6>
                     <h4 className="mb-0 text-warning">{dailyStats.totalPrixFinal.toFixed(2)}</h4>
-                  </Col>
+                  </Col> */}
                   <Col xs>
                     <h6>Total Clients</h6>
                     <h4 className="mb-0 text-info">
@@ -930,12 +930,12 @@ const CustomersCard = () => {
           </Card>
         </Col>
 
-        <Col xs>
+        {/* <Col xs>
           <Card className="border-light">
             <h6>Total Paiements (DT)</h6>
             <h4 className="mb-0 text-warning">{dailyStats?.totalPrixFinal.toFixed(2) || '0.00'} DT</h4>
           </Card>
-        </Col>
+        </Col> */}
       </Row>
 
       <Row>
