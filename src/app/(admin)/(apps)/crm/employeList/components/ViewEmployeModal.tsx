@@ -21,12 +21,39 @@ type ViewEmployeModalProps = {
   employe: Employe | null | undefined
 }
 
-function fmtMoney(n: number) {
-  return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// function fmtMoney(n: number) {
+//   return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// }
+function fmtMoney(n: number | null | undefined): string {
+  // Check if n is a valid number (not null, not undefined, and not NaN)
+  if (typeof n !== 'number' || n === null || isNaN(n)) {
+      // Return a default string (e.g., "0,00 €" or just "—") for invalid input
+      return '0,00 TND'; 
+  }
+  
+  // Use toLocaleString only when we are sure n is a number
+  return n.toLocaleString('fr-FR', { 
+      style: 'currency', // Recommended for money formatting
+      currency: 'TND',   // Or your specific currency (e.g., 'TND')
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+  });
 }
+// function monthLabel(d: Date) {
+//   return d.toLocaleString('fr-FR', { month: 'long', year: 'numeric' })
+// }
+function monthLabel(d: Date | null | undefined): string {
+  // Check if d is a valid Date object (not null, not undefined, and not 'Invalid Date')
+  if (!(d instanceof Date) || d === null || isNaN(d.getTime())) {
+      // Return a default label for invalid input
+      return 'Date invalide'; 
+  }
 
-function monthLabel(d: Date) {
-  return d.toLocaleString('fr-FR', { month: 'long', year: 'numeric' })
+  // Use toLocaleString only when we are sure d is a valid Date
+  return d.toLocaleString('fr-FR', { 
+      month: 'long', 
+      year: 'numeric' 
+  });
 }
 
 const ViewEmployeModal = ({ show, onHide, employe }: ViewEmployeModalProps) => {
