@@ -6,6 +6,7 @@ import Flatpickr from 'react-flatpickr'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import Swal, { SweetAlertOptions } from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
+import ClientSelectWithFilter from '../../TransfertStockproprietaire/components/ClientSelectWithFilter'
 
 // === CONSTANTES ===
 const POIDS_CAISSE = 30
@@ -26,13 +27,30 @@ const toNumber = (v: any): number | undefined => {
   return isNaN(n) ? undefined : n
 }
 
-const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, user }) => {
+const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, user, clients }) => {
   const [openOlive, setOpenOlive] = useState(true)
   const [openHuile, setOpenHuile] = useState(true)
   const [loading, setLoading] = useState(false)
   const [poidsWiba, setPoidsWiba] = useState<number>(POIDS_WIBA_DEFAUT)
   const [prixKg, setPrixKilo] = useState<number>(0)
   const [autoDate, setAutoDate] = useState<boolean>(true)
+  const [clientId, setClientId] = useState<string>('')
+
+  // === EFFET POUR REMPLIR AUTOMATIQUEMENT LES CHAMPS ===
+  useEffect(() => {
+    if (clientId && clients && clients.length > 0) {
+      const selectedClient = clients.find((client: any) => client._id === clientId);
+  
+      if (selectedClient) {
+        setFormValues(prev => ({
+          ...prev,
+          nomPrenom: selectedClient.nomPrenom || '',
+          numTelephone: selectedClient.numTelephone || '',
+          type: selectedClient.type || ''
+        }));
+      }
+    }
+  }, [clientId, clients]);
 
   const getTodayDate = () => {
     const today = new Date()
@@ -50,7 +68,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
     nomPrenom: '', // Corrigé (était nomPrneom)
     prixKg: 0,
     numTelephone: '',
-    type: '',
+    type: 'فلاح',
     commentaire: '', // Corrigé (était commentaire1)
     // dateCreation retiré d'ici (géré dans dateCreation)
     nombreCaisses: 0,
@@ -93,6 +111,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
       setPrixKilo(0)
       setOpenOlive(true)
       setOpenHuile(true)
+      setClientId('') // Reset la sélection du client
       ;(async () => {
         if (autoDate) {
           const apiDate = await fetchInternetDate()
@@ -292,8 +311,21 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
 
         <Modal.Body>
           <Container fluid>
-            {/* --- Infos Client --- */}
-            <h5>Informations du client</h5>
+            {/* --- Sélection du client --- */}
+            <Row className="mb-3">
+              <Col>
+                <Form.Group>
+                  <Form.Label>Sélectionner un client existant</Form.Label>
+                  <ClientSelectWithFilter
+                    clients={clients}
+                    selectedClientId={clientId}
+                    onSelectClient={setClientId}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+       
             <Row className="g-3 mb-4">
               <Col md={6}>
                 <Form.Group>
@@ -324,7 +356,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
                   <Form.Control name="numTelephone" value={formValues.numTelephone} onChange={(e: any) => handleChange(e)} placeholder="Ex: 96 458 362" />
                 </Form.Group>
               </Col>
-              <Col md={6}>
+              {/* <Col md={6}>
                 <Form.Group>
                   <Form.Label>Type</Form.Label>
                   <Form.Select name="type" value={formValues.type} onChange={(e: any) => handleChange(e)}>
@@ -333,7 +365,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
                     <option value="كيال">كيال</option>
                   </Form.Select>
                 </Form.Group>
-              </Col>
+              </Col> */}
 
               <Col md={6}>
                 <Form.Group>

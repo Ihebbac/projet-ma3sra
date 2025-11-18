@@ -18,6 +18,7 @@ import {
   TbUserHexagon,
   TbUsers,
 } from 'react-icons/tb'
+import { MdOutlinePointOfSale } from "react-icons/md";
 import { GiMoneyStack, GiCardExchange } from 'react-icons/gi'
 import { FaStoreAlt } from 'react-icons/fa'
 import { ImTruck } from 'react-icons/im'
@@ -187,7 +188,7 @@ export const menuItems: MenuItemType[] = [
     // { key: 'Qantité Zit', label: 'Qantité Zit',icon: LuRss, url: '/crm/Qteclientzit' },
     // ],
   },
- 
+  { key: 'crm-activities',    icon: MdOutlinePointOfSale, label: 'Achat Zitoun', url: '/crm/activities' },
   // { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
   { key: 'Stock propriétaire', label: 'Stock propriétaire', icon: FaStoreAlt, url: '/crm/Qteproprietaire' },
   { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire', icon: GiCardExchange, url: '/crm/TransfertStockproprietaire' },
@@ -250,6 +251,7 @@ export const menuItems: MenuItemType[] = [
   //   key: 'crm',
   //   label: 'CRM',
   //   icon: LuHandshake,
+
   //   children: [
   //     { key: 'crm-contacts', label: 'Contacts', url: '/crm/contacts' },
   //     { key: 'crm-opportunities', label: 'Opportunities', url: '/crm/opportunities' },

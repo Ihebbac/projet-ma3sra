@@ -32,7 +32,7 @@ import { exportToPDF, exportToXLSX } from './components/TableExporter'
 type CustomerType = {
   _id: string
   nomPrenom: string
-  commentaire: string;
+  commentaire: string
   numTelephone: number
   type: string
   dateCreation: string
@@ -222,6 +222,10 @@ const CustomersCard = () => {
   const [dailyStats, setDailyStats] = useState<any | null>(null)
   const [showStats, setShowStats] = useState(false)
   const [user, setuser] = useState<any>()
+  const [clients, setClients] = useState<CustomerType[]>([])
+  const [filteredClients, setFilteredClients] = useState<CustomerType[]>([])
+  const [search, setSearch] = useState('')
+
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPaymentDate, setSelectedPaymentDate] = useState<Date | null>(new Date())
   const [customerToPay, setCustomerToPay] = useState<CustomerType | null>(null)
@@ -317,7 +321,7 @@ const CustomersCard = () => {
       }))
       setData(normalized)
       setFilteredData(normalized)
-
+      setClients(normalized)
       // Calculer les stats pour aujourd'hui par défaut
       const todayStats = calculateDailyStats(normalized, [])
       setDailyStats(todayStats)
@@ -345,7 +349,15 @@ const CustomersCard = () => {
     await fetchClients()
     setPagination({ ...pagination, pageIndex: 0 })
   }
-
+  useEffect(() => {
+    const lowerSearch = search.toLowerCase().trim()
+    if (lowerSearch === '') {
+      setFilteredClients(clients)
+    } else {
+      const filtered = clients.filter((c) => c.nomPrenom?.toLowerCase().includes(lowerSearch) || c.numTelephone?.toString().includes(lowerSearch))
+      setFilteredClients(filtered)
+    }
+  }, [search, clients])
   const handleConfirmPayment = async () => {
     if (!customerToPay || !selectedPaymentDate) return
 
@@ -419,39 +431,153 @@ const CustomersCard = () => {
   }
 
   // Filtrage global et par date
-  useEffect(() => {
-    let result = [...data]
+  // useEffect(() => {
+  //   let result = [...data]
 
-    if (globalFilter.trim() !== '') {
-      const term = globalFilter.trim().toLowerCase()
-      result = result.filter((item) => {
-        const name = item.nomPrenom?.toLowerCase() ?? ''
-        const _id = item._id ?? ''
-        const phone = String(item.numTelephone ?? '')
-        return name.includes(term) || _id.includes(term) || phone.includes(term)
-      })
+  //   if (globalFilter.trim() !== '') {
+  //     const term = globalFilter.trim().toLowerCase()
+  //     result = result.filter((item) => {
+  //       const name = item.nomPrenom?.toLowerCase() ?? ''
+  //       const _id = item._id ?? ''
+  //       const phone = String(item.numTelephone ?? '')
+  //       return name.includes(term) || _id.includes(term) || phone.includes(term)
+  //     })
+  //   }
+
+  //   if (selectedDates.length === 1) {
+  //     const d = selectedDates[0]
+  //     result = result.filter((item) => {
+  //       if (!item.dateCreation) return false
+  //       const dt = new Date(item.dateCreation)
+  //       return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() && dt.getDate() === d.getDate()
+  //     })
+  //   } else if (selectedDates.length === 2) {
+  //     const start = selectedDates[0]
+  //     const end = selectedDates[1]
+  //     result = result.filter((item) => {
+  //       if (!item.dateCreation) return false
+  //       const dt = new Date(item.dateCreation)
+  //       return dt >= start && dt <= end
+  //     })
+  //   }
+
+  //   setFilteredData(result)
+  //   setPagination((p) => ({ ...p, pageIndex: 0 }))
+  // }, [globalFilter, selectedDates, data])
+  const fuzzySequenceMatch = (text: string, term: string): boolean => {
+    if (!text || !term) return false;
+  
+    let matches = 0;
+    let t = 0;
+  
+    for (let i = 0; i < text.length && t < term.length; i++) {
+      if (text[i] === term[t]) {
+        matches++;
+        t++;
+      }
     }
-
-    if (selectedDates.length === 1) {
-      const d = selectedDates[0]
-      result = result.filter((item) => {
-        if (!item.dateCreation) return false
-        const dt = new Date(item.dateCreation)
-        return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() && dt.getDate() === d.getDate()
-      })
-    } else if (selectedDates.length === 2) {
-      const start = selectedDates[0]
-      const end = selectedDates[1]
-      result = result.filter((item) => {
-        if (!item.dateCreation) return false
-        const dt = new Date(item.dateCreation)
-        return dt >= start && dt <= end
-      })
+  
+    // % minimal de similarité (ajustable)
+    const similarity = matches / term.length;
+  
+    return similarity >= 0.6; // 60% de lettres retrouvées
+  };
+  const normalize = (str: string | undefined | null) =>
+    str
+      ?.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim() ?? "";
+  
+  const fuzzyIncludes = (text: string, term: string): boolean => {
+    if (!text || !term) return false;
+  
+    // match direct
+    if (text.includes(term)) return true;
+  
+    // fuzzy : "mhmd" → "mohamed"
+    let t = 0;
+    for (let i = 0; i < text.length && t < term.length; i++) {
+      if (text[i] === term[t]) t++;
     }
-
-    setFilteredData(result)
-    setPagination((p) => ({ ...p, pageIndex: 0 }))
-  }, [globalFilter, selectedDates, data])
+    return t === term.length;
+  };
+  const fuzzyMatch = (text: string, term: string) => {
+    const normText = normalize(text);
+    const normTerm = normalize(term);
+  
+    return (
+      normText.includes(normTerm) ||        // match simple
+      fuzzySequenceMatch(normText, normTerm) // match fuzzy évolué
+    );
+  };
+  //  const useAdvancedFilter = (
+  //   data: CustomerType[],
+  //   globalFilter: string,
+  //   selectedDates: Date[],
+  //   setFilteredData: (data: CustomerType[]) => void,
+  //   setPagination: React.Dispatch<
+  //     React.SetStateAction<{ pageIndex: number; pageSize: number }>
+  //   >
+  // ) => {
+    useEffect(() => {
+      let result = [...data];
+  
+      // --------- FILTRE GLOBAL ---------
+      if (globalFilter.trim() !== "") {
+        const term = normalize(globalFilter);
+        const terms = term.split(" ").filter(Boolean);
+  
+        result = result.filter((item) => {
+          const name = normalize(item.nomPrenom);
+          const phone = String(item.numTelephone ?? "");
+          const id = item._id ?? "";
+  
+          // ordre inversé "ali mohamed" ↔ "mohamed ali"
+          const nameReversed = name.split(" ").reverse().join(" ");
+  
+          // chaque mot doit matcher quelque part
+          const matchesAll = terms.every((t) => {
+            return (
+              fuzzyMatch(name, t) ||
+              fuzzyMatch(nameReversed, t) ||
+              phone.includes(t) ||
+              id.includes(t)
+            );
+          });
+  
+          return matchesAll;
+        });
+      }
+  
+      // --------- FILTRE DATES ---------
+  
+      if (selectedDates.length === 1) {
+        const d = selectedDates[0];
+  
+        result = result.filter((item) => {
+          if (!item.dateCreation) return false;
+          const dt = new Date(item.dateCreation);
+          return (
+            dt.getFullYear() === d.getFullYear() &&
+            dt.getMonth() === d.getMonth() &&
+            dt.getDate() === d.getDate()
+          );
+        });
+      } else if (selectedDates.length === 2) {
+        const [start, end] = selectedDates;
+  
+        result = result.filter((item) => {
+          if (!item.dateCreation) return false;
+          const dt = new Date(item.dateCreation);
+          return dt >= start && dt <= end;
+        });
+      }
+  
+      setFilteredData(result);
+      setPagination((p) => ({ ...p, pageIndex: 0 }));
+    }, [globalFilter, selectedDates, data]);
+  
 
   const handlePrintTicket = (customer: CustomerType) => {
     const ticketContent = generateThermalTicketContent(customer)
@@ -565,14 +691,7 @@ const CustomersCard = () => {
 
         // S'il y a un commentaire, afficher une icône avec un tooltip au survol
         return (
-          <OverlayTrigger
-            placement="top"
-            overlay={
-              <Tooltip id={`tooltip-comment-${info.row.id}`}>
-                {comment}
-              </Tooltip>
-            }
-          >
+          <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-comment-${info.row.id}`}>{comment}</Tooltip>}>
             {/* Le span est nécessaire pour que le Tooltip ait une cible */}
             <span style={{ cursor: 'help' }}>
               <TbNote className="fs-lg text-info" />
@@ -698,7 +817,7 @@ const CustomersCard = () => {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: 'includesString',
+    // globalFilterFn: 'includesString',
     enableRowSelection: true,
   })
 
@@ -778,9 +897,7 @@ const CustomersCard = () => {
         </Row>
       )}
       <Row className="mb-4 align-items-center">
-        <Col>
-         
-        </Col>
+        <Col></Col>
         <Col xs="auto" className="d-flex gap-2">
           <Button variant="outline-primary" onClick={fetchClients}>
             <TbRefresh className="me-1" /> Actualiser
@@ -829,7 +946,7 @@ const CustomersCard = () => {
                 <Button className="btn btn-primary" onClick={() => setShowModal(true)}>
                   <TbPlus className="fs-lg" /> Ajouter
                 </Button>
-                <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} user={user} />
+                <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} user={user} clients={clients} />
 
                 {selectedCount > 0 && (
                   <Button variant="danger" onClick={handleMultiDelete}>
@@ -950,7 +1067,13 @@ const CustomersCard = () => {
         </Col>
       </Row>
 
-      <CustomerModalViewDetail show={showModalDetail} onHide={() => setShowModalDetail(false)} customer={selectedCustomer} user={user} />
+      <CustomerModalViewDetail
+        show={showModalDetail}
+        onHide={() => setShowModalDetail(false)}
+        customer={selectedCustomer}
+        user={user}
+        clients={clients}
+      />
       <CustomerEditModal show={showModalEdit} onHide={() => setShowModalEdit(false)} customer={selectedCustomer} onClientSaved={handleClientSaved} />
       {/* === Modal de confirmation paiement === */}
       <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>

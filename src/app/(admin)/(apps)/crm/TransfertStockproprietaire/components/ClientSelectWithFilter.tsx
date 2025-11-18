@@ -19,9 +19,8 @@ const ClientSelectWithFilter = ({
     
     return (
       client.nomPrenom.toLowerCase().includes(searchLower) ||
-      (client.numTelephone && client.numTelephone.toString().includes(searchTerm)) ||
-      (client.email && client.email.toLowerCase().includes(searchLower)) ||
-      (client.numCIN && client.numCIN.toString().includes(searchTerm))
+      (client.numTelephone && client.numTelephone.toString().includes(searchTerm)) 
+     
     )
   })
 
@@ -74,8 +73,7 @@ const ClientSelectWithFilter = ({
                 <div className="fw-bold">{client.nomPrenom}</div>
                 <small className="text-muted">
                   {client.numTelephone && `📞 ${client.numTelephone}`}
-                  {client.email && ` | 📧 ${client.email}`}
-                  {client.numCIN && ` | 🆔 ${client.numCIN}`}
+                  
                 </small>
               </button>
             ))}

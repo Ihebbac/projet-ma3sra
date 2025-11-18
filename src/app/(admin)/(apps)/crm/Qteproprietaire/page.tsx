@@ -1,5 +1,5 @@
 'use client'
-import { Button, CardFooter, Col, Container, Row } from 'react-bootstrap'
+import { Badge, Button, CardFooter, Col, Container, Row } from 'react-bootstrap'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { TbEdit, TbEye, TbPlus, TbTrash } from 'react-icons/tb'
 import { LuSearch, LuShuffle } from 'react-icons/lu'
@@ -236,10 +236,10 @@ const Qteclient = () => {
   }
 // ---- Calcul des Totaux ----
 const totals = {
-  nombreCaisses: table.getFilteredRowModel().rows.reduce(
-    (sum, row) => sum + (row.original.nombreCaisses || 0),
-    0
-  ),
+  // nombreCaisses: table.getFilteredRowModel().rows.reduce(
+  //   (sum, row) => sum + (row.original.nombreCaisses || 0),
+  //   0
+  // ),
   quantiteOliveNet: table.getFilteredRowModel().rows.reduce(
     (sum, row) => sum + (row.original.quantiteOliveNet || 0),
     0
@@ -400,11 +400,11 @@ const totals = {
               <div className="px-3 py-2 border-top bg-light fw-bold">
     <div className="row text-center">
 
-      <div className="col">Totaux :</div>
+      <div className="col"><h4>Totaux :</h4></div>
 
-      <div className="col">Nbre caisses : {totals.nombreCaisses}</div>
-      <div className="col">Olive Net : {totals.quantiteOliveNet.toFixed(2)} kg</div>
-      <div className="col">Huile Net : {totals.quantiteHuile.toFixed(2)} kg</div>
+      {/* <div className="col">Nbre caisses : {totals.nombreCaisses}</div> */}
+      <Badge bg="secondary" className="col"><h4>Olive Net : {totals.quantiteOliveNet.toFixed(2)} kg</h4></Badge>
+      <Badge bg="warning" className="col"><h4>Huile Net : {totals.quantiteHuile.toFixed(2)} kg</h4></Badge>
    
 
       {/* Colonnes Actions + Nom + Date → vides */}

@@ -15,11 +15,26 @@ export type ProprietaireType = {
   export type ClientType = {
     _id: string
     nomPrenom: string
-    dateCreation?: string
-    numTelephone?: string
-    email?: string
-    adresse?: string
-    numCIN?: string
+    commentaire: string;
+    numTelephone: number
+    type: string
+    dateCreation: string
+    nombreCaisses?: number
+    quantiteOlive?: number
+    quantiteHuile?: number
+    kattou3?: number
+    nisba?: number
+    quantiteOliveNet?: number
+    nisbaReelle?: number
+    quantiteHuileTheorique?: number
+    differenceHuile?: number
+    nombreWiba?: number
+    nombreQfza?: number
+    huileParQfza?: number
+    prixFinal?: number
+    prixKg?: number
+    status: 'payé' | 'non payé'
+    nomutilisatuer: string
   }
   
   export type TransactionType = {
