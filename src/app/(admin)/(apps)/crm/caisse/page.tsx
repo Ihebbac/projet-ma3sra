@@ -242,7 +242,7 @@ const CustomersCard = () => {
   
     exportToPDF(
       exportData,
-      'Rapport_Caisses',
+      '',
       `Caisses - ${
         selectedDates.length === 1
           ? formatDateDDMMYYYY(selectedDates[0].toISOString())
