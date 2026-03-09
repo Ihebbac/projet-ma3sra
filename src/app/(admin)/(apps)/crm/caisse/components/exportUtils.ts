@@ -10,6 +10,65 @@ interface ExportData {
 interface Totals {
   [key: string]: string | number
 }
+// type Totals = Record<string, string | number>;
+
+function cleanNumber(value: any) {
+  if (typeof value === "number") return value;
+  return (
+    parseFloat(String(value).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0
+  );
+}
+
+/**
+ * IMPORTANT:
+ * fr-FR met souvent des espaces insécables (U+00A0 / U+202F) comme séparateur de milliers.
+ * jsPDF ne les supporte pas bien -> il les affiche comme "/".
+ * Donc on les remplace par " " (ou "." si tu préfères).
+ */
+function formatNumberFR(n: number, thousandsSep: " " | "." = " ") {
+  const s = n.toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  // Remplace NBSP/NNBSP par séparateur safe
+  return s.replace(/[\u00A0\u202F]/g, thousandsSep);
+}
+
+function formatDT(value: any, thousandsSep: " " | "." = " ") {
+  const n = cleanNumber(value);
+  const abs = formatNumberFR(Math.abs(n), thousandsSep);
+  return n < 0 ? `- ${abs} DT` : `${abs} DT`;
+}
+
+function isMoneyColumn(name: string) {
+  const c = name.toLowerCase();
+  return (
+    c.includes("montant") ||
+    c.includes("total") ||
+    c.includes("ttc") ||
+    c.includes("ht") ||
+    c.includes("tva") ||
+    c.includes("net") ||
+    c.includes("dt")
+  );
+}
+
+function drawCard(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r = 5,
+  fill: [number, number, number] = [255, 255, 255],
+  border: [number, number, number] = [226, 232, 240]
+) {
+  doc.setFillColor(...fill);
+  doc.setDrawColor(...border);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(x, y, w, h, r, r, "FD");
+}
 
 export const exportToPDF = (
   data: ExportData[],
@@ -17,101 +76,183 @@ export const exportToPDF = (
   subtitle: string,
   totals?: Totals
 ): void => {
-  const doc = new jsPDF()
-  const margin = 14
-  const pageWidth = doc.internal.pageSize.width
-  const lineHeight = 6
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-  // --- 1. En-tête ---
-  doc.setFontSize(16)
-  doc.setTextColor(0)
-  doc.text(title, margin, 15)
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 12;
+  const contentW = pageW - margin * 2;
+  const thousandsSep: " " | "." = " ";
 
-  doc.setFontSize(10)
-  doc.setTextColor(100)
-  doc.text(subtitle, margin, 22)
+  // --- Nettoyage (supprime nom utilisateur / username / emails du PDF) ---
+  const sanitize = (s: any) => {
+    const str = String(s ?? "");
+    return str
+      .replace(/\b(nom\s*utilisateur|nomutilisateur|utilisateur|username|user)\s*[:\-]\s*[^|•\n\r]+/gi, "")
+      .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  };
 
-  // --- 2. Tableau principal ---
-  if (data.length > 0) {
+  const subtitleClean = sanitize(subtitle);
+
+  // -----------------------------
+  // HEADER (PAGE 1 SEULEMENT)
+  // -----------------------------
+  const drawHeaderFirstPageOnly = () => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(0);
+    doc.text(title, margin, 14);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+
+    let bottomY = 18;
+
+    if (subtitleClean) {
+      const lines = doc.splitTextToSize(subtitleClean, contentW);
+      doc.text(lines, margin, 20);
+      bottomY = 20 + lines.length * 4.2 + 2;
+    }
+
+    // Ligne séparatrice (page 1 seulement)
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.2);
+    doc.line(margin, bottomY, pageW - margin, bottomY);
+
+    return bottomY;
+  };
+
+  // Y où commence le tableau sur la page 1
+  const headerBottomY = drawHeaderFirstPageOnly();
+  const startYFirstPage = headerBottomY + 6;
+
+  // -----------------------------
+  // Empty state
+  // -----------------------------
+  if (!data.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.text("Aucune donnée à exporter.", margin, startYFirstPage);
+
+    const pageCount = doc.getNumberOfPages();
+    doc.setFontSize(8);
+    doc.text(`Page 1 / ${pageCount}`, pageW / 2, pageH - 10, { align: "center" });
+
+    doc.save(`${title}_${new Date().toISOString().split("T")[0]}.pdf`);
+    return;
+  }
+
+  // -----------------------------
+  // Table principale
+  // -----------------------------
+  const cols = Object.keys(data[0]);
+  const body = data.map((row) =>
+    cols.map((k) => {
+      const v = row[k];
+      return isMoneyColumn(k) ? formatDT(v, thousandsSep) : String(v ?? "");
+    })
+  );
+
+  autoTable(doc, {
+    // startY ne s'applique qu'à la 1ère page
+    startY: startYFirstPage,
+
+    // ✅ pour les pages suivantes: pas de header, juste un petit top margin
+    margin: { left: margin, right: margin, top: 12, bottom: 18 },
+
+    head: [cols],
+    body,
+    theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 8.8,
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0],
+      lineWidth: 0.15,
+      cellPadding: 2.0,
+    },
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      lineWidth: 0.2,
+    },
+    didParseCell: (hook) => {
+      const colName = cols[hook.column.index];
+      if (isMoneyColumn(colName)) hook.cell.styles.halign = "right";
+    },
+  });
+
+  let y = ((doc as any).lastAutoTable?.finalY ?? startYFirstPage) + 8;
+
+  // -----------------------------
+  // Totaux (simple, sans header même si nouvelle page)
+  // -----------------------------
+  if (totals && Object.keys(totals).length) {
+    const entries = Object.entries(totals).map(([k, v]) => {
+      const n = cleanNumber(v);
+      const key = sanitize(k);
+      const val = `${formatNumberFR(Math.abs(n), thousandsSep)} DT`;
+      return [key, n < 0 ? `- ${val}` : val];
+    });
+
+    // nouvelle page si besoin
+    if (y + 25 > pageH - 18) {
+      doc.addPage();
+      y = 12; // ✅ pas de header sur pages suivantes
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.text("Totaux", margin, y);
+    y += 4;
+
     autoTable(doc, {
-      head: [Object.keys(data[0])],
-      body: data.map(row => Object.values(row)),
-      startY: 30,
-      theme: 'grid',
-      headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold' },
-      styles: { fontSize: 8, cellPadding: 3, textColor: 0 },
-      columnStyles: { 1: { halign: 'right' } }
-    })
+      startY: y,
+      margin: { left: margin, right: margin, top: 12, bottom: 18 },
+      head: [["Libellé", "Montant"]],
+      body: entries,
+      theme: "grid",
+      styles: {
+        font: "helvetica",
+        fontSize: 9,
+        textColor: [0, 0, 0],
+        lineColor: [0, 0, 0],
+        lineWidth: 0.15,
+        cellPadding: 2.0,
+      },
+      headStyles: {
+        fillColor: [255, 255, 255],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+        lineWidth: 0.2,
+      },
+      columnStyles: {
+        0: { cellWidth: contentW * 0.65 },
+        1: { halign: "right" },
+      },
+    });
   }
 
-  const colSpacing = {
-    0: 14, // marge gauche
-    2: doc.internal.pageSize.width - 14 // marge droite
-  }
-
-  // --- 3. Totaux corrigés ---
-  let y = (doc as any).lastAutoTable?.finalY || 30
-  if (totals && Object.keys(totals).length > 0) {
-    y += 8
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(11)
-    doc.text('TOTAUX', colSpacing[0], y)
-  
-    y += 3
-    doc.setLineWidth(0.3)
-    doc.line(colSpacing[0], y, colSpacing[2], y)
-    y += 4
-  
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
-  
-    Object.entries(totals).forEach(([key, value], index, arr) => {
-      y += lineHeight
-  
-      // Nettoyage de la valeur
-      let numericValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.,-]/g, '').replace(',', '.')) || 0
-  
-      // Formatage français
-      let formatted = Math.abs(numericValue).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  
-      // Ajouter signe + ou - pour Total Net
-      if (key.toLowerCase().includes('net') && numericValue > 0) formatted = `+ ${formatted}`
-      else if (numericValue < 0) formatted = `- ${formatted}`
-  
-      doc.setFont('helvetica', index === arr.length - 1 ? 'bold' : 'normal')
-  
-      // **ALIGNEMENT CORRECT** : clé à gauche, valeur à droite
-      doc.text(key, colSpacing[0], y)
-      doc.text(formatted + ' DT', colSpacing[2], y, { align: 'right' })
-  
-      // Ligne sous Total Net
-      if (index === arr.length - 1) {
-        y += 4
-        doc.setLineWidth(0.5)
-        doc.line(colSpacing[0], y, colSpacing[2], y)
-      }
-    })
-  }
-
-
-  // --- 4. Pied de page ---
-  const pageCount = doc.getNumberOfPages()
+  // -----------------------------
+  // Footer pages
+  // -----------------------------
+  const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i)
-    doc.setFont('helvetica', 'italic')
-    doc.setFontSize(8)
-    doc.setTextColor(100)
-    doc.text(
-      `Page ${i} / ${pageCount} - Généré le ${new Date().toLocaleDateString('fr-FR')}`,
-      pageWidth / 2,
-      doc.internal.pageSize.height - 10,
-      { align: 'center' }
-    )
+    doc.setPage(i);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(0);
+    doc.text(`Page ${i} / ${pageCount}`, pageW / 2, pageH - 10, { align: "center" });
   }
 
-  // --- 5. Sauvegarde ---
-  doc.save(`${title}_${new Date().toISOString().split('T')[0]}.pdf`)
-}
+  doc.save(`${title}_${new Date().toISOString().split("T")[0]}.pdf`);
+};
 
 /**
  * Exporte des données en Excel (Styles mis à jour pour plus de neutralité)

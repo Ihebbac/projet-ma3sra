@@ -136,7 +136,7 @@ const preparePdfData = (rows: Row<CustomerType>[]) => {
     const prix = Number(r.original.prixFinal || 0)
     totalPrixFinal += prix
     totalHuile += Number(r.original.quantiteHuile || 0)
-    totalOlive += Number(r.original.quantiteOlive || 0)
+    totalOlive += Number(r.original.quantiteOliveNet || 0)
     if (r.original.status === 'payé') totalPaye += prix
     else totalNonPaye += prix
   })
@@ -146,6 +146,7 @@ const preparePdfData = (rows: Row<CustomerType>[]) => {
 
 // ✅ Export PDF (Noir & Blanc)
 export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport_Clients') => {
+  console.log('rows',rows)
   if (typeof window === 'undefined') return
   try {
     const { default: jsPDF } = await import('jspdf')
@@ -170,7 +171,8 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
     const body = rows.map((r) => [
       r.original.nomPrenom || '—',
       r.original.numTelephone || '—',
-      r.original.dateCreation ? new Date(r.original.dateCreation).toLocaleDateString() : '—',      (r.original.quantiteOliveNet || 0).toFixed(2),
+      r.original.dateCreation ? new Date(r.original.dateCreation).toLocaleDateString() : '—',  
+          (r.original.quantiteOliveNet || 0).toFixed(2),
       (r.original.quantiteHuile || 0).toFixed(2),
       (r.original.prixFinal || 0).toFixed(2),
       r.original.status || '—',
@@ -205,6 +207,7 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
 
     addRow('Total Olive (kg) :', `${totals.totalOlive.toFixed(2)} kg`)
     addRow('Total Huile (L) :', `${totals.totalHuile.toFixed(2)} L`)
+    addRow('montant total :', `${totals.totalPrixFinal.toFixed(2)} TND`)
     // addRow('Total Payé :', `${totals.totalPaye.toFixed(2)} DT`)
     // addRow('Total Non Payé :', `${totals.totalNonPaye.toFixed(2)} DT`)
     // addRow('TOTAL GÉNÉRAL :', `${totals.totalPrixFinal.toFixed(2)} DT`)
@@ -214,7 +217,7 @@ export const exportToPDF = async (rows: Row<CustomerType>[], filename = 'Rapport
     doc.setDrawColor(150)
     doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15)
     doc.setFontSize(8)
-    doc.text('Document généré automatiquement - Olive Plus © 2025', pageWidth / 2, pageHeight - 10, { align: 'center' })
+    // doc.text('Document généré automatiquement - Olive Plus © 2025', pageWidth / 2, pageHeight - 10, { align: 'center' })
 
     // 💾 Sauvegarde
     doc.save(`${filename}.pdf`)

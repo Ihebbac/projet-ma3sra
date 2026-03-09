@@ -108,7 +108,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
     if (show) {
       setFormValues(getInitialFormData())
       setPoidsWiba(POIDS_WIBA_DEFAUT)
-      setPrixKilo(0)
+      setPrixKilo(0.2)
       setOpenOlive(true)
       setOpenHuile(true)
       setClientId('') // Reset la sélection du client
@@ -269,7 +269,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
         dateCreation: dateCreation, // envoyer la date séparée
       }
 
-      const res = await fetch('http://92.112.181.241:8170/clients', {
+      const res = await fetch('http://192.168.1.15:8170/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

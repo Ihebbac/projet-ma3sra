@@ -13,6 +13,10 @@ type Employe = {
   montantHeure: number
   joursPayes: string[]
   joursTravailles: JourTravaille[]
+  telephone?: string
+  salaireJournalier?: number
+  estActif: boolean
+
 }
 
 type ViewEmployeModalProps = {

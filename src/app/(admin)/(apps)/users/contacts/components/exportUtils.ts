@@ -78,7 +78,7 @@ export const exportToPDF = (data: ExportData[], title: string, subtitle: string,
     doc.setFontSize(8)
     doc.setTextColor(150)
     doc.text(
-      `Page ${i} / ${pageCount} - Généré le ${new Date().toLocaleDateString('fr-FR')}`,
+      `Page ${i} / ${pageCount} `,
       doc.internal.pageSize.width / 2,
       doc.internal.pageSize.height - 10,
       { align: 'center' },

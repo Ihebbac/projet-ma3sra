@@ -23,7 +23,7 @@ const TransfertStockProprietaire = () => {
   /** 🧩 Fetch propriétaire + total stock */
   const fetchProprietaire = useCallback(async () => {
     try {
-      const res = await fetch('http://92.112.181.241:8170/proprietaires')
+      const res = await fetch('http://192.168.1.15:8170/proprietaires')
       if (!res.ok) throw new Error('Erreur de récupération des propriétaires')
 
       const data: ProprietaireType[] = await res.json()
@@ -52,7 +52,7 @@ const TransfertStockProprietaire = () => {
   /** 👥 Fetch clients */
   const fetchClients = useCallback(async () => {
     try {
-      const res = await fetch('http://92.112.181.241:8170/clients')
+      const res = await fetch('http://192.168.1.15:8170/clients')
       if (!res.ok) throw new Error('Erreur de récupération des clients')
 
       const data: ClientType[] = await res.json()
@@ -66,7 +66,7 @@ const TransfertStockProprietaire = () => {
   /** 🔁 Fetch transactions */
   const fetchTransactions = useCallback(async () => {
     try {
-      const res = await fetch('http://92.112.181.241:8170/transactions')
+      const res = await fetch('http://192.168.1.15:8170/transactions')
       if (!res.ok) throw new Error('Erreur de récupération des transactions')
 
       const data: TransactionType[] = await res.json()
@@ -91,9 +91,8 @@ const TransfertStockProprietaire = () => {
     } else {
       const filtered = clients.filter(
         (c) =>
-          c.nomPrenom?.toLowerCase().includes(lowerSearch) ||
-        c.numCIN?.includes(lowerSearch) ||
-          c.numTelephone?.includes(lowerSearch)
+          c.nomPrenom?.toLowerCase().includes(lowerSearch) 
+ 
       )
       setFilteredClients(filtered)
     }

@@ -22,6 +22,7 @@ import { useToggle } from 'usehooks-ts'
 import CreateDealModal from '@/app/(admin)/(apps)/crm/Qteproprietaire/components/CreateDealModal'
 import ViewDetailModal from '@/app/(admin)/(apps)/crm/Qteproprietaire/components/ViewDetailModal'
 import EditModal from '@/app/(admin)/(apps)/crm/Qteproprietaire/components/EditModal'
+import { exportToPDF } from './components/TableExporter'
 
 // Types
 type CustomerType = {
@@ -180,7 +181,7 @@ const Qteclient = () => {
     const fetchProprietaires = async () => {
       try {
         setLoading(true)
-        const response = await fetch('http://92.112.181.241:8170/proprietaires')
+        const response = await fetch('http://192.168.1.15:8170/proprietaires')
         if (!response.ok) {
           throw new Error('Failed to fetch data')
         }
@@ -260,7 +261,7 @@ const totals = {
 
   const handleSaveEdit = async (updatedData: CustomerType) => {
     try {
-      const response = await fetch(`http://92.112.181.241:8170/proprietaires/${updatedData._id}`, {
+      const response = await fetch(`http://192.168.1.15:8170/proprietaires/${updatedData._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -273,7 +274,7 @@ const totals = {
       }
 
       // Refresh data after update
-      const refreshResponse = await fetch('http://92.112.181.241:8170/proprietaires')
+      const refreshResponse = await fetch('http://192.168.1.15:8170/proprietaires')
       const refreshedData: CustomerType[] = await refreshResponse.json()
       setData(refreshedData)
       
@@ -288,7 +289,7 @@ const totals = {
       const selectedIds = Object.keys(selectedRowIds)
       const deletePromises = selectedIds.map(id => {
         const rowId = data[parseInt(id)]._id
-        return fetch(`http://92.112.181.241:8170/proprietaires/${rowId}`, {
+        return fetch(`http://192.168.1.15:8170/proprietaires/${rowId}`, {
           method: 'DELETE',
         })
       })
@@ -296,7 +297,7 @@ const totals = {
       await Promise.all(deletePromises)
 
       // Refresh data after deletion
-      const response = await fetch('http://92.112.181.241:8170/proprietaires')
+      const response = await fetch('http://192.168.1.15:8170/proprietaires')
       const refreshedData: CustomerType[] = await response.json()
       setData(refreshedData)
       
@@ -311,7 +312,7 @@ const totals = {
   const refreshData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://92.112.181.241:8170/proprietaires')
+      const response = await fetch('http://192.168.1.15:8170/proprietaires')
       if (!response.ok) {
         throw new Error('Failed to fetch data')
       }
@@ -323,7 +324,13 @@ const totals = {
       setLoading(false)
     }
   }
-
+  const Exportpdf = () => {
+        // Utiliser les lignes filtrées pour l'export
+     const rawDataToExport = table.getFilteredRowModel().rows.map(row => row.original)
+    
+    // Appel de la fonction exportToPDF avec les données brutes
+    exportToPDF(rawDataToExport)
+      }
   return (
     <Container fluid>
       <PageBreadcrumb title={'Stock Ma3sra'} subtitle={'Gestion'} />
@@ -345,6 +352,9 @@ const totals = {
                 </div>
                 <Button variant="primary" onClick={toggleDealModal}>
                   <TbPlus className="me-1" /> Nouveau
+                </Button>
+                <Button variant="primary" onClick={Exportpdf}>
+                  <TbPlus className="me-1" /> Exporter PDF
                 </Button>
                 {Object.keys(selectedRowIds).length > 0 && (
                   <Button variant="danger" size="sm" onClick={toggleDeleteModal}>

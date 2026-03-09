@@ -1,3 +1,4 @@
+'use client'
 import Organize from '@/app/(admin)/(apps)/(ecommerce)/add-product/components/Organize'
 import Pricing from '@/app/(admin)/(apps)/(ecommerce)/add-product/components/Pricing'
 import ProductImage from '@/app/(admin)/(apps)/(ecommerce)/add-product/components/ProductImage'

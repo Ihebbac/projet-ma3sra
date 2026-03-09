@@ -23,17 +23,38 @@ const CaisseAddModal = ({ show, onHide, onAdded }: CaisseAddModalProps) => {
     const formData = new FormData(form)
     const raw = Object.fromEntries(formData.entries()) as Record<string, any>
 
+    // --- LOGIQUE POUR COMBINER DATE SÉLECTIONNÉE ET HEURE ACTUELLE ---
+    let finalDate: string | undefined = undefined;
+
+    if (raw.date) {
+        const selectedDateString = String(raw.date); // Ex: '2025-11-12'
+        
+        // 1. Détermine l'heure et les minutes actuelles
+        const now = new Date();
+        
+        // 2. Extrait l'année, le mois et le jour de la date sélectionnée
+        const [year, month, day] = selectedDateString.split('-').map(p => parseInt(p, 10));
+        
+        // 3. Crée l'objet Date en utilisant la date sélectionnée mais en conservant l'heure actuelle.
+        //    Attention: le mois est 0-indexé dans JavaScript (month - 1).
+        now.setFullYear(year, month - 1, day);
+        
+        // 4. Convertit en chaîne ISO (qui est en UTC) pour le serveur.
+        finalDate = now.toISOString();
+    }
+    // -----------------------------------------------------------------
+
     const body = {
       motif: raw.motif ?? '',
       montant: toNumber(raw.montant),
       type: raw.type ?? '',
-      date: raw.date ? new Date(String(raw.date)).toISOString() : undefined,
+      date: finalDate, // Utilise la date-heure complète
       commentaire: raw.commentaire ?? '',
     }
 
     setLoading(true)
     try {
-      const res = await fetch('http://92.112.181.241:8170/caisse', {
+      const res = await fetch('http://192.168.1.15:8170/caisse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -96,6 +117,7 @@ const CaisseAddModal = ({ show, onHide, onAdded }: CaisseAddModalProps) => {
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Date</Form.Label>
+                  {/* Flatpickr reste en mode date-only */}
                   <Flatpickr className="form-control" name="date" options={{ dateFormat: 'Y-m-d' }} />
                 </Form.Group>
               </Col>

@@ -67,6 +67,35 @@ const formatDateDDMMYYYY = (value?: string | null) => {
   if (Number.isNaN(d.getTime())) return String(value)
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
 }
+// Assurez-vous que cette fonction pad est définie quelque part, par exemple :
+const pad1 = (num: number) => num.toString().padStart(2, '0');
+
+/**
+ * Formate une date en chaîne "JJ-MM-AAAA HH:MM:SS".
+ * @param value La valeur de la date (chaîne ou null/undefined).
+ * @returns La date et l'heure formatées ou le caractère '-' ou la valeur d'origine si non valide.
+ */
+const formatDateTimeDDMMYYYYHHMMSS = (value?: string | null) => {
+  if (!value) return '-';
+
+  const d = new Date(value);
+
+  // Vérifie si la date est valide
+  if (Number.isNaN(d.getTime())) return String(value);
+
+  // Composants de la date
+  const day = pad1(d.getDate());
+  const month = pad1(d.getMonth() + 1); // getMonth() est basé sur 0
+  const year = d.getFullYear();
+
+  // Composants de l'heure
+  const hours = pad1(d.getHours());
+  const minutes = pad1(d.getMinutes());
+  const seconds = pad1(d.getSeconds());
+
+  // Construction de la chaîne formatée
+  return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+};
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
@@ -114,7 +143,7 @@ const CustomersCard = () => {
   // fetch caisses
   const fetchCaisses = useCallback(async () => {
     try {
-      const res = await fetch('http://92.112.181.241:8170/caisse')
+      const res = await fetch('http://192.168.1.15:8170/caisse')
       if (!res.ok) throw new Error('Fetch caisses failed')
       const json = await res.json()
       const normalized: Caisse[] = (Array.isArray(json) ? json : []).map((c: any) => ({
@@ -122,7 +151,7 @@ const CustomersCard = () => {
         motif: String(c.motif ?? ''),
         montant: Number(c.montant ?? 0),
         type: String(c.type ?? ''),
-        date: c.date ? new Date(c.date).toISOString() : null,
+        date: c.date ? new Date(c.date).toISOString() : "",
         commentaire: String(c.commentaire ?? ''),
         nomutilisatuer: String(c.nomutilisatuer ?? ''),
       }))
@@ -304,7 +333,7 @@ const CustomersCard = () => {
       }),
       columnHelper.accessor('date', {
         header: 'Date',
-        cell: (ctx) => formatDateDDMMYYYY(ctx.getValue()),
+        cell: (ctx) => formatDateTimeDDMMYYYYHHMMSS(ctx.getValue()),
       }),
    
       columnHelper.accessor('commentaire', {
@@ -358,8 +387,9 @@ const CustomersCard = () => {
               {/* Bouton Supprimer (affiché seulement si non désactivé) */}
               {!actionsDisabled && (
                 <Button
-                  variant="default"
+                  variant="danger"
                   size="sm"
+                  disabled
                   onClick={() => {
                     setRowSelection({ [row.id]: true })
                     setShowDeleteModal(true)
@@ -437,7 +467,7 @@ const CustomersCard = () => {
     }
     
     // API DELETE
-    await Promise.all([...idsToDelete].map((id) => fetch(`http://92.112.181.241:8170/caisse/${id}`, { method: 'DELETE' }).catch(() => null)))
+    await Promise.all([...idsToDelete].map((id) => fetch(`http://192.168.1.15:8170/caisse/${id}`, { method: 'DELETE' }).catch(() => null)))
 
     setData((old) => old.filter((item) => !idsToDelete.has(item._id)))
     setRowSelection({})

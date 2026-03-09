@@ -14,7 +14,7 @@ import {
 import { useState, useEffect } from 'react'
 import { Button, Card, CardFooter, CardHeader, Col, Container, Row, Form, InputGroup, Dropdown } from 'react-bootstrap'
 import { LuSearch } from 'react-icons/lu'
-import { TbEdit, TbEye, TbPlus, TbTrash, TbFileExport, TbCalendarCheck, TbCoin } from 'react-icons/tb'
+import { TbEdit, TbEye, TbPlus, TbTrash, TbFileExport, TbCoin } from 'react-icons/tb'
 
 import DataTable from '@/components/table/DataTable'
 import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
@@ -24,22 +24,26 @@ import { exportToXLSX, exportToPDF } from './components/EmployeExporter'
 import ViewEmployeModal from './components/ViewEmployeModal'
 import EditEmployeModal from './components/EditEmployeModal'
 import AddEmployeModal from './components/AddEmployeModal'
+import DaySheetModal from './components/DaySheetModal'
 
 interface Employe {
   _id: string
   nom: string
   prenom: string
-  telephone: string
+  numTel: string
   poste: string
-  salaireJournalier: number
+  montantJournalier: number
+  montantHeure: number
+  salaireJournalier?: number
   estActif: boolean
-  joursTravailles: string[]
+  joursPayes: string[]
+  joursTravailles: { date: string; heuresSup: number }[]
 }
 
 type EmployeTableType = Employe & { nomComplet: string }
 
 const columnHelper = createColumnHelper<any>()
-const API_BASE_URL = 'http://92.112.181.241:8170/employes'
+const API_BASE_URL = 'http://192.168.1.15:8170/employes'
 
 const EmployeCard = () => {
   const [data, setData] = useState<EmployeTableType[]>([])
@@ -55,13 +59,19 @@ const EmployeCard = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
 
+  // ✅ nouveau : Feuille du jour
+  const [showDaySheet, setShowDaySheet] = useState(false)
+
   const fetchData = async () => {
     try {
       const res = await fetch(API_BASE_URL)
       if (!res.ok) throw new Error('Failed to fetch employees')
       const result: Employe[] = await res.json()
-      const formattedData: EmployeTableType[] = result.map((emp) => ({
+      const formattedData: EmployeTableType[] = result.map((emp: any) => ({
         ...emp,
+        estActif: emp.estActif ?? true, // ✅ si le champ n'existe pas => actif
+        joursPayes: emp.joursPayes ?? [],
+        joursTravailles: emp.joursTravailles ?? [],
         nomComplet: `${emp.prenom} ${emp.nom}`,
       }))
       setData(formattedData)
@@ -85,52 +95,6 @@ const EmployeCard = () => {
 
   const toggleDeleteModal = () => setShowDeleteModal(!showDeleteModal)
 
-  const handleMarkPresence = async (employeId: string) => {
-    if (!confirm(`Marquer la présence pour l'employé pour aujourd'hui?`)) return
-
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      const res = await fetch(`${API_BASE_URL}/${employeId}/presence`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: today }),
-      })
-      if (!res.ok) throw new Error("Erreur lors de l'enregistrement de la présence.")
-      alert('Présence marquée avec succès!')
-      fetchData()
-    } catch (error) {
-      console.error(error)
-      alert("Échec de l'enregistrement de la présence.")
-    }
-  }
-
-  const statusValues = [
-    { label: 'Actif', value: 'true' },
-    { label: 'Inactif/Retiré', value: 'false' },
-  ]
-
-  const handleStatusFilterChange = (value: string) => {
-    setColumnFilters((prevFilters) => {
-      const newFilters = prevFilters.filter((f) => f.id !== 'estActif')
-      if (value) {
-        const filterValue = value === 'true'
-        newFilters.push({ id: 'estActif', value: filterValue })
-      }
-      return newFilters
-    })
-  }
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    } catch (error) {
-      return 'Date invalide'
-    }
-  }
   const columns = [
     {
       id: 'select',
@@ -151,11 +115,9 @@ const EmployeCard = () => {
       header: 'Jours Travaillés',
       cell: (info) => {
         const raw = info.getValue() as any
-    
-        // sécurité : pas un tableau → affichage simple
+
         if (!Array.isArray(raw) || raw.length === 0) return '-'
-    
-        // normalise en objets { date: Date, heuresSup: number } et filtre les entrées invalides
+
         const parsed = raw
           .map((item: any) => {
             const dateStr = typeof item === 'string' ? item : item?.date
@@ -164,42 +126,32 @@ const EmployeCard = () => {
             return { date: d, heuresSup: Number(item?.heuresSup || 0) }
           })
           .filter(Boolean) as { date: Date; heuresSup: number }[]
-    
+
         if (parsed.length === 0) return '-'
-    
-        // tri du plus récent au plus ancien
+
         parsed.sort((a, b) => b.date.getTime() - a.date.getTime())
-    
-        // utilitaire local pour formater la date en FR
-        const formatDate = (d: Date) =>
-          d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
-    
-        // première (plus récente)
+
+        const formatDate = (d: Date) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+
         const latest = parsed[0]
-    
+
         return (
           <div className="d-flex flex-column align-items-start gap-1">
             <span className="badge bg-primary">
               {parsed.length} jour{parsed.length > 1 ? 's' : ''}
             </span>
             <small className="text-muted">
-              Dernier : {formatDate(latest.date)}{latest.heuresSup ? ` · HS: ${latest.heuresSup}` : ''}
+              Dernier : {formatDate(latest.date)}
+              {latest.heuresSup ? ` · HS: ${latest.heuresSup}` : ''}
             </small>
           </div>
         )
       },
     }),
-    
-    
     {
       header: 'Actions',
       cell: ({ row }: { row: TableRow<EmployeTableType> }) => (
         <div className="d-flex gap-1">
-          {row.original.estActif && (
-            <Button variant="success" size="sm" className="btn-icon" title="Marquer Présence" onClick={() => handleMarkPresence(row.original._id)}>
-              <TbCalendarCheck className="fs-lg" />
-            </Button>
-          )}
           <Button
             variant="info"
             size="sm"
@@ -229,7 +181,6 @@ const EmployeCard = () => {
             size="sm"
             className="btn-icon"
             onClick={() => {
-              console.log('ffff', row)
               setSelectedRowIds({ [row.original._id]: true })
               toggleDeleteModal()
             }}>
@@ -258,10 +209,6 @@ const EmployeCard = () => {
     enableRowSelection: true,
   })
 
-  const currentStatusFilter = columnFilters.find((f) => f.id === 'estActif')?.value
-    ? columnFilters.find((f) => f.id === 'estActif')?.value.toString()
-    : ''
-
   const pageIndex = table.getState().pagination.pageIndex
   const pageSize = table.getState().pagination.pageSize
   const totalItems = table.getFilteredRowModel().rows.length
@@ -279,11 +226,26 @@ const EmployeCard = () => {
                 <Button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
                   <TbPlus /> Ajouter Employé
                 </Button>
+
+                {/* ✅ nouveau bouton Feuille du jour */}
+                <Button
+                  variant="outline-primary"
+                  onClick={async () => {
+                    // ✅ si la liste est vide, on recharge avant d'ouvrir
+                    if (!data.length) {
+                      await fetchData()
+                    }
+                    setShowDaySheet(true)
+                  }}>
+                  <TbCoin className="me-1" /> Feuille du jour
+                </Button>
+
                 {isClient && Object.keys(selectedRowIds).length > 0 && (
                   <Button variant="danger" onClick={toggleDeleteModal}>
                     <TbTrash /> Supprimer ({Object.keys(selectedRowIds).length})
                   </Button>
                 )}
+
                 {isClient && (
                   <Dropdown>
                     <Dropdown.Toggle variant="outline-secondary" id="dropdown-export-data">
@@ -310,19 +272,8 @@ const EmployeCard = () => {
                   </Dropdown>
                 )}
               </div>
+
               <div className="d-flex gap-2 align-items-center">
-                {/* <Form.Select
-                  value={currentStatusFilter}
-                  onChange={(e) => handleStatusFilterChange(e.target.value)}
-                  className="form-select-sm"
-                  style={{ width: '150px' }}>
-                  <option value="">Tous les status</option>
-                  {statusValues.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </Form.Select> */}
                 <InputGroup style={{ maxWidth: '300px' }}>
                   <InputGroup.Text>
                     <LuSearch className="fs-lg" />
@@ -336,7 +287,9 @@ const EmployeCard = () => {
                 </InputGroup>
               </div>
             </CardHeader>
+
             <DataTable table={table} emptyMessage="Aucun employé trouvé" />
+
             {table.getRowModel().rows.length > 0 && (
               <CardFooter className="border-0" suppressHydrationWarning>
                 <TablePagination
@@ -366,6 +319,7 @@ const EmployeCard = () => {
         selectedCount={Object.keys(selectedRowIds).length}
         itemName="employés"
       />
+
       <AddEmployeModal
         show={showAddModal}
         onHide={() => setShowAddModal(false)}
@@ -393,7 +347,10 @@ const EmployeCard = () => {
         }}
       />
 
-      <ViewEmployeModal show={showViewModal} onHide={() => setShowViewModal(false)} employe={currentEmploye ?? undefined} />
+      <ViewEmployeModal show={showViewModal} onHide={() => setShowViewModal(false)} employe={currentEmploye ?? null} />
+
+      {/* ✅ Modal Feuille du jour */}
+      <DaySheetModal show={showDaySheet} onHide={() => setShowDaySheet(false)} employes={data as any} apiBaseUrl={API_BASE_URL} onSaved={fetchData} />
     </Container>
   )
 }

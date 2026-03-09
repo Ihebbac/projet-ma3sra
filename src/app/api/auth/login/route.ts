@@ -1,14 +1,18 @@
 // app/api/auth/login/route.ts
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { signSession } from '@/lib/jwt'
-import { json } from 'stream/consumers'
 
-const API = 'http://92.112.181.241:8170'!
+const API = 'http://192.168.1.15:8170'
+
+function isHttps(req: Request) {
+  const proto = req.headers.get('x-forwarded-proto')
+  if (proto) return proto === 'https'
+  return req.url.startsWith('https://')
+}
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json() // { email, password }
+    const body = await req.json()
 
     const r = await fetch(`${API}/auth/login`, {
       method: 'POST',
@@ -20,16 +24,21 @@ export async function POST(req: Request) {
     const data = await r.json()
 
     if (!r.ok) {
-      return NextResponse.json({ error: data?.message || 'Invalid credentials' }, { status: 401 })
+      return NextResponse.json(
+        { error: data?.message || 'Invalid credentials' },
+        { status: 401 }
+      )
     }
 
     const access = data.access_token || data.accessToken || data.token
     const refresh = data.refresh_token || data.refreshToken || null
     if (!access) {
-      return NextResponse.json({ error: 'API did not return an access token' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'API did not return an access token' },
+        { status: 500 }
+      )
     }
 
-    // Pull user info either from response or via /auth/me
     let user = data.user
     if (!user) {
       const me = await fetch(`${API}/auth/me`, {
@@ -45,37 +54,40 @@ export async function POST(req: Request) {
       roles: user?.roles || ['user'],
     })
 
-    // ❗ cookies() is sync
-    const c = await cookies()
+    const secure = isHttps(req) // ✅ IMPORTANT
 
-    // 1) Our session (verified by middleware)
-    c.set('session_token', session, {
+    const res = NextResponse.json({
+      ok: true,
+      data: { sub: user?.id?.toString?.() || user?._id, email: user?.email, roles: user?.roles },
+    })
+
+    res.cookies.set('session_token', session, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure,          // ✅ plus basé sur NODE_ENV
       sameSite: 'lax',
       path: '/',
       maxAge: 24 * 60 * 60,
     })
-    // 2) External tokens (for server-to-API calls)
-    c.set('ext_access', access, {
+
+    res.cookies.set('ext_access', access, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure,
       sameSite: 'lax',
       path: '/',
       maxAge: 15 * 60,
     })
+
     if (refresh) {
-      c.set('ext_refresh', refresh, {
+      res.cookies.set('ext_refresh', refresh, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure,
         sameSite: 'lax',
         path: '/',
         maxAge: 7 * 24 * 60 * 60,
       })
     }
 
-    return NextResponse.json({ ok: true,    data:{ sub: user?.id?.toString?.() || user?._id, email: user?.email, roles: user?.roles }
-  })
+    return res
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Login failed' }, { status: 400 })
   }

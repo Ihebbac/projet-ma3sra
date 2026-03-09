@@ -6,12 +6,14 @@ import Link from 'next/link'
 import { Card, CardBody, Col, FormControl, Row, Spinner } from 'react-bootstrap'
 import { LuCircleUser, LuKeyRound } from 'react-icons/lu'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 
-const Page = () => {
+function PageInner() {
   const router = useRouter()
-  const sp = useSearchParams()
+  const sp = useSearchParams() // ✅ maintenant sous Suspense
+
   const nextPath = '/dashboard'
+  // si tu veux utiliser sp plus tard, c'est toujours dispo ici
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -36,7 +38,10 @@ const Page = () => {
       window.localStorage.setItem('user', JSON.stringify(data.data))
       router.replace(nextPath)
     } catch (err: any) {
-      setErrorMsg(`Impossible de se connecter : ${err?.message}` || 'Une erreur est survenue. Réessayez.')
+      setErrorMsg(
+        `Impossible de se connecter : ${err?.message}` ||
+          'Une erreur est survenue. Réessayez.'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -47,15 +52,10 @@ const Page = () => {
       <Row className="w-100 g-0">
         <Col md={'auto'}>
           <Card className="auth-box-form border-0 mb-0 position-relative">
-            {/* 🔵 Barre de progression animée */}
             {submitting && (
               <div
                 className="position-absolute top-0 start-0 w-100"
-                style={{
-                  height: 4,
-                  overflow: 'hidden',
-                  borderRadius: 0,
-                }}
+                style={{ height: 4, overflow: 'hidden', borderRadius: 0 }}
               >
                 <div
                   className="bg-primary"
@@ -64,9 +64,8 @@ const Page = () => {
                     height: '100%',
                     animation: 'moveBar 1.2s linear infinite',
                   }}
-                ></div>
+                />
 
-                {/* Animation CSS */}
                 <style jsx>{`
                   @keyframes moveBar {
                     0% {
@@ -81,21 +80,15 @@ const Page = () => {
             )}
 
             <CardBody className="min-vh-100  flex-column justify-content-center">
-              {/* <div className="auth-brand mb-0 text-center">
-                <AppLogo />
-              </div> */}
-
               <div className="mt-auto">
                 <h1 className="text-center mb-4">معصرة زيتون بوشامة</h1>
 
-                {/* 🔴 Message d'erreur */}
                 {errorMsg && (
                   <div className="alert alert-danger mt-3" role="alert">
                     {errorMsg}
                   </div>
                 )}
 
-                {/* 🧾 Formulaire */}
                 <form className="mt-4" onSubmit={onSubmit}>
                   <div className="mb-3">
                     <label htmlFor="userEmail" className="form-label">
@@ -135,7 +128,6 @@ const Page = () => {
                     </div>
                   </div>
 
-                  {/* 🔘 Bouton de soumission */}
                   <div className="d-grid">
                     <button
                       type="submit"
@@ -160,7 +152,7 @@ const Page = () => {
 
         <div className="col">
           <div className="h-100 position-relative card-side-img rounded-0 overflow-hidden">
-            <div className="p-4 card-img-overlay auth-overlay d-flex align-items-end justify-content-center"></div>
+            <div className="p-4 card-img-overlay auth-overlay d-flex align-items-end justify-content-center" />
           </div>
         </div>
       </Row>
@@ -168,4 +160,10 @@ const Page = () => {
   )
 }
 
-export default Page
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <PageInner />
+    </Suspense>
+  )
+}

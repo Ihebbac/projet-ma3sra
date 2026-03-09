@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "tsc && next build",
+    "build": "next build",
+"typecheck": "tsc --noEmit",
+
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write './src/**/*.{ts,tsx,js,jsx}'"

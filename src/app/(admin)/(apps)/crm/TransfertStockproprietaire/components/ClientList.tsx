@@ -11,9 +11,9 @@ const ClientList = ({ clients }: { clients: ClientType[] }) => {
     const searchLower = searchTerm.toLowerCase()
     const matchesSearch = 
       client.nomPrenom.toLowerCase().includes(searchLower) ||
-      (client.numTelephone && client.numTelephone.toString().includes(searchTerm)) ||
-      (client.email && client.email.toLowerCase().includes(searchLower)) ||
-      (client.numCIN && client.numCIN.toString().includes(searchTerm))
+      (client.numTelephone && client.numTelephone.toString().includes(searchTerm)) 
+      // (client.email && client.email.toLowerCase().includes(searchLower)) ||
+      // (client.numCIN && client.numCIN.toString().includes(searchTerm))
     
     const matchesDate = !filterDate || 
       (client.dateCreation && client.dateCreation.startsWith(filterDate))
@@ -66,7 +66,7 @@ const ClientList = ({ clients }: { clients: ClientType[] }) => {
                   <div className="fw-bold">{client.nomPrenom}</div>
                   <small className="text-muted">
                     {client.numTelephone && `📞 ${client.numTelephone}`}
-                    {client.numCIN && ` | 🆔 ${client.numCIN}`}
+                
                     {client.dateCreation && ` | 📅 ${new Date(client.dateCreation).toLocaleDateString('fr-FR')}`}
                   </small>
                 </div>

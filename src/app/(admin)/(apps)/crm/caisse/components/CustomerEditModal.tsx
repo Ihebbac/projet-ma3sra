@@ -47,7 +47,11 @@ const CaisseEditModal = ({ show, onHide, caisse, onUpdated, isCaissier }: Props)
 
   if (!caisse) return null
   const id = caisse._id ?? caisse.id
-  const defaultDate = caisse.date ?? undefined
+  
+  // Correction 1 : Extraire uniquement la date si elle est au format ISO pour l'affichage dans Flatpickr
+  const defaultDate = caisse.date
+    ? String(caisse.date).split('T')[0] 
+    : undefined 
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -57,11 +61,32 @@ const CaisseEditModal = ({ show, onHide, caisse, onUpdated, isCaissier }: Props)
     }
 
     const raw = Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string, any>
+    
+    // --- Correction 2 : LOGIQUE POUR COMBINER DATE SÉLECTIONNÉE ET HEURE ACTUELLE ---
+    let finalDate: string | undefined = undefined;
+
+    if (raw.date) {
+        const selectedDateString = String(raw.date); // Ex: '2025-11-12' (du Flatpickr)
+        
+        const now = new Date(); // Temps actuel
+        
+        // Extrait l'année, le mois et le jour
+        const [year, month, day] = selectedDateString.split('-').map(p => parseInt(p, 10));
+        
+        // Crée l'objet Date en utilisant la date sélectionnée et l'heure actuelle locale.
+        now.setFullYear(year, month - 1, day);
+        
+        // Convertit en chaîne ISO (UTC)
+        finalDate = now.toISOString();
+    }
+    // ---------------------------------------------------------------------------------
+
+
     const body: Record<string, any> = {
       motif: raw.motif,
       montant: toNumberOrUndefined(raw.montant),
       type: raw.type,
-      date: raw.date ? new Date(String(raw.date)).toISOString() : undefined,
+      date: finalDate, // Utilisation de la date-heure complète
       commentaire: raw.commentaire ?? '',
     }
 
@@ -69,7 +94,7 @@ const CaisseEditModal = ({ show, onHide, caisse, onUpdated, isCaissier }: Props)
 
     setLoading(true)
     try {
-      const res = await fetch(`http://92.112.181.241:8170/caisse/${id}`, {
+      const res = await fetch(`http://192.168.1.15:8170/caisse/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -129,7 +154,12 @@ const CaisseEditModal = ({ show, onHide, caisse, onUpdated, isCaissier }: Props)
             <Col md={6}>
               <FormGroup>
                 <FormLabel>Date</FormLabel>
-                <Flatpickr className="form-control" name="date" defaultValue={defaultDate} options={{ dateFormat: 'Y-m-d' }} />
+                <Flatpickr 
+                  className="form-control" 
+                  name="date" 
+                  defaultValue={defaultDate} 
+                  options={{ dateFormat: 'Y-m-d' }} 
+                />
               </FormGroup>
             </Col>
 

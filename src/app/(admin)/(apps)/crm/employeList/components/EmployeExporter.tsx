@@ -9,10 +9,13 @@ interface Employe {
   _id: string
   nom: string
   prenom: string
-  telephone: string
+  numTel: string
   poste: string
   salaireJournalier: number
   estActif: boolean
+
+  joursPayes: string[]
+  joursTravailles: { date: string; heuresSup: number }[]
 }
 
 type EmployeTableType = Employe & {

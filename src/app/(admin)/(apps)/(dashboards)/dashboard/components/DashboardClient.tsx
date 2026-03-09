@@ -103,7 +103,7 @@ type Employe = {
   joursTravailles: { date: string; heuresSup: number }[]
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://92.112.181.241:8170'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://192.168.1.15:8170'
 
 // Utils remain the same
 const inRange = (iso: string, from?: Date | null, to?: Date | null) => {
@@ -763,11 +763,11 @@ export default function ModernDashboardClient() {
               <div style={{ height: 250 }}>
                 <Doughnut
                   data={{
-                    labels: ['Payé', 'Non payé', 'Autres'],
+                    labels: ['Payé', 'Non payé'],
                     datasets: [
                       {
-                        data: [clientDistribution.paid, clientDistribution.nonPaid, clientDistribution.other],
-                        backgroundColor: [colors.success, colors.danger, colors.secondary],
+                        data: [clientDistribution.paid, clientDistribution.nonPaid && clientDistribution.other],
+                        backgroundColor: [colors.success, colors.danger],
                         borderWidth: 2,
                         borderColor: colors.cardBg,
                       },

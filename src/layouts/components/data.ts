@@ -189,6 +189,7 @@ export const menuItems: MenuItemType[] = [
     // ],
   },
   { key: 'crm-activities',    icon: MdOutlinePointOfSale, label: 'Achat Zitoun', url: '/crm/activities' },
+  { key: 'crm-achat-base',    icon: LuInbox, label: 'Achat base', url: '/crm/achatBase' },
   // { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
   { key: 'Stock propriétaire', label: 'Stock propriétaire', icon: FaStoreAlt, url: '/crm/Qteproprietaire' },
   { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire', icon: GiCardExchange, url: '/crm/TransfertStockproprietaire' },

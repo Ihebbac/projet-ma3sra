@@ -8,7 +8,7 @@ import PageBreadcrumb from '@/components/PageBreadcrumb'
 // ⚙️ CONFIGURATION API
 // ======================================================================
 // Assurez-vous que le port correspond à votre NestJS (souvent 3000 ou 8000)
-const API_BASE_URL = 'http://localhost:8170/achats'; 
+const API_BASE_URL = 'http://192.168.1.15:8170/achats'; 
 const POID_CAISSE = 30;
 
 // ======================================================================
@@ -727,7 +727,7 @@ const Page: React.FC = () => {
                     if (typeof value === 'number') {
                         rowData[key] = (col.accessor === 'nbreCaisse') ? value.toFixed(0) : value.toFixed(2);
                     } else {
-                        rowData[key] = value;
+                        rowData[key] = value ?? "";
                     }
                 }
             });
