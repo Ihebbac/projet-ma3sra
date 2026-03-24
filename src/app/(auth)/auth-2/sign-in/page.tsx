@@ -81,7 +81,7 @@ function PageInner() {
 
             <CardBody className="min-vh-100  flex-column justify-content-center">
               <div className="mt-auto">
-                <h1 className="text-center mb-4">معصرة زيتون بوشامة</h1>
+                <h1 className="text-center mb-4">معصرة زيتون عصرية</h1>
 
                 {errorMsg && (
                   <div className="alert alert-danger mt-3" role="alert">

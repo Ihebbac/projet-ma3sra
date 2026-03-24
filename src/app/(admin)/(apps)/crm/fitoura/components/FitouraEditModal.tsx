@@ -1,57 +1,71 @@
-import React, { useState, useEffect } from 'react'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 import { Modal, Button, Row, Col, Form, FormGroup, FormLabel, FormControl } from 'react-bootstrap'
 
 type FitouraEditModalProps = {
   show: boolean
   onHide: () => void
   operation: any
-  onSubmit: (id: string, data: any) => void
+  onSubmit: (id: string, data: { poidsSortie?: number | null }) => Promise<void> | void
 }
 
 const FitouraEditModal = ({ show, onHide, operation, onSubmit }: FitouraEditModalProps) => {
-  const [form, setForm] = useState({
-    poidsSortie: null,
-  })
+  const [poidsSortie, setPoidsSortie] = useState('')
 
   useEffect(() => {
-    if (operation) setForm({ poidsSortie: operation.poidsSortie || null })
+    if (operation) {
+      setPoidsSortie(
+        operation.poidsSortie !== null && operation.poidsSortie !== undefined
+          ? String(operation.poidsSortie)
+          : '',
+      )
+    }
   }, [operation])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: parseFloat(value) }))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (operation?._id) {
-      onSubmit(operation._id, form)
-    }
+
+    if (!operation?._id) return
+
+    await onSubmit(operation._id, {
+      poidsSortie: poidsSortie === '' ? null : Number(poidsSortie),
+    })
+
     onHide()
   }
 
   return (
-    <Modal show={show} onHide={onHide} size="lg">
+    <Modal show={show} onHide={onHide} size="md" centered>
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title>Edit Fitoura Operation</Modal.Title>
+          <Modal.Title>Enregistrer la sortie</Modal.Title>
         </Modal.Header>
+
         <Modal.Body>
           <Row className="g-3">
-            <Col md={6}>
+            <Col md={12}>
               <FormGroup>
-                <FormLabel>Poids Sortie (kg)</FormLabel>
-                <FormControl name="poidsSortie" type="number" value={form.poidsSortie || 0} onChange={(e: any) => handleChange(e)} required />
+                <FormLabel>Poids de sortie (kg)</FormLabel>
+                <FormControl
+                  name="poidsSortie"
+                  type="number"
+                  step="0.001"
+                  value={poidsSortie}
+                  onChange={(e) => setPoidsSortie(e.target.value)}
+                  placeholder="Saisir le poids de sortie"
+                />
               </FormGroup>
             </Col>
           </Row>
         </Modal.Body>
+
         <Modal.Footer>
           <Button variant="light" onClick={onHide}>
-            Cancel
+            Annuler
           </Button>
           <Button type="submit" variant="primary">
-            Update Operation
+            Enregistrer
           </Button>
         </Modal.Footer>
       </Form>

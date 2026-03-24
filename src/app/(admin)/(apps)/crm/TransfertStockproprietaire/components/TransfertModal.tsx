@@ -1,281 +1,364 @@
 'use client'
-import { Modal, Button, Form, Alert } from 'react-bootstrap'
-import { TbRepeat, TbX } from 'react-icons/tb'
-import { useState } from 'react'
-import StockDisplay from './StockDisplay'
-import ClientSelectWithFilter from './ClientSelectWithFilter'
-import { ProprietaireType, ClientType } from '../types'
+
+import { useMemo, useState } from 'react'
+import { Alert, Button, Form, Modal, Row, Col, Card } from 'react-bootstrap'
+import { TbCurrencyDollar, TbRepeat, TbX } from 'react-icons/tb'
+
+import { ProprietaireType } from '../types'
+
+const API_BASE_URL = 'http://192.168.1.15:8170'
+
+type MotifType =
+  | 'Vente'
+  | 'Vente export'
+  | 'Vente locale'
+  | 'Don'
+  | 'Échantillon'
+  | 'Autre'
+
+type Props = {
+  show: boolean
+  onHide: () => void
+  proprietaire: ProprietaireType
+  onTransferComplete: () => void
+}
+
+const formatNumber = (value?: number) => Number(value || 0).toFixed(2)
 
 const TransfertModal = ({
   show,
   onHide,
   proprietaire,
-  clients,
-  onTransferComplete
-}: {
-  show: boolean
-  onHide: () => void
-  proprietaire: ProprietaireType
-  clients: ClientType[]
-  onTransferComplete: () => void
-}) => {
-  const [clientId, setClientId] = useState<string>('')
+  onTransferComplete,
+}: Props) => {
   const [typeStock, setTypeStock] = useState<'olive' | 'huile'>('olive')
   const [quantite, setQuantite] = useState<number>(0)
-  const [motif, setMotif] = useState<string>('')
-  const [details, setDetails] = useState<string>('')
-  const [error, setError] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
+  const [motif, setMotif] = useState<MotifType | ''>('')
+  const [commentaire, setCommentaire] = useState('')
+  const [prixFinal, setPrixFinal] = useState<number>(0)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const stockDisponible =
-    typeStock === 'olive'
-      ? proprietaire.quantiteOliveNet || 0
-      : proprietaire.quantiteHuile || 0
+  const stockOlive = Number(
+    proprietaire?.quantiteOliveNet || proprietaire?.quantiteOlive || 0
+  )
+  const stockHuile = Number(proprietaire?.quantiteHuile || 0)
 
-  const selectedClient = clients.find(c => c._id === clientId)
+  const stockDisponible = typeStock === 'olive' ? stockOlive : stockHuile
+
+  const nomPrenomCompose = useMemo(() => {
+    const safeMotif = motif?.trim() || 'Sans motif'
+    const safeCommentaire = commentaire?.trim() || 'Sans commentaire'
+    return `${safeMotif} | ${safeCommentaire} | Prix final: ${formatNumber(prixFinal)} DT`
+  }, [motif, commentaire, prixFinal])
+
+  const nouveauStockEstime = useMemo(() => {
+    return Math.max(stockDisponible - Number(quantite || 0), 0)
+  }, [stockDisponible, quantite])
 
   const handleReset = () => {
-    setClientId('')
     setTypeStock('olive')
     setQuantite(0)
     setMotif('')
-    setDetails('')
+    setCommentaire('')
+    setPrixFinal(0)
     setError('')
+    setLoading(false)
+  }
+
+  const handleClose = () => {
+    if (loading) return
+    handleReset()
+    onHide()
   }
 
   const handleTransfer = async () => {
     setError('')
-    setLoading(true)
 
-    if (!clientId) {
-      setError('Veuillez sélectionner un client destinataire.')
-      setLoading(false)
+    if (!motif) {
+      setError('Veuillez sélectionner un motif.')
       return
     }
 
     if (quantite <= 0) {
       setError('La quantité doit être supérieure à 0.')
-      setLoading(false)
       return
     }
 
     if (quantite > stockDisponible) {
-      setError(
-        `Stock insuffisant. Disponible: ${stockDisponible} ${typeStock === 'olive' ? 'kg' : 'L'}`
-      )
-      setLoading(false)
+      setError(`Stock insuffisant. Disponible : ${formatNumber(stockDisponible)} kg`)
       return
     }
 
-    if (!motif.trim()) {
-      setError('Veuillez indiquer un motif pour ce transfert.')
-      setLoading(false)
+    if (prixFinal < 0) {
+      setError('Le prix final ne peut pas être négatif.')
       return
     }
+
+    setLoading(true)
 
     try {
+      const now = new Date().toISOString()
+      const commentaireNettoye = commentaire.trim() || 'Sans commentaire'
+
       const transactionData = {
-        proprietaireId: proprietaire._id, // ✅ Correction ici
-        clientId,
-        clientNom: selectedClient?.nomPrenom,
+        date: now,
+        dateCreation: now,
         typeStock,
-        quantite,
+        type: typeStock,
+        quantite: Number(quantite),
+        operation: 'retrait',
         motif,
-        details,
-        date: new Date().toISOString()
+        commentaire: commentaireNettoye,
+        details: commentaireNettoye,
+        prix: Number(prixFinal),
+        prixFinal: Number(prixFinal),
+        clientNom: nomPrenomCompose,
+        nomPrenom: nomPrenomCompose,
+        proprietaireId: proprietaire._id,
       }
 
-      const transactionResponse = await fetch('http://192.168.1.15:8170/transactions', {
+      const transactionResponse = await fetch(`${API_BASE_URL}/transactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(transactionData)
+        body: JSON.stringify(transactionData),
       })
 
-      const responseData = await transactionResponse.json()
-
       if (!transactionResponse.ok) {
-        console.error('Erreur backend:', responseData)
-        throw new Error(responseData.message || 'Erreur lors de la création de la transaction')
+        let errorMessage = 'Erreur lors de la création de la transaction'
+        try {
+          const errorData = await transactionResponse.json()
+          errorMessage = errorData?.message || errorMessage
+        } catch {}
+        throw new Error(errorMessage)
       }
 
-      // ✅ Mettre à jour les stocks (répartition proportionnelle)
-      const proprietairesResponse = await fetch('http://192.168.1.15:8170/proprietaires')
-      if (proprietairesResponse.ok) {
-        const proprietaires = await proprietairesResponse.json()
-        for (const prop of proprietaires) {
-          const stockProp = typeStock === 'olive' ? prop.quantiteOlive || 0 : prop.quantiteHuile || 0
-          const proportion = stockProp / stockDisponible
-          const quantiteARetirer = quantite * proportion
-
-          if (quantiteARetirer > 0) {
-            await fetch(`http://192.168.1.15:8170/proprietaires/${prop._id}/stock`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                type: typeStock,
-                quantite: quantiteARetirer,
-                operation: 'retrait'
-              })
-            })
-          }
-        }
+      const stockNegatifData = {
+        nomPrenom: nomPrenomCompose,
+        dateCreation: now,
+        type: 'proprietaire',
+        nombreCaisses: 0,
+        quantiteOlive: typeStock === 'olive' ? -Number(quantite) : 0,
+        quantiteHuile: typeStock === 'huile' ? -Number(quantite) : 0,
+        quantiteOliveNet: typeStock === 'olive' ? -Number(quantite) : 0,
+        kattou3: 0,
+        nisba: 0,
+        stockRestant: 0,
+        transactions: [
+          {
+            date: now,
+            type: typeStock,
+            quantite: Number(quantite),
+            operation: 'retrait',
+          },
+        ],
       }
 
-      alert('✅ Transfert effectué avec succès !')
-      onTransferComplete()
+      const proprietaireResponse = await fetch(`${API_BASE_URL}/proprietaires`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stockNegatifData),
+      })
+
+      if (!proprietaireResponse.ok) {
+        let errorMessage = 'Erreur lors de la création de la fiche propriétaire'
+        try {
+          const errorData = await proprietaireResponse.json()
+          errorMessage = errorData?.message || errorMessage
+        } catch {}
+        throw new Error(errorMessage)
+      }
+
       handleReset()
       onHide()
+      onTransferComplete()
     } catch (err: any) {
-      console.error('Erreur lors du transfert:', err)
-      setError(err.message || 'Erreur lors du transfert. Veuillez réessayer.')
+      console.error(err)
+      setError(err?.message || 'Une erreur est survenue lors du retrait.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Modal show={show} onHide={onHide} size="lg">
-      <Modal.Header closeButton>
-        <Modal.Title>
+    <Modal
+      show={show}
+      onHide={handleClose}
+      size="lg"
+      centered
+      backdrop="static"
+      contentClassName="bg-body text-body border"
+    >
+      <Modal.Header closeButton={!loading} className="border-bottom">
+        <Modal.Title className="d-flex align-items-center">
           <TbRepeat className="me-2" />
-          Transfert de stock vers client
+          Retirer du stock propriétaire
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        {error && (
+
+      <Modal.Body className="bg-body text-body">
+        {error ? (
           <Alert variant="danger" dismissible onClose={() => setError('')}>
             {error}
           </Alert>
-        )}
+        ) : null}
 
-        <StockDisplay proprietaire={proprietaire} />
+        <Row className="mb-3">
+          <Col md={6} className="mb-3 mb-md-0">
+            <Card className="border shadow-sm h-100 bg-body text-body">
+              <Card.Body>
+                <div className="small text-muted mb-1">Stock Olive</div>
+                <div className="fs-4 fw-bold">{formatNumber(stockOlive)} kg</div>
+              </Card.Body>
+            </Card>
+          </Col>
+
+          <Col md={6}>
+            <Card className="border shadow-sm h-100 bg-body text-body">
+              <Card.Body>
+                <div className="small text-muted mb-1">Stock Huile</div>
+                <div className="fs-4 fw-bold">{formatNumber(stockHuile)} kg</div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
 
         <Form>
-          <Form.Group className="mb-3">
-            <Form.Label className="fw-bold">Client destinataire *</Form.Label>
-            <ClientSelectWithFilter
-              clients={clients}
-              selectedClientId={clientId}
-              onSelectClient={setClientId}
-            />
-            {selectedClient && (
-              <div className="mt-2 p-3 bg-light rounded">
-                <div className="fw-bold">{selectedClient.nomPrenom}</div>
-                <small className="text-muted">
-                  {selectedClient.numTelephone && `📞 ${selectedClient.numTelephone}`}
-             
-                </small>
-              </div>
-            )}
-          </Form.Group>
-
-          <div className="row">
-            <div className="col-md-6">
+          <Row>
+            <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label className="fw-bold">Type de stock *</Form.Label>
+                <Form.Label className="fw-semibold">Type de stock *</Form.Label>
                 <Form.Select
                   value={typeStock}
-                  onChange={e => setTypeStock(e.target.value as 'olive' | 'huile')}
-                  size="lg"
+                  onChange={(e) => setTypeStock(e.target.value as 'olive' | 'huile')}
+                  disabled={loading}
+                  className="bg-body text-body"
                 >
-                  <option value="olive">🫒 Olive (kg)</option>
-                  <option value="huile">🫙 Huile (litres)</option>
+                  <option value="olive">Olive (kg)</option>
+                  <option value="huile">Huile (kg)</option>
                 </Form.Select>
                 <Form.Text className="text-muted">
-                  Stock disponible :{' '}
-                  <strong className="text-primary">{stockDisponible}</strong>{' '}
-                  {typeStock === 'olive' ? 'kg' : 'L'}
+                  Disponible : <strong>{formatNumber(stockDisponible)} kg</strong>
                 </Form.Text>
               </Form.Group>
-            </div>
+            </Col>
 
-            <div className="col-md-6">
+            <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label className="fw-bold">Quantité à transférer *</Form.Label>
+                <Form.Label className="fw-semibold">Quantité à retirer *</Form.Label>
                 <Form.Control
                   type="number"
-                  value={quantite}
-                  onChange={e => setQuantite(parseFloat(e.target.value) || 0)}
                   min={0}
                   max={stockDisponible}
                   step={0.01}
-                  size="lg"
+                  value={quantite}
+                  onChange={(e) => setQuantite(parseFloat(e.target.value) || 0)}
+                  disabled={loading}
+                  className="bg-body text-body"
                   placeholder="0.00"
                 />
               </Form.Group>
-            </div>
-          </div>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Motif *</Form.Label>
+                <Form.Select
+                  value={motif}
+                  onChange={(e) => setMotif(e.target.value as MotifType | '')}
+                  disabled={loading}
+                  className="bg-body text-body"
+                >
+                  <option value="">-- Sélectionnez un motif --</option>
+                  <option value="Vente">Vente</option>
+                  <option value="Vente export">Vente export</option>
+                  <option value="Vente locale">Vente locale</option>
+                  <option value="Don">Don</option>
+                  <option value="Échantillon">Échantillon</option>
+                  <option value="Autre">Autre</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">
+                  {/* <TbCurrencyDollar className="me-1" /> */}
+                  Prix final (DT)
+                </Form.Label>
+                <Form.Control
+                  type="number"
+                  min={0}
+                  step={0.001}
+                  value={prixFinal}
+                  onChange={(e) => setPrixFinal(parseFloat(e.target.value) || 0)}
+                  disabled={loading}
+                  className="bg-body text-body"
+                  placeholder="0.000"
+                />
+              </Form.Group>
+            </Col>
+          </Row>
 
           <Form.Group className="mb-3">
-            <Form.Label className="fw-bold">Motif du transfert *</Form.Label>
-            <Form.Select
-              value={motif}
-              onChange={e => setMotif(e.target.value)}
-              size="lg"
-            >
-              <option value="">-- Sélectionnez un motif --</option>
-              <option value="Vente">Vente</option>
-              <option value="Vente export">Vente export</option>
-              <option value="Vente locale">Vente locale</option>
-              <option value="Livraison commande">Livraison commande</option>
-              <option value="Échange">Échange</option>
-              <option value="Don">Don</option>
-              <option value="Échantillon">Échantillon</option>
-              <option value="Autre">Autre</option>
-            </Form.Select>
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label className="fw-bold">Détails supplémentaires</Form.Label>
+            <Form.Label className="fw-semibold">Commentaire / nom libre</Form.Label>
             <Form.Control
               as="textarea"
               rows={3}
-              value={details}
-              onChange={e => setDetails(e.target.value)}
-              placeholder="Numéro de facture, commande, informations complémentaires..."
+              value={commentaire}
+              onChange={(e) => setCommentaire(e.target.value)}
+              disabled={loading}
+              className="bg-body text-body"
+              placeholder="Nom, remarque, facture, destination..."
             />
           </Form.Group>
 
-          {quantite > 0 && clientId && motif && (
-            <Alert variant="success">
-              <strong>📋 Résumé du transfert :</strong>
-              <ul className="mb-0 mt-2">
-                <li>
-                  Quantité : <strong>{quantite} {typeStock === 'olive' ? 'kg d\'olive' : 'L d\'huile'}</strong>
-                </li>
-                <li>Destinataire : <strong>{selectedClient?.nomPrenom}</strong></li>
-                <li>Motif : <strong>{motif}</strong></li>
-                <li>
-                  Nouveau stock total :{' '}
-                  <strong className="text-danger">
-                    {(stockDisponible - quantite).toFixed(2)} {typeStock === 'olive' ? 'kg' : 'L'}
-                  </strong>
-                </li>
-              </ul>
-            </Alert>
-          )}
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Nom fiche généré</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={nomPrenomCompose}
+                  readOnly
+                  className="bg-body text-body"
+                />
+              </Form.Group>
+            </Col>
+
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Nouveau stock estimé</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={`${formatNumber(nouveauStockEstime)} kg`}
+                  readOnly
+                  className="bg-body text-body"
+                />
+              </Form.Group>
+            </Col>
+          </Row>
         </Form>
       </Modal.Body>
-      <Modal.Footer>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            handleReset()
-            onHide()
-          }}
-          disabled={loading}
-        >
-          <TbX className="me-1" /> Annuler
+
+      <Modal.Footer className="border-top">
+        <Button variant="secondary" onClick={handleClose} disabled={loading}>
+          <TbX className="me-1" />
+          Annuler
         </Button>
+
         <Button variant="primary" onClick={handleTransfer} disabled={loading}>
           {loading ? (
             <>
               <span className="spinner-border spinner-border-sm me-2" />
-              Transfert en cours...
+              Enregistrement...
             </>
           ) : (
             <>
-              <TbRepeat className="me-1" /> Effectuer le transfert
+              <TbRepeat className="me-1" />
+              Enregistrer
             </>
           )}
         </Button>

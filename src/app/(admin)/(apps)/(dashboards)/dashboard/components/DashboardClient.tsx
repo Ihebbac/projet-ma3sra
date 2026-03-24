@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, ChangeEvent, useCallback, JSX } from 'react'
-import { Row, Col, Card, CardBody, Button, ButtonGroup, Form, Modal, Badge } from 'react-bootstrap'
+import { Row, Col, Card, CardBody, Button, ButtonGroup, Form, Modal, Badge, ProgressBar } from 'react-bootstrap'
 import {
   TbDropletFilled,
   TbChecklist,
@@ -9,20 +9,19 @@ import {
   TbChartBar,
   TbCash,
   TbTruck,
-  TbSettings,
-  TbUsers,
   TbPackage,
   TbDelta,
-  TbReceipt2,
   TbArrowsExchange,
   TbCashBanknote,
   TbRefresh,
   TbFilter,
   TbCalendar,
-  TbTrendingUp,
-  TbTrendingDown,
+  TbAlertTriangle,
+  TbCircleCheck,
+  TbClockHour4,
+  TbActivity,
 } from 'react-icons/tb'
-import { Line, Bar, Doughnut, Radar } from 'react-chartjs-2'
+import { Line, Bar, Doughnut } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
   LineElement,
@@ -31,7 +30,6 @@ import {
   PointElement,
   CategoryScale,
   LinearScale,
-  RadialLinearScale,
   Filler,
   Tooltip,
   Legend,
@@ -39,10 +37,8 @@ import {
 import { format } from 'date-fns'
 import CountUpClient from '@/components/client-wrapper/CountUpClient'
 
-// Register Chart.js components
-ChartJS.register(LineElement, BarElement, ArcElement, PointElement, CategoryScale, LinearScale, RadialLinearScale, Filler, Tooltip, Legend)
+ChartJS.register(LineElement, BarElement, ArcElement, PointElement, CategoryScale, LinearScale, Filler, Tooltip, Legend)
 
-// Types remain the same as your original
 type Client = {
   _id: string
   nomPrenom: string
@@ -103,17 +99,41 @@ type Employe = {
   joursTravailles: { date: string; heuresSup: number }[]
 }
 
+type ThemePalette = {
+  primary: string
+  primaryA: string
+  success: string
+  successA: string
+  danger: string
+  dangerA: string
+  warning: string
+  warningA: string
+  info: string
+  infoA: string
+  secondary: string
+  secondaryA: string
+  body: string
+  muted: string
+  grid: string
+  cardBg: string
+  cardBgSoft: string
+  border: string
+  shadow: string
+  badgeBg: string
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://192.168.1.15:8170'
 
-// Utils remain the same
 const inRange = (iso: string, from?: Date | null, to?: Date | null) => {
   const d = new Date(iso)
   if (from && d < from) return false
   if (to && d > to) return false
   return true
 }
+
 const sum = (arr: number[]) => arr.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0)
 const avg = (arr: number[]) => (arr.length ? sum(arr) / arr.length : 0)
+
 const groupByKey = <T,>(arr: T[], key: (x: T) => string) =>
   arr.reduce<Record<string, T[]>>((acc, item) => {
     const k = key(item)
@@ -123,12 +143,14 @@ const groupByKey = <T,>(arr: T[], key: (x: T) => string) =>
   }, {})
 
 const getVal = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-  e.target && typeof (e.target as any).value !== 'undefined' ? (e.target as any).value : ''
+  e.target && typeof (e.target as HTMLInputElement | HTMLSelectElement).value !== 'undefined'
+    ? (e.target as HTMLInputElement | HTMLSelectElement).value
+    : ''
+
 const getNum = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>, def = 0) => {
   const v = Number(getVal(e))
   return Number.isFinite(v) ? v : def
 }
-const getChecked = (e: ChangeEvent<HTMLInputElement>) => !!(e.target && (e.target as HTMLInputElement).checked)
 
 const normalizeStatus = (s?: string) => (s ?? '').toString().normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ')
 
@@ -139,90 +161,258 @@ const classifyStatus = (s?: string): 'payé' | 'non payé' | 'other' => {
   return 'other'
 }
 
-// Modern Card Component
-const ModernCard = ({ children, className = '', hover = false }: { children: React.ReactNode; className?: string; hover?: boolean }) => (
+const formatMoney = (n: number) =>
+  new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(n || 0))
+
+const formatQty = (n: number) =>
+  new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(n || 0))
+
+const getThemePalette = (): ThemePalette => {
+  if (typeof document === 'undefined') {
+    return {
+      primary: 'rgb(13,110,253)',
+      primaryA: 'rgba(13,110,253,.20)',
+      success: 'rgb(25,135,84)',
+      successA: 'rgba(25,135,84,.20)',
+      danger: 'rgb(220,53,69)',
+      dangerA: 'rgba(220,53,69,.20)',
+      warning: 'rgb(255,193,7)',
+      warningA: 'rgba(255,193,7,.20)',
+      info: 'rgb(13,202,240)',
+      infoA: 'rgba(13,202,240,.20)',
+      secondary: 'rgb(108,117,125)',
+      secondaryA: 'rgba(108,117,125,.20)',
+      body: '#212529',
+      muted: '#6c757d',
+      grid: 'rgba(0,0,0,.08)',
+      cardBg: '#ffffff',
+      cardBgSoft: '#f8f9fa',
+      border: 'rgba(0,0,0,.08)',
+      shadow: '0 10px 30px rgba(0,0,0,.06)',
+      badgeBg: '#f1f3f5',
+    }
+  }
+
+  const root = document.documentElement
+  const attrTheme = root.getAttribute('data-bs-theme')
+  const computed = getComputedStyle(root)
+  const isDark =
+    attrTheme === 'dark' ||
+    (!attrTheme && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+  return {
+    primary: computed.getPropertyValue('--bs-primary').trim() || 'rgb(13,110,253)',
+    primaryA: isDark ? 'rgba(13,110,253,.28)' : 'rgba(13,110,253,.16)',
+    success: computed.getPropertyValue('--bs-success').trim() || 'rgb(25,135,84)',
+    successA: isDark ? 'rgba(25,135,84,.28)' : 'rgba(25,135,84,.16)',
+    danger: computed.getPropertyValue('--bs-danger').trim() || 'rgb(220,53,69)',
+    dangerA: isDark ? 'rgba(220,53,69,.28)' : 'rgba(220,53,69,.16)',
+    warning: computed.getPropertyValue('--bs-warning').trim() || 'rgb(255,193,7)',
+    warningA: isDark ? 'rgba(255,193,7,.28)' : 'rgba(255,193,7,.18)',
+    info: computed.getPropertyValue('--bs-info').trim() || 'rgb(13,202,240)',
+    infoA: isDark ? 'rgba(13,202,240,.28)' : 'rgba(13,202,240,.16)',
+    secondary: computed.getPropertyValue('--bs-secondary').trim() || 'rgb(108,117,125)',
+    secondaryA: isDark ? 'rgba(108,117,125,.28)' : 'rgba(108,117,125,.16)',
+    body: computed.getPropertyValue('--bs-body-color').trim() || (isDark ? '#e9ecef' : '#212529'),
+    muted: isDark ? 'rgba(233,236,239,.72)' : '#6c757d',
+    grid: isDark ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.08)',
+    cardBg: computed.getPropertyValue('--bs-body-bg').trim() || (isDark ? '#15171a' : '#ffffff'),
+    cardBgSoft: isDark ? '#1d2125' : '#f8f9fa',
+    border: isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)',
+    shadow: isDark ? '0 12px 30px rgba(0,0,0,.30)' : '0 10px 30px rgba(0,0,0,.06)',
+    badgeBg: isDark ? '#20242a' : '#f1f3f5',
+  }
+}
+
+const ModernCard = ({
+  children,
+  className = '',
+  hover = false,
+  palette,
+}: {
+  children: React.ReactNode
+  className?: string
+  hover?: boolean
+  palette: ThemePalette
+}) => (
   <Card
     className={`modern-card ${hover ? 'card-hover' : ''} ${className}`}
     style={{
-      border: 'none',
-      borderRadius: '12px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-      transition: 'all 0.3s ease',
+      border: `1px solid ${palette.border}`,
+      borderRadius: '18px',
+      boxShadow: palette.shadow,
+      background: palette.cardBg,
+      transition: 'all 0.25s ease',
     }}>
     {children}
   </Card>
 )
 
-// Enhanced Stat Card
+const SectionTitle = ({
+  title,
+  subtitle,
+  palette,
+}: {
+  title: string
+  subtitle?: string
+  palette: ThemePalette
+}) => (
+  <div className="mb-3">
+    <div className="fw-semibold" style={{ color: palette.body, fontSize: '1rem' }}>
+      {title}
+    </div>
+    {subtitle && (
+      <div className="small mt-1" style={{ color: palette.muted }}>
+        {subtitle}
+      </div>
+    )}
+  </div>
+)
+
 const StatCard = ({
   icon,
   color,
   title,
   value,
   suffix,
-  trend,
-  trendValue,
-  onOpenFilters,
   sub,
+  onOpenFilters,
   loading = false,
+  palette,
 }: {
   icon: JSX.Element
   color: 'primary' | 'success' | 'warning' | 'info' | 'secondary' | 'danger'
   title: string
   value: number
   suffix?: string
-  trend?: 'up' | 'down' | 'neutral'
-  trendValue?: string
-  onOpenFilters?: () => void
   sub?: string
+  onOpenFilters?: () => void
   loading?: boolean
+  palette: ThemePalette
 }) => {
-  const trendConfig = {
-    up: { color: 'success', icon: <TbTrendingUp /> },
-    down: { color: 'danger', icon: <TbTrendingDown /> },
-    neutral: { color: 'secondary', icon: null },
-  }[trend || 'neutral']
+  const bgMap = {
+    primary: palette.primaryA,
+    success: palette.successA,
+    warning: palette.warningA,
+    info: palette.infoA,
+    secondary: palette.secondaryA,
+    danger: palette.dangerA,
+  }
+
+  const textMap = {
+    primary: palette.primary,
+    success: palette.success,
+    warning: palette.warning,
+    info: palette.info,
+    secondary: palette.secondary,
+    danger: palette.danger,
+  }
 
   return (
-    <ModernCard hover>
-      <CardBody className="p-3">
-        <div className="d-flex justify-content-between align-items-start mb-2">
-          <div className={`stat-icon bg-${color}-subtle text-${color} rounded-2 p-2`} style={{ fontSize: '20px' }}>
+    <ModernCard hover palette={palette}>
+      <CardBody className="p-3 p-md-4">
+        <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
+          <div
+            className="rounded-3 d-inline-flex align-items-center justify-content-center"
+            style={{
+              width: 46,
+              height: 46,
+              background: bgMap[color],
+              color: textMap[color],
+              fontSize: 22,
+            }}>
             {icon}
           </div>
+
           {onOpenFilters && (
-            <Button variant="link" className="p-0 text-muted" onClick={onOpenFilters} style={{ minWidth: 'auto', padding: '4px!important' }}>
-              <TbFilter size={16} />
+            <Button
+              variant="link"
+              className="p-0 border-0 shadow-none"
+              onClick={onOpenFilters}
+              style={{ color: palette.muted, textDecoration: 'none' }}>
+              <TbFilter size={18} />
             </Button>
           )}
         </div>
 
-        <div className="mt-2">
-          <h4 className="fw-bold mb-1">
-            {loading ? (
-              <div className="placeholder-glow">
-                <span className="placeholder col-6"></span>
-              </div>
-            ) : (
-              <>
-                <CountUpClient end={Number(value) || 0} suffix={suffix} />
-                {trend && trend !== 'neutral' && (
-                  <Badge bg={`${trendConfig.color}-subtle`} text={trendConfig.color} className="ms-2" style={{ fontSize: '0.7em' }}>
-                    {trendConfig.icon} {trendValue}
-                  </Badge>
-                )}
-              </>
-            )}
-          </h4>
-          <p className="text-muted mb-1 small">{title}</p>
-          {sub && <p className="text-muted small mb-0">{sub}</p>}
+        <div className="fw-semibold mb-1" style={{ color: palette.muted, fontSize: '.9rem' }}>
+          {title}
+        </div>
+
+        <div className="fw-bold" style={{ color: palette.body, fontSize: '1.65rem', lineHeight: 1.2 }}>
+          {loading ? (
+            <div className="placeholder-glow">
+              <span className="placeholder col-7"></span>
+            </div>
+          ) : (
+            <CountUpClient end={Number(value) || 0} suffix={suffix} />
+          )}
+        </div>
+
+        {sub && (
+          <div className="small mt-2" style={{ color: palette.muted }}>
+            {sub}
+          </div>
+        )}
+      </CardBody>
+    </ModernCard>
+  )
+}
+
+const InsightCard = ({
+  title,
+  value,
+  subtitle,
+  icon,
+  tone,
+  palette,
+}: {
+  title: string
+  value: string
+  subtitle?: string
+  icon: JSX.Element
+  tone: 'success' | 'warning' | 'danger' | 'info'
+  palette: ThemePalette
+}) => {
+  const toneMap = {
+    success: { bg: palette.successA, color: palette.success },
+    warning: { bg: palette.warningA, color: palette.warning },
+    danger: { bg: palette.dangerA, color: palette.danger },
+    info: { bg: palette.infoA, color: palette.info },
+  }[tone]
+
+  return (
+    <ModernCard palette={palette}>
+      <CardBody className="p-3 d-flex align-items-center gap-3">
+        <div
+          className="rounded-3 d-inline-flex align-items-center justify-content-center"
+          style={{ width: 44, height: 44, background: toneMap.bg, color: toneMap.color, fontSize: 20 }}>
+          {icon}
+        </div>
+        <div className="flex-grow-1">
+          <div className="small" style={{ color: palette.muted }}>
+            {title}
+          </div>
+          <div className="fw-bold" style={{ color: palette.body, fontSize: '1.1rem' }}>
+            {value}
+          </div>
+          {subtitle && (
+            <div className="small mt-1" style={{ color: palette.muted }}>
+              {subtitle}
+            </div>
+          )}
         </div>
       </CardBody>
     </ModernCard>
   )
 }
 
-// Enhanced Date Filter Component
 const DateFilterSection = ({
   quick,
   setQuick,
@@ -239,38 +429,64 @@ const DateFilterSection = ({
   yearsOptions,
   onRefresh,
   onReset,
-}: any) => (
-  <ModernCard>
-    <CardBody className="py-3">
+  palette,
+}: {
+  quick: 'all' | 'today' | 'month' | 'year'
+  setQuick: (v: 'all' | 'today' | 'month' | 'year') => void
+  granularity: 'day' | 'month' | 'year'
+  setGranularity: (v: 'day' | 'month' | 'year') => void
+  year: string
+  setYear: (v: string) => void
+  month: string
+  setMonth: (v: string) => void
+  from: string
+  setFrom: (v: string) => void
+  to: string
+  setTo: (v: string) => void
+  yearsOptions: number[]
+  onRefresh: () => void
+  onReset: () => void
+  palette: ThemePalette
+}) => (
+  <ModernCard palette={palette}>
+    <CardBody className="py-3 py-md-4">
       <Row className="g-3 align-items-center">
-        <Col md="auto">
-          <div className="d-flex align-items-center gap-2">
-            <TbCalendar className="text-muted" />
-            <span className="fw-medium">Période</span>
+        <Col xl="auto">
+          <div className="d-flex align-items-center gap-2 fw-semibold" style={{ color: palette.body }}>
+            <TbCalendar />
+            <span>Période d’analyse</span>
           </div>
         </Col>
 
-        <Col md="auto">
-          <ButtonGroup size="sm">
+        <Col xl="auto">
+          <ButtonGroup size="sm" className="flex-wrap">
             {(['today', 'month', 'year', 'all'] as const).map((q) => (
-              <Button key={q} variant={quick === q ? 'primary' : 'outline-secondary'} onClick={() => setQuick(q)} className="rounded-2">
+              <Button
+                key={q}
+                variant={quick === q ? 'primary' : 'outline-secondary'}
+                onClick={() => setQuick(q)}
+                className="rounded-3">
                 {q === 'today' ? "Aujourd'hui" : q === 'month' ? 'Ce mois' : q === 'year' ? 'Cette année' : 'Tout'}
               </Button>
             ))}
           </ButtonGroup>
         </Col>
 
-        <Col md="auto">
-          <ButtonGroup size="sm">
+        <Col xl="auto">
+          <ButtonGroup size="sm" className="flex-wrap">
             {(['day', 'month', 'year'] as const).map((g) => (
-              <Button key={g} variant={granularity === g ? 'secondary' : 'outline-secondary'} onClick={() => setGranularity(g)} className="rounded-2">
+              <Button
+                key={g}
+                variant={granularity === g ? 'secondary' : 'outline-secondary'}
+                onClick={() => setGranularity(g)}
+                className="rounded-3">
                 {g === 'day' ? 'Jour' : g === 'month' ? 'Mois' : 'Année'}
               </Button>
             ))}
           </ButtonGroup>
         </Col>
 
-        <Col md={2}>
+        <Col xl={2} md={6}>
           <Form.Select
             size="sm"
             value={year}
@@ -279,10 +495,9 @@ const DateFilterSection = ({
               setYear(y)
               if (y === 'all') setMonth('all')
               setQuick('all')
-            }}
-            className="rounded-2">
+            }}>
             <option value="all">Toutes années</option>
-            {yearsOptions.map((y: number) => (
+            {yearsOptions.map((y) => (
               <option key={y} value={y}>
                 {y}
               </option>
@@ -290,7 +505,7 @@ const DateFilterSection = ({
           </Form.Select>
         </Col>
 
-        <Col md={2}>
+        <Col xl={2} md={6}>
           <Form.Select
             size="sm"
             value={month}
@@ -298,8 +513,7 @@ const DateFilterSection = ({
               setMonth(getVal(e))
               setQuick('all')
             }}
-            disabled={year === 'all'}
-            className="rounded-2">
+            disabled={year === 'all'}>
             <option value="all">Tous mois</option>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
@@ -309,41 +523,35 @@ const DateFilterSection = ({
           </Form.Select>
         </Col>
 
-        <Col md={2}>
+        <Col xl={2} md={6}>
           <Form.Control
             size="sm"
             type="date"
             value={from}
-            onChange={(e: any) => {
-              setFrom(getVal(e))
+            onChange={(e) => {
+              setFrom(getVal(e as any))
               setQuick('all')
             }}
-            className="rounded-2"
           />
         </Col>
 
-        <Col md={1} className="text-center">
-          <span className="text-muted">à</span>
-        </Col>
-
-        <Col md={2}>
+        <Col xl={2} md={6}>
           <Form.Control
             size="sm"
             type="date"
             value={to}
-            onChange={(e: any) => {
-              setTo(getVal(e))
+            onChange={(e) => {
+              setTo(getVal(e as any))
               setQuick('all')
             }}
-            className="rounded-2"
           />
         </Col>
 
-        <Col md="auto" className="d-flex gap-2">
-          <Button variant="outline-secondary" size="sm" onClick={onReset} className="rounded-2">
+        <Col xl="auto" className="d-flex gap-2 flex-wrap">
+          <Button variant="outline-secondary" size="sm" onClick={onReset} className="rounded-3">
             Réinitialiser
           </Button>
-          <Button variant="outline-primary" size="sm" onClick={onRefresh} className="rounded-2 d-flex align-items-center gap-1">
+          <Button variant="outline-primary" size="sm" onClick={onRefresh} className="rounded-3 d-flex align-items-center gap-1">
             <TbRefresh size={16} />
             Actualiser
           </Button>
@@ -353,9 +561,9 @@ const DateFilterSection = ({
   </ModernCard>
 )
 
-// Main Dashboard Component
 export default function ModernDashboardClient() {
-  // State declarations (same as original)
+  const [palette, setPalette] = useState<ThemePalette>(getThemePalette())
+
   const [quick, setQuick] = useState<'all' | 'today' | 'month' | 'year'>('month')
   const now = new Date()
   const todayISO = format(now, 'yyyy-MM-dd')
@@ -370,13 +578,13 @@ export default function ModernDashboardClient() {
 
   const [showModal, setShowModal] = useState<null | string>(null)
   const [kpiFilters, setKpiFilters] = useState({
-    oil: { minNisba: 0 },
+    oil: { minKattou3: 0 },
     olive: { minKattou3: 0 },
-    nisba: { min: 0, max: 100 },
+    kattou3: { min: 0, max: 100 },
     paid: { includeNonPaye: true },
     caisse: { type: 'all' as 'all' | 'credit' | 'debit' },
     fitoura: { status: 'all' as 'all' | 'TERMINE' | 'EN_COURS' },
-    clients: { status: 'all' as 'all' | 'payé' | 'non payé' },
+    clients: { status: 'all' as 'all' | 'payé' | 'non payé' | 'other' },
     caisses: { min: 0 },
     ecart: { min: 0 },
     trans: { type: 'all' as 'all' | 'huile' | 'olive' },
@@ -390,7 +598,43 @@ export default function ModernDashboardClient() {
   const [caisse, setCaisse] = useState<Caisse[]>([])
   const [employes, setEmployes] = useState<Employe[]>([])
 
-  // Data fetching and calculations remain the same as original
+  const syncTheme = useCallback(() => {
+    setPalette(getThemePalette())
+  }, [])
+
+  useEffect(() => {
+    syncTheme()
+
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+
+    const observer = new MutationObserver(() => {
+      syncTheme()
+    })
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-bs-theme', 'class', 'style'],
+    })
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => syncTheme()
+
+    if (media.addEventListener) {
+      media.addEventListener('change', onChange)
+    } else {
+      media.addListener(onChange)
+    }
+
+    return () => {
+      observer.disconnect()
+      if (media.removeEventListener) {
+        media.removeEventListener('change', onChange)
+      } else {
+        media.removeListener(onChange)
+      }
+    }
+  }, [syncTheme])
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
@@ -401,39 +645,38 @@ export default function ModernDashboardClient() {
         fetch(`${API_BASE}/caisse`).then((r) => r.json()),
         fetch(`${API_BASE}/employes`).then((r) => r.json()),
       ])
-  
-      // ✅ Sécuriser la structure des données
-      setClients(Array.isArray(c1) ? c1 : c1.data || [])
-      setFitoura(Array.isArray(f1) ? f1 : f1.data || [])
-      setTransactions(Array.isArray(t1) ? t1 : t1.data || [])
-      setCaisse(Array.isArray(ca1) ? ca1 : ca1.data || [])
-      setEmployes(Array.isArray(e1) ? e1 : e1.data || [])
+
+      setClients(Array.isArray(c1) ? c1 : c1?.data || [])
+      setFitoura(Array.isArray(f1) ? f1 : f1?.data || [])
+      setTransactions(Array.isArray(t1) ? t1 : t1?.data || [])
+      setCaisse(Array.isArray(ca1) ? ca1 : ca1?.data || [])
+      setEmployes(Array.isArray(e1) ? e1 : e1?.data || [])
     } catch (err) {
-      console.error("Erreur lors du chargement des données :", err)
+      console.error('Erreur lors du chargement des données :', err)
+      setClients([])
+      setFitoura([])
+      setTransactions([])
+      setCaisse([])
+      setEmployes([])
     } finally {
       setLoading(false)
     }
   }, [])
-  
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  // All your existing calculations and useMemo hooks remain exactly the same
-  const allDates = useMemo(() => [
-    ...(Array.isArray(clients) ? clients.map((x) => x.dateCreation) : []),
-    ...(Array.isArray(fitoura) ? fitoura.map((x) => x.createdAt || x.dateSortie) : []),
-    ...(Array.isArray(transactions) ? transactions.map((x) => x.date) : []),
-    ...(Array.isArray(caisse) ? caisse.map((x) => x.date) : []),
-    ...(Array.isArray(employes)
-      ? employes.flatMap((e) => [
-          ...(e.joursPayes || []),
-          ...(e.joursTravailles || []).map((j) => j.date),
-        ])
-      : []),
-  ], [clients, fitoura, transactions, caisse, employes])
-  
+  const allDates = useMemo(
+    () => [
+      ...clients.map((x) => x.dateCreation),
+      ...fitoura.map((x) => x.createdAt || x.dateSortie),
+      ...transactions.map((x) => x.date),
+      ...caisse.map((x) => x.date),
+      ...employes.flatMap((e) => [...(e.joursPayes || []), ...(e.joursTravailles || []).map((j) => j.date)]),
+    ],
+    [clients, fitoura, transactions, caisse, employes]
+  )
 
   const yearsOptions = useMemo(() => {
     const s = new Set<number>()
@@ -469,30 +712,36 @@ export default function ModernDashboardClient() {
       setTo('')
       setGranularity('month')
     }
-  }, [quick])
+  }, [quick, thisMonth, thisYear, todayISO])
 
   const fromDate = useMemo(() => (from ? new Date(from) : null), [from])
-  const toDate = useMemo(() => (to ? new Date(to + 'T23:59:59') : null), [to])
+  const toDate = useMemo(() => (to ? new Date(`${to}T23:59:59`) : null), [to])
 
-  const matchYearMonth = (iso: string) => {
-    const d = new Date(iso)
-    if (year !== 'all') {
-      if (d.getFullYear() !== Number(year)) return false
-      if (month !== 'all' && d.getMonth() + 1 !== Number(month)) return false
-    }
-    return true
-  }
-  const dateFilter = (iso: string) => !!iso && matchYearMonth(iso) && inRange(iso, fromDate, toDate)
+  const matchYearMonth = useCallback(
+    (iso: string) => {
+      const d = new Date(iso)
+      if (year !== 'all') {
+        if (d.getFullYear() !== Number(year)) return false
+        if (month !== 'all' && d.getMonth() + 1 !== Number(month)) return false
+      }
+      return true
+    },
+    [year, month]
+  )
 
-  const clientsF = useMemo(() => clients.filter((c) => dateFilter(c.dateCreation)), [clients, year, month, fromDate, toDate])
-  const fitouraF = useMemo(() => fitoura.filter((f) => dateFilter(f.createdAt || f.dateSortie)), [fitoura, year, month, fromDate, toDate])
-  const transactionsF = useMemo(() => transactions.filter((t) => dateFilter(t.date)), [transactions, year, month, fromDate, toDate])
-  const caisseF = useMemo(() => caisse.filter((ca) => dateFilter(ca.date)), [caisse, year, month, fromDate, toDate])
+  const dateFilter = useCallback(
+    (iso: string) => !!iso && matchYearMonth(iso) && inRange(iso, fromDate, toDate),
+    [matchYearMonth, fromDate, toDate]
+  )
 
-  // KPI calculations remain exactly the same
+  const clientsF = useMemo(() => clients.filter((c) => dateFilter(c.dateCreation)), [clients, dateFilter])
+  const fitouraF = useMemo(() => fitoura.filter((f) => dateFilter(f.createdAt || f.dateSortie)), [fitoura, dateFilter])
+  const transactionsF = useMemo(() => transactions.filter((t) => dateFilter(t.date)), [transactions, dateFilter])
+  const caisseF = useMemo(() => caisse.filter((ca) => dateFilter(ca.date)), [caisse, dateFilter])
+
   const kOil = useMemo(() => {
-    const { minNisba } = kpiFilters.oil
-    return sum(clientsF.filter((c) => Number(c.nisba ?? 0) >= minNisba).map((c) => Number(c.quantiteHuile || 0)))
+    const { minKattou3 } = kpiFilters.oil
+    return sum(clientsF.filter((c) => Number(c.kattou3 ?? 0) >= minKattou3).map((c) => Number(c.quantiteHuile || 0)))
   }, [clientsF, kpiFilters.oil])
 
   const kOlive = useMemo(() => {
@@ -500,10 +749,12 @@ export default function ModernDashboardClient() {
     return sum(clientsF.filter((c) => Number(c.kattou3 ?? 0) >= minKattou3).map((c) => Number(c.quantiteOliveNet || 0)))
   }, [clientsF, kpiFilters.olive])
 
-  const kNisba = useMemo(() => {
-    const arr = clientsF.map((c) => Number(c.nisba ?? 0)).filter((v) => v >= kpiFilters.nisba.min && v <= kpiFilters.nisba.max)
+  const kKattou3 = useMemo(() => {
+    const arr = clientsF
+      .map((c) => Number(c.kattou3 ?? 0))
+      .filter((v) => v >= kpiFilters.kattou3.min && v <= kpiFilters.kattou3.max)
     return avg(arr)
-  }, [clientsF, kpiFilters.nisba])
+  }, [clientsF, kpiFilters.kattou3])
 
   const kPaid = useMemo(() => {
     const filtered = clientsF.filter((c) => {
@@ -511,8 +762,9 @@ export default function ModernDashboardClient() {
       return kpiFilters.paid.includeNonPaye ? true : cls === 'payé' || cls === 'non payé'
     })
     const paidCount = filtered.filter((c) => classifyStatus(c.status) === 'payé').length
+    const nonPaidCount = filtered.filter((c) => classifyStatus(c.status) === 'non payé').length
     const pct = filtered.length ? (paidCount / filtered.length) * 100 : 0
-    return { paidCount, total: filtered.length, pct }
+    return { paidCount, nonPaidCount, total: filtered.length, pct }
   }, [clientsF, kpiFilters.paid])
 
   const kCaisse = useMemo(() => {
@@ -553,7 +805,7 @@ export default function ModernDashboardClient() {
   }, [clientsF, kpiFilters.ecart])
 
   const kCreditsClients = useMemo(() => {
-    return sum(caisseF.filter((x) => x.type === 'credit' && /payment\s*client/i.test(x.motif)).map((x) => x.montant))
+    return sum(caisseF.filter((x) => x.type === 'credit' && /payment\s*client/i.test(x.motif || '')).map((x) => x.montant))
   }, [caisseF])
 
   const kTransactionsCount = useMemo(() => {
@@ -564,65 +816,22 @@ export default function ModernDashboardClient() {
   const kPayroll = useMemo(() => {
     const includeOT = kpiFilters.payroll.includeOvertime
     let due = 0
+
     employes.forEach((e) => {
       const rows = (e.joursTravailles || []).filter((j) => dateFilter(j.date))
       const jours = rows.length
       const hs = includeOT ? sum(rows.map((r) => r.heuresSup || 0)) : 0
       due += jours * (e.montantJournalier || 0) + hs * (e.montantHeure || 0)
     })
-    const paid = sum(caisseF.filter((c) => c.type === 'debit' && /paiement\s*employ/i.test(c.motif)).map((c) => c.montant))
+
+    const paid = sum(caisseF.filter((c) => c.type === 'debit' && /paiement\s*employ/i.test(c.motif || '')).map((c) => c.montant))
     return { due, paid, remaining: due - paid }
-  }, [employes, caisseF, kpiFilters.payroll, year, month, fromDate, toDate])
+  }, [employes, caisseF, kpiFilters.payroll, dateFilter])
 
-  // Chart data calculations remain the same
-  const colors = {
-    primary: 'rgb(13,110,253)',
-    primaryA: 'rgba(13,110,253,.35)',
-    success: 'rgb(25,135,84)',
-    successA: 'rgba(25,135,84,.35)',
-    danger: 'rgb(220,53,69)',
-    dangerA: 'rgba(220,53,69,.35)',
-    warning: 'rgb(255,193,7)',
-    warningA: 'rgba(255,193,7,.35)',
-    info: 'rgb(13,202,240)',
-    infoA: 'rgba(13,202,240,.35)',
-    secondary: 'rgb(108,117,125)',
-    secondaryA: 'rgba(108,117,125,.35)',
-    body: '#212529',
-    grid: 'rgba(0,0,0,.1)',
-    cardBg: '#fff',
-    fontFamily: 'inherit',
-  }
-
-  const nf = useMemo(() => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }), [])
-  const dateKey = (iso: string) => {
-    const d = new Date(iso)
-    if (granularity === 'year') return String(d.getFullYear())
-    if (granularity === 'month') return format(d, 'yyyy-MM')
-    return format(d, 'yyyy-MM-dd')
-  }
-
-  const oilGroups = useMemo(() => groupByKey(clientsF, (c) => dateKey(c.dateCreation)), [clientsF, granularity])
-  const oilLabels = useMemo(() => Object.keys(oilGroups).sort(), [oilGroups])
-  const oilSeries = oilLabels.map((l) => sum(oilGroups[l].map((c) => c.quantiteHuile || 0)))
-
-  const cashGroups = useMemo(() => groupByKey(caisseF, (c) => dateKey(c.date)), [caisseF, granularity])
-  const cashLabels = useMemo(() => Object.keys(cashGroups).sort(), [cashGroups])
-  const creditsSeries = cashLabels.map((l) => sum(cashGroups[l].filter((x) => x.type === 'credit').map((x) => x.montant)))
-  const debitsSeries = cashLabels.map((l) => sum(cashGroups[l].filter((x) => x.type === 'debit').map((x) => x.montant)))
-  const cumulativeBalance = useMemo(() => {
-    let acc = 0
-    return cashLabels.map((_, i) => {
-      acc += (creditsSeries[i] || 0) - (debitsSeries[i] || 0)
-      return acc
-    })
-  }, [cashLabels, creditsSeries, debitsSeries])
-
-  const topClients = useMemo(() => [...clientsF].sort((a, b) => (b.quantiteHuile || 0) - (a.quantiteHuile || 0)).slice(0, 5), [clientsF])
-
-  const avgNisba = useMemo(() => avg(clientsF.map((c) => Number(c.nisba || 0))), [clientsF])
   const avgKattou3 = useMemo(() => avg(clientsF.map((c) => Number(c.kattou3 || 0))), [clientsF])
   const avgHuileParQfza = useMemo(() => avg(clientsF.map((c) => Number(c.huileParQfza || 0))), [clientsF])
+  const avgHuileParClient = useMemo(() => avg(clientsF.map((c) => Number(c.quantiteHuile || 0))), [clientsF])
+  const avgOliveParClient = useMemo(() => avg(clientsF.map((c) => Number(c.quantiteOliveNet || 0))), [clientsF])
 
   const clientsSubset = useMemo(() => {
     const s = kpiFilters.clients.status
@@ -630,61 +839,159 @@ export default function ModernDashboardClient() {
   }, [clientsF, kpiFilters.clients.status])
 
   const clientDistribution = useMemo(() => {
-    let paid = 0,
-      nonPaid = 0,
-      other = 0
+    let paid = 0
+    let nonPaid = 0
+    let other = 0
+
     clientsSubset.forEach((c) => {
       const cls = classifyStatus(c.status)
       if (cls === 'payé') paid++
       else if (cls === 'non payé') nonPaid++
       else other++
     })
+
     return { paid, nonPaid, other }
   }, [clientsSubset])
 
-  const fitouraGroups = useMemo(() => groupByKey(fitouraF, (f) => dateKey(f.createdAt || f.dateSortie)), [fitouraF, granularity])
-  const fitouraLabels = useMemo(() => Object.keys(fitouraGroups).sort(), [fitouraGroups])
-  const fitouraMontant = fitouraLabels.map((l) => sum(fitouraGroups[l].map((f) => Number(f.montantTotal || 0))))
-  const fitouraPoids = fitouraLabels.map((l) => sum(fitouraGroups[l].map((f) => Number(f.poidsNet || 0))))
+  const nf = useMemo(() => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }), [])
 
-  const transGroups = useMemo(() => groupByKey(transactionsF, (t) => dateKey(t.date)), [transactionsF, granularity])
+  const dateKey = useCallback(
+    (iso: string) => {
+      const d = new Date(iso)
+      if (granularity === 'year') return String(d.getFullYear())
+      if (granularity === 'month') return format(d, 'yyyy-MM')
+      return format(d, 'yyyy-MM-dd')
+    },
+    [granularity]
+  )
+
+  const oilGroups = useMemo(() => groupByKey(clientsF, (c) => dateKey(c.dateCreation)), [clientsF, dateKey])
+  const oilLabels = useMemo(() => Object.keys(oilGroups).sort(), [oilGroups])
+  const oilSeries = useMemo(() => oilLabels.map((l) => sum(oilGroups[l].map((c) => Number(c.quantiteHuile || 0)))), [oilLabels, oilGroups])
+  const oliveSeries = useMemo(() => oilLabels.map((l) => sum(oilGroups[l].map((c) => Number(c.quantiteOliveNet || 0)))), [oilLabels, oilGroups])
+  const kattou3Series = useMemo(() => oilLabels.map((l) => avg(oilGroups[l].map((c) => Number(c.kattou3 || 0)))), [oilLabels, oilGroups])
+
+  const cashGroups = useMemo(() => groupByKey(caisseF, (c) => dateKey(c.date)), [caisseF, dateKey])
+  const cashLabels = useMemo(() => Object.keys(cashGroups).sort(), [cashGroups])
+  const creditsSeries = useMemo(
+    () => cashLabels.map((l) => sum(cashGroups[l].filter((x) => x.type === 'credit').map((x) => Number(x.montant || 0)))),
+    [cashLabels, cashGroups]
+  )
+  const debitsSeries = useMemo(
+    () => cashLabels.map((l) => sum(cashGroups[l].filter((x) => x.type === 'debit').map((x) => Number(x.montant || 0)))),
+    [cashLabels, cashGroups]
+  )
+
+  const topClients = useMemo(
+    () => [...clientsF].sort((a, b) => Number(b.quantiteHuile || 0) - Number(a.quantiteHuile || 0)).slice(0, 5),
+    [clientsF]
+  )
+
+  const transGroups = useMemo(() => groupByKey(transactionsF, (t) => dateKey(t.date)), [transactionsF, dateKey])
   const transLabels = useMemo(() => Object.keys(transGroups).sort(), [transGroups])
-  const transHuile = transLabels.map((l) => sum(transGroups[l].filter((t) => t.typeStock === 'huile').map((t) => t.quantite)))
-  const transOlive = transLabels.map((l) => sum(transGroups[l].filter((t) => t.typeStock === 'olive').map((t) => t.quantite)))
+  const transHuile = useMemo(
+    () => transLabels.map((l) => sum(transGroups[l].filter((t) => t.typeStock === 'huile').map((t) => Number(t.quantite || 0)))),
+    [transLabels, transGroups]
+  )
+  const transOlive = useMemo(
+    () => transLabels.map((l) => sum(transGroups[l].filter((t) => t.typeStock === 'olive').map((t) => Number(t.quantite || 0)))),
+    [transLabels, transGroups]
+  )
 
-  const commonScales = {
-    x: { ticks: { color: colors.body }, grid: { color: colors.grid } },
-    y: { ticks: { color: colors.body }, grid: { color: colors.grid } },
-  }
-  const commonPlugins = {
-    legend: { position: 'top' as const, labels: { color: colors.body, usePointStyle: true } },
-    tooltip: {
-      enabled: true,
-      backgroundColor: colors.cardBg,
-      borderColor: colors.grid,
-      borderWidth: 1,
-      titleColor: colors.body,
-      bodyColor: colors.body,
-      usePointStyle: true,
-      callbacks: {
-        label: (ctx: any) => {
-          const raw =
-            typeof ctx.parsed === 'object' && ctx.parsed
-              ? Number.isFinite(ctx.parsed.y)
-                ? ctx.parsed.y
-                : Number.isFinite(ctx.parsed.x)
-                  ? ctx.parsed.x
+  const fitouraGroups = useMemo(() => groupByKey(fitouraF, (f) => dateKey(f.createdAt || f.dateSortie)), [fitouraF, dateKey])
+  const fitouraLabels = useMemo(() => Object.keys(fitouraGroups).sort(), [fitouraGroups])
+  const fitouraPoids = useMemo(
+    () => fitouraLabels.map((l) => sum(fitouraGroups[l].map((f) => Number(f.poidsNet || 0)))),
+    [fitouraLabels, fitouraGroups]
+  )
+  const fitouraMontant = useMemo(
+    () => fitouraLabels.map((l) => sum(fitouraGroups[l].map((f) => Number(f.montantTotal || 0)))),
+    [fitouraLabels, fitouraGroups]
+  )
+
+  const unpaidClients = useMemo(
+    () =>
+      [...clientsF]
+        .filter((c) => classifyStatus(c.status) === 'non payé')
+        .sort((a, b) => Number(b.prixFinal || 0) - Number(a.prixFinal || 0))
+        .slice(0, 5),
+    [clientsF]
+  )
+
+  const highDiffClients = useMemo(
+    () =>
+      [...clientsF]
+        .filter((c) => Math.abs(Number(c.differenceHuile || 0)) > 0)
+        .sort((a, b) => Math.abs(Number(b.differenceHuile || 0)) - Math.abs(Number(a.differenceHuile || 0)))
+        .slice(0, 5),
+    [clientsF]
+  )
+
+  const bestProductionDay = useMemo(() => {
+    if (!oilLabels.length) return null
+    let maxIndex = 0
+    oilSeries.forEach((v, i) => {
+      if (v > oilSeries[maxIndex]) maxIndex = i
+    })
+    return { label: oilLabels[maxIndex], value: oilSeries[maxIndex] || 0 }
+  }, [oilLabels, oilSeries])
+
+  const paymentRate = useMemo(() => {
+    const total = clientDistribution.paid + clientDistribution.nonPaid + clientDistribution.other
+    return total ? (clientDistribution.paid / total) * 100 : 0
+  }, [clientDistribution])
+
+  const commonScales = useMemo(
+    () => ({
+      x: {
+        ticks: { color: palette.muted },
+        grid: { color: palette.grid, drawBorder: false },
+      },
+      y: {
+        ticks: { color: palette.muted },
+        grid: { color: palette.grid, drawBorder: false },
+      },
+    }),
+    [palette]
+  )
+
+  const commonPlugins = useMemo(
+    () => ({
+      legend: {
+        position: 'top' as const,
+        labels: { color: palette.body, usePointStyle: true, boxWidth: 10, boxHeight: 10 },
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: palette.cardBgSoft,
+        borderColor: palette.border,
+        borderWidth: 1,
+        titleColor: palette.body,
+        bodyColor: palette.body,
+        displayColors: true,
+        usePointStyle: true,
+        callbacks: {
+          label: (ctx: any) => {
+            const raw =
+              typeof ctx.parsed === 'object' && ctx.parsed
+                ? Number.isFinite(ctx.parsed.y)
+                  ? ctx.parsed.y
+                  : Number.isFinite(ctx.parsed.x)
+                    ? ctx.parsed.x
+                    : 0
+                : Number.isFinite(ctx.parsed)
+                  ? ctx.parsed
                   : 0
-              : Number.isFinite(ctx.parsed)
-                ? ctx.parsed
-                : 0
-          const v = Number(raw) || 0
-          const name = ctx.dataset?.label ?? ctx.label ?? ''
-          return `${name}: ${nf.format(v)}`
+
+            const v = Number(raw) || 0
+            const name = ctx.dataset?.label ?? ctx.label ?? ''
+            return `${name}: ${nf.format(v)}`
+          },
         },
       },
-    },
-  }
+    }),
+    [palette, nf]
+  )
 
   const openModal = (key: keyof typeof kpiFilters) => setShowModal(key)
   const closeModal = () => setShowModal(null)
@@ -699,14 +1006,32 @@ export default function ModernDashboardClient() {
 
   return (
     <div className="modern-dashboard">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <Badge bg="light" text="dark" className="fs-6">
+      <div className="d-flex flex-wrap justify-content-end align-items-start gap-2 mb-4">
+        <Badge
+          pill
+          style={{
+            background: palette.badgeBg,
+            color: palette.body,
+            border: `1px solid ${palette.border}`,
+            fontWeight: 600,
+            padding: '0.65rem 0.9rem',
+          }}>
           {clientsF.length} clients
+        </Badge>
+
+        <Badge
+          pill
+          style={{
+            background: palette.badgeBg,
+            color: palette.body,
+            border: `1px solid ${palette.border}`,
+            fontWeight: 600,
+            padding: '0.65rem 0.9rem',
+          }}>
+          {formatQty(kOil)} kg huile
         </Badge>
       </div>
 
-      {/* Date Filter Section */}
       <DateFilterSection
         quick={quick}
         setQuick={setQuick}
@@ -723,24 +1048,312 @@ export default function ModernDashboardClient() {
         yearsOptions={yearsOptions}
         onRefresh={fetchData}
         onReset={handleReset}
+        palette={palette}
       />
-      <Row>
-        <Col lg={4}>
-          <ModernCard>
-            <CardBody>
-              <h6 className="card-title mb-3">Production d'huile</h6>
-              <div style={{ height: 250 }}>
+
+      <Row className="g-3 mt-1">
+        <Col xl={3} md={6}>
+          <StatCard
+            icon={<TbDropletFilled />}
+            color="primary"
+            title="Huile produite"
+            value={kOil}
+            suffix=" kg"
+            sub={`${formatQty(avgHuileParClient)} kg / client`}
+            onOpenFilters={() => openModal('oil')}
+            loading={loading}
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <StatCard
+            icon={<TbChecklist />}
+            color="success"
+            title="Olive nette"
+            value={kOlive}
+            suffix=" kg"
+            sub={`${formatQty(avgOliveParClient)} kg / client`}
+            onOpenFilters={() => openModal('olive')}
+            loading={loading}
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <StatCard
+            icon={<TbScale />}
+            color="warning"
+            title="Kattou3 moyen"
+            value={Number(kKattou3.toFixed(2))}
+            sub={`Huile/Qfza: ${formatQty(avgHuileParQfza)}`}
+            onOpenFilters={() => openModal('kattou3')}
+            loading={loading}
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <StatCard
+            icon={<TbCash />}
+            color="secondary"
+            title="Solde caisse"
+            value={Number(kCaisse.balance.toFixed(2))}
+            suffix=" DT"
+            sub={`+${formatMoney(kCaisse.credits)} / -${formatMoney(kCaisse.debits)}`}
+            onOpenFilters={() => openModal('caisse')}
+            loading={loading}
+            palette={palette}
+          />
+        </Col>
+      </Row>
+
+      <Row className="g-3 mt-1">
+        <Col xl={3} md={6}>
+          <StatCard
+            icon={<TbChartBar />}
+            color="info"
+            title="Clients payés"
+            value={Number(kPaid.pct.toFixed(1))}
+            suffix="%"
+            sub={`${kPaid.paidCount}/${kPaid.total} clients`}
+            onOpenFilters={() => openModal('paid')}
+            loading={loading}
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <StatCard
+            icon={<TbTruck />}
+            color="danger"
+            title="Fitoura nette"
+            value={kFitoura.poidsNet}
+            suffix=" kg"
+            sub={`${kFitoura.count} entrées | ${formatMoney(kFitoura.montantTotal)} DT`}
+            onOpenFilters={() => openModal('fitoura')}
+            loading={loading}
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <StatCard
+            icon={<TbPackage />}
+            color="success"
+            title="Nombre de caisses"
+            value={kNbCaisses}
+            sub={`${kClientsCount} clients filtrés`}
+            onOpenFilters={() => openModal('caisses')}
+            loading={loading}
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <StatCard
+            icon={<TbDelta />}
+            color="warning"
+            title="Écart huile"
+            value={Number(kEcartHuile.toFixed(2))}
+            suffix=" kg"
+            sub="Différence entre huile théorique et réelle"
+            onOpenFilters={() => openModal('ecart')}
+            loading={loading}
+            palette={palette}
+          />
+        </Col>
+      </Row>
+
+      <Row className="g-3 mt-1">
+        <Col xl={3} md={6}>
+          <InsightCard
+            title="Règlement clients"
+            value={`${formatQty(paymentRate)}%`}
+            subtitle={`${clientDistribution.paid} payés / ${clientDistribution.nonPaid} non payés`}
+            icon={<TbCircleCheck />}
+            tone="success"
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <InsightCard
+            title="Paie restante"
+            value={`${formatMoney(kPayroll.remaining)} DT`}
+            subtitle={`Prévu: ${formatMoney(kPayroll.due)} DT`}
+            icon={<TbCashBanknote />}
+            tone="danger"
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <InsightCard
+            title="Transactions stock"
+            value={`${kTransactionsCount}`}
+            subtitle={`${formatQty(sum(transHuile))} kg huile | ${formatQty(sum(transOlive))} kg olive`}
+            icon={<TbArrowsExchange />}
+            tone="info"
+            palette={palette}
+          />
+        </Col>
+
+        <Col xl={3} md={6}>
+          <InsightCard
+            title="Meilleur jour de production"
+            value={bestProductionDay ? `${formatQty(bestProductionDay.value)} kg` : '0 kg'}
+            subtitle={bestProductionDay ? bestProductionDay.label : 'Aucune donnée'}
+            icon={<TbActivity />}
+            tone="warning"
+            palette={palette}
+          />
+        </Col>
+      </Row>
+
+      <Row className="g-3 mt-2">
+        <Col lg={8}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Production d’huile et d’olive"
+                subtitle="Comparaison journalière / mensuelle / annuelle selon la période choisie"
+                palette={palette}
+              />
+              <div style={{ height: 320 }}>
                 <Line
                   data={{
                     labels: oilLabels,
                     datasets: [
                       {
-                        label: 'Huile (L)',
+                        label: 'Huile (kg)',
                         data: oilSeries,
-                        borderColor: colors.primary,
-                        backgroundColor: colors.primaryA,
+                        borderColor: palette.primary,
+                        backgroundColor: palette.primaryA,
+                        borderWidth: 2.5,
+                        tension: 0.35,
+                        fill: true,
+                      },
+                      {
+                        label: 'Olive nette (kg)',
+                        data: oliveSeries,
+                        borderColor: palette.success,
+                        backgroundColor: palette.successA,
+                        borderWidth: 2.5,
+                        tension: 0.35,
+                        fill: false,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: commonPlugins,
+                    scales: commonScales,
+                  }}
+                />
+              </div>
+            </CardBody>
+          </ModernCard>
+        </Col>
+
+        <Col lg={4}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle title="Répartition clients" subtitle="Statut réel des clients filtrés" palette={palette} />
+              <div style={{ height: 320 }}>
+                <Doughnut
+                  data={{
+                    labels: ['Payé', 'Non payé', 'Autre'],
+                    datasets: [
+                      {
+                        data: [clientDistribution.paid, clientDistribution.nonPaid, clientDistribution.other],
+                        backgroundColor: [palette.success, palette.danger, palette.secondary],
                         borderWidth: 2,
-                        tension: 0.4,
+                        borderColor: palette.cardBg,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      ...commonPlugins,
+                      legend: {
+                        position: 'bottom' as const,
+                        labels: { color: palette.body, usePointStyle: true, boxWidth: 10, boxHeight: 10 },
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </CardBody>
+          </ModernCard>
+        </Col>
+      </Row>
+
+      <Row className="g-3 mt-2">
+        <Col lg={6}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Mouvements de caisse"
+                subtitle="Suivi des crédits et débits en DT"
+                palette={palette}
+              />
+              <div style={{ height: 300 }}>
+                <Bar
+                  data={{
+                    labels: cashLabels,
+                    datasets: [
+                      {
+                        label: 'Crédits (DT)',
+                        data: creditsSeries,
+                        backgroundColor: palette.successA,
+                        borderColor: palette.success,
+                        borderWidth: 1.5,
+                      },
+                      {
+                        label: 'Débits (DT)',
+                        data: debitsSeries,
+                        backgroundColor: palette.dangerA,
+                        borderColor: palette.danger,
+                        borderWidth: 1.5,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: commonPlugins,
+                    scales: commonScales,
+                  }}
+                />
+              </div>
+            </CardBody>
+          </ModernCard>
+        </Col>
+
+        <Col lg={6}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Kattou3 moyen"
+                subtitle="Évolution moyenne du kattou3 sur la période"
+                palette={palette}
+              />
+              <div style={{ height: 300 }}>
+                <Line
+                  data={{
+                    labels: oilLabels,
+                    datasets: [
+                      {
+                        label: 'Kattou3',
+                        data: kattou3Series,
+                        borderColor: palette.warning,
+                        backgroundColor: palette.warningA,
+                        borderWidth: 2.5,
+                        tension: 0.35,
                         fill: true,
                       },
                     ],
@@ -756,165 +1369,74 @@ export default function ModernDashboardClient() {
             </CardBody>
           </ModernCard>
         </Col>
-        <Col lg={4}>
-          <ModernCard>
-            <CardBody>
-              <h6 className="card-title mb-3">Statut des clients</h6>
-              <div style={{ height: 250 }}>
-                <Doughnut
-                  data={{
-                    labels: ['Payé', 'Non payé'],
-                    datasets: [
-                      {
-                        data: [clientDistribution.paid, clientDistribution.nonPaid && clientDistribution.other],
-                        backgroundColor: [colors.success, colors.danger],
-                        borderWidth: 2,
-                        borderColor: colors.cardBg,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      ...commonPlugins,
-                      legend: { position: 'bottom' },
-                    },
-                  }}
-                />
-              </div>
-            </CardBody>
-          </ModernCard>
-        </Col>
-        <Col lg={4}>
-          <ModernCard>
-            <CardBody>
-              <h6 className="card-title mb-3">Mouvements de caisse</h6>
-              <div style={{ height: 250 }}>
-                <Bar
-                  data={{
-                    labels: cashLabels,
-                    datasets: [
-                      {
-                        label: 'Crédits',
-                        data: creditsSeries,
-                        backgroundColor: colors.successA,
-                        borderColor: colors.success,
-                        borderWidth: 1,
-                      },
-                      {
-                        label: 'Débits',
-                        data: debitsSeries,
-                        backgroundColor: colors.dangerA,
-                        borderColor: colors.danger,
-                        borderWidth: 1,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: commonPlugins,
-                    scales: commonScales,
-                  }}
-                />
-              </div>
-            </CardBody>
-          </ModernCard>
-        </Col>
       </Row>
-      {/* KPI Cards - Modern Layout */}
-      <Row className="g-3 mt-3">
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbDropletFilled />}
-            color="primary"
-            title="Huile produite"
-            value={kOil}
-            suffix=" L"
-            onOpenFilters={() => openModal('oil')}
-            loading={loading}
-          />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbChecklist />}
-            color="success"
-            title="Olive nette"
-            value={kOlive}
-            suffix=" kg"
-            onOpenFilters={() => openModal('olive')}
-            loading={loading}
-          />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbScale />}
-            color="warning"
-            title="Taux moyen"
-            value={Number(kNisba.toFixed(2))}
-            suffix="%"
-            onOpenFilters={() => openModal('nisba')}
-            loading={loading}
-          />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbChartBar />}
-            color="info"
-            title="Clients payés"
-            value={Number(kPaid.pct.toFixed(1))}
-            suffix="%"
-            sub={`${kPaid.paidCount}/${kPaid.total} clients`}
-            onOpenFilters={() => openModal('paid')}
-            loading={loading}
-          />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbCash />}
-            color="secondary"
-            title="Solde caisse"
-            value={Number(kCaisse.balance.toFixed(2))}
-            sub={`+${kCaisse.credits.toFixed(2)} / -${kCaisse.debits.toFixed(2)}`}
-            onOpenFilters={() => openModal('caisse')}
-            loading={loading}
-          />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbTruck />}
-            color="danger"
-            title="Fitoura"
-            value={kFitoura.poidsNet}
-            suffix=" kg"
-            sub={`${kFitoura.count} entrées`}
-            onOpenFilters={() => openModal('fitoura')}
-            loading={loading}
-          />
-        </Col>
-      </Row>
-      <Row>
-        <Col lg={12}>
-          <ModernCard>
-            <CardBody>
-              <h6 className="card-title mb-3">Top 5 clients - Production d'huile</h6>
-              <div style={{ height: 250 }}>
+
+      <Row className="g-3 mt-2">
+        <Col lg={6}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Top 5 clients — huile produite"
+                subtitle="Classement des meilleurs clients sur la période"
+                palette={palette}
+              />
+              <div style={{ height: 300 }}>
                 <Bar
                   data={{
                     labels: topClients.map((c) => c.nomPrenom),
                     datasets: [
                       {
-                        label: 'Huile (L)',
-                        data: topClients.map((c) => c.quantiteHuile || 0),
-                        backgroundColor: colors.primaryA,
-                        borderColor: colors.primary,
-                        borderWidth: 1,
+                        label: 'Huile (kg)',
+                        data: topClients.map((c) => Number(c.quantiteHuile || 0)),
+                        backgroundColor: palette.primaryA,
+                        borderColor: palette.primary,
+                        borderWidth: 1.5,
                       },
                     ],
                   }}
                   options={{
-                    indexAxis: 'y',
+                    indexAxis: 'y' as const,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: commonPlugins,
+                    scales: commonScales,
+                  }}
+                />
+              </div>
+            </CardBody>
+          </ModernCard>
+        </Col>
+
+        <Col lg={6}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Transactions stock"
+                subtitle="Mouvements huile / olive en kg"
+                palette={palette}
+              />
+              <div style={{ height: 300 }}>
+                <Bar
+                  data={{
+                    labels: transLabels,
+                    datasets: [
+                      {
+                        label: 'Huile (kg)',
+                        data: transHuile,
+                        backgroundColor: palette.infoA,
+                        borderColor: palette.info,
+                        borderWidth: 1.5,
+                      },
+                      {
+                        label: 'Olive (kg)',
+                        data: transOlive,
+                        backgroundColor: palette.successA,
+                        borderColor: palette.success,
+                        borderWidth: 1.5,
+                      },
+                    ],
+                  }}
+                  options={{
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: commonPlugins,
@@ -926,70 +1448,179 @@ export default function ModernDashboardClient() {
           </ModernCard>
         </Col>
       </Row>
-      {/* Secondary KPIs */}
+
       <Row className="g-3 mt-2">
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbUsers />}
-            color="primary"
-            title="Total clients"
-            value={kClientsCount}
-            onOpenFilters={() => openModal('clients')}
-            loading={loading}
-          />
+        <Col lg={6}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Fitoura"
+                subtitle="Poids net et montant total par période"
+                palette={palette}
+              />
+              <div style={{ height: 300 }}>
+                <Bar
+                  data={{
+                    labels: fitouraLabels,
+                    datasets: [
+                      {
+                        label: 'Poids net (kg)',
+                        data: fitouraPoids,
+                        backgroundColor: palette.warningA,
+                        borderColor: palette.warning,
+                        borderWidth: 1.5,
+                      },
+                      {
+                        label: 'Montant total (DT)',
+                        data: fitouraMontant,
+                        backgroundColor: palette.secondaryA,
+                        borderColor: palette.secondary,
+                        borderWidth: 1.5,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: commonPlugins,
+                    scales: commonScales,
+                  }}
+                />
+              </div>
+            </CardBody>
+          </ModernCard>
         </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbPackage />}
-            color="success"
-            title="Nombre caisses"
-            value={kNbCaisses}
-            onOpenFilters={() => openModal('caisses')}
-            loading={loading}
-          />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbDelta />}
-            color="warning"
-            title="Écart huile"
-            value={Number(kEcartHuile.toFixed(2))}
-            suffix=" L"
-            onOpenFilters={() => openModal('ecart')}
-            loading={loading}
-          />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard icon={<TbReceipt2 />} color="info" title="Crédits clients" value={Number(kCreditsClients.toFixed(2))} loading={loading} />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbArrowsExchange />}
-            color="secondary"
-            title="Transactions"
-            value={kTransactionsCount}
-            onOpenFilters={() => openModal('trans')}
-            loading={loading}
-          />
-        </Col>
-        <Col xl={2} lg={4} md={6}>
-          <StatCard
-            icon={<TbCashBanknote />}
-            color="danger"
-            title="Paie restante"
-            value={Number(kPayroll.remaining.toFixed(2))}
-            sub={`Due: ${kPayroll.due.toFixed(2)}`}
-            onOpenFilters={() => openModal('payroll')}
-            loading={loading}
-          />
+
+        <Col lg={6}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Résumé métier"
+                subtitle="Indicateurs rapides pour décider plus vite"
+                palette={palette}
+              />
+
+              <div className="d-flex flex-column gap-3">
+                <div>
+                  <div className="d-flex justify-content-between small mb-1" style={{ color: palette.muted }}>
+                    <span>Taux de règlement clients</span>
+                    <span>{formatQty(paymentRate)}%</span>
+                  </div>
+                  <ProgressBar now={paymentRate} variant="success" style={{ height: 10 }} />
+                </div>
+
+                <div>
+                  <div className="d-flex justify-content-between small mb-1" style={{ color: palette.muted }}>
+                    <span>Kattou3 moyen</span>
+                    <span>{formatQty(avgKattou3)}</span>
+                  </div>
+                  <ProgressBar now={Math.max(0, Math.min(100, avgKattou3))} variant="warning" style={{ height: 10 }} />
+                </div>
+
+                <div className="summary-grid">
+                  <div className="summary-chip">
+                    <span className="summary-chip-label">Huile / client</span>
+                    <strong>{formatQty(avgHuileParClient)} kg</strong>
+                  </div>
+                  <div className="summary-chip">
+                    <span className="summary-chip-label">Olive / client</span>
+                    <strong>{formatQty(avgOliveParClient)} kg</strong>
+                  </div>
+                  <div className="summary-chip">
+                    <span className="summary-chip-label">Crédits clients</span>
+                    <strong>{formatMoney(kCreditsClients)} DT</strong>
+                  </div>
+                  <div className="summary-chip">
+                    <span className="summary-chip-label">Fitoura total</span>
+                    <strong>{formatMoney(kFitoura.montantTotal)} DT</strong>
+                  </div>
+                </div>
+              </div>
+            </CardBody>
+          </ModernCard>
         </Col>
       </Row>
 
-      {/* Charts Section */}
+      <Row className="g-3 mt-2">
+        <Col lg={6}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Clients non payés"
+                subtitle="Les plus importants à traiter en priorité"
+                palette={palette}
+              />
 
-      <Row className="g-3 mt-3"></Row>
+              <div className="d-flex flex-column gap-2">
+                {unpaidClients.length === 0 ? (
+                  <div className="empty-state" style={{ color: palette.muted }}>
+                    Aucun client non payé sur cette période.
+                  </div>
+                ) : (
+                  unpaidClients.map((c) => (
+                    <div key={c._id} className="list-line">
+                      <div className="d-flex align-items-center gap-2">
+                        <div className="list-icon danger">
+                          <TbClockHour4 />
+                        </div>
+                        <div>
+                          <div className="fw-semibold">{c.nomPrenom}</div>
+                          <div className="small text-muted">{c.numTelephone}</div>
+                        </div>
+                      </div>
+                      <div className="text-end">
+                        <div className="fw-semibold">{formatMoney(Number(c.prixFinal || 0))} DT</div>
+                        <div className="small text-muted">{formatQty(Number(c.quantiteHuile || 0))} kg huile</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardBody>
+          </ModernCard>
+        </Col>
 
-      {/* Keep your existing modal code exactly as is */}
+        <Col lg={6}>
+          <ModernCard palette={palette}>
+            <CardBody className="p-3 p-md-4">
+              <SectionTitle
+                title="Écarts huile à surveiller"
+                subtitle="Clients avec les plus grands écarts"
+                palette={palette}
+              />
+
+              <div className="d-flex flex-column gap-2">
+                {highDiffClients.length === 0 ? (
+                  <div className="empty-state" style={{ color: palette.muted }}>
+                    Aucun écart détecté sur cette période.
+                  </div>
+                ) : (
+                  highDiffClients.map((c) => (
+                    <div key={c._id} className="list-line">
+                      <div className="d-flex align-items-center gap-2">
+                        <div className="list-icon warning">
+                          <TbAlertTriangle />
+                        </div>
+                        <div>
+                          <div className="fw-semibold">{c.nomPrenom}</div>
+                          <div className="small text-muted">
+                            Kattou3: {formatQty(Number(c.kattou3 || 0))} | Huile/Qfza: {formatQty(Number(c.huileParQfza || 0))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-end">
+                        <div className="fw-semibold">{formatQty(Math.abs(Number(c.differenceHuile || 0)))} kg</div>
+                        <div className="small text-muted">Écart absolu</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardBody>
+          </ModernCard>
+        </Col>
+      </Row>
+
       <Modal show={!!showModal} onHide={closeModal} centered>
         <Modal.Header closeButton>
           <Modal.Title>
@@ -998,8 +1629,8 @@ export default function ModernDashboardClient() {
               ? 'Huile produite'
               : showModal === 'olive'
                 ? 'Olive nette'
-                : showModal === 'nisba'
-                  ? 'Taux (nisba)'
+                : showModal === 'kattou3'
+                  ? 'Kattou3'
                   : showModal === 'paid'
                     ? 'Clients payés'
                     : showModal === 'caisse'
@@ -1007,7 +1638,7 @@ export default function ModernDashboardClient() {
                       : showModal === 'fitoura'
                         ? 'Fitoura'
                         : showModal === 'clients'
-                          ? 'Clients (total)'
+                          ? 'Clients'
                           : showModal === 'caisses'
                             ? 'Nombre de caisses'
                             : showModal === 'ecart'
@@ -1019,23 +1650,195 @@ export default function ModernDashboardClient() {
                                   : ''}
           </Modal.Title>
         </Modal.Header>
+
         <Modal.Body>
-          {/* Your existing modal content remains exactly the same */}
           {showModal === 'oil' && (
             <Form.Group className="mb-3">
-              <Form.Label>Nisba minimale (%)</Form.Label>
+              <Form.Label>Kattou3 minimale</Form.Label>
               <Form.Range
                 min={0}
                 max={100}
                 step={0.5}
-                value={kpiFilters.oil.minNisba}
-                onChange={(e) => setKpiFilters((s) => ({ ...s, oil: { ...s.oil, minNisba: getNum(e) } }))}
+                value={kpiFilters.oil.minKattou3}
+                onChange={(e) => setKpiFilters((s) => ({ ...s, oil: { ...s.oil, minKattou3: getNum(e) } }))}
               />
-              <div className="small text-muted">{kpiFilters.oil.minNisba}%</div>
+              <div className="small text-muted">{kpiFilters.oil.minKattou3}</div>
             </Form.Group>
           )}
-          {/* ... rest of your modal content */}
+
+          {showModal === 'olive' && (
+            <Form.Group className="mb-3">
+              <Form.Label>Kattou3 minimale</Form.Label>
+              <Form.Range
+                min={0}
+                max={100}
+                step={0.5}
+                value={kpiFilters.olive.minKattou3}
+                onChange={(e) => setKpiFilters((s) => ({ ...s, olive: { ...s.olive, minKattou3: getNum(e) } }))}
+              />
+              <div className="small text-muted">{kpiFilters.olive.minKattou3}</div>
+            </Form.Group>
+          )}
+
+          {showModal === 'kattou3' && (
+            <>
+              <Form.Group className="mb-3">
+                <Form.Label>Kattou3 minimale</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={kpiFilters.kattou3.min}
+                  onChange={(e) => setKpiFilters((s) => ({ ...s, kattou3: { ...s.kattou3, min: getNum(e) } }))}
+                />
+              </Form.Group>
+              <Form.Group>
+                <Form.Label>Kattou3 maximale</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={kpiFilters.kattou3.max}
+                  onChange={(e) => setKpiFilters((s) => ({ ...s, kattou3: { ...s.kattou3, max: getNum(e, 100) } }))}
+                />
+              </Form.Group>
+            </>
+          )}
+
+          {showModal === 'paid' && (
+            <Form.Check
+              type="switch"
+              id="include-non-paye"
+              label="Inclure aussi les autres statuts"
+              checked={kpiFilters.paid.includeNonPaye}
+              onChange={(e) =>
+                setKpiFilters((s) => ({
+                  ...s,
+                  paid: { ...s.paid, includeNonPaye: e.target.checked },
+                }))
+              }
+            />
+          )}
+
+          {showModal === 'caisse' && (
+            <Form.Group>
+              <Form.Label>Type</Form.Label>
+              <Form.Select
+                value={kpiFilters.caisse.type}
+                onChange={(e) =>
+                  setKpiFilters((s) => ({
+                    ...s,
+                    caisse: { ...s.caisse, type: getVal(e) as 'all' | 'credit' | 'debit' },
+                  }))
+                }>
+                <option value="all">Tous</option>
+                <option value="credit">Crédits</option>
+                <option value="debit">Débits</option>
+              </Form.Select>
+            </Form.Group>
+          )}
+
+          {showModal === 'fitoura' && (
+            <Form.Group>
+              <Form.Label>Statut</Form.Label>
+              <Form.Select
+                value={kpiFilters.fitoura.status}
+                onChange={(e) =>
+                  setKpiFilters((s) => ({
+                    ...s,
+                    fitoura: { ...s.fitoura, status: getVal(e) as 'all' | 'TERMINE' | 'EN_COURS' },
+                  }))
+                }>
+                <option value="all">Tous</option>
+                <option value="TERMINE">TERMINE</option>
+                <option value="EN_COURS">EN_COURS</option>
+              </Form.Select>
+            </Form.Group>
+          )}
+
+          {showModal === 'clients' && (
+            <Form.Group>
+              <Form.Label>Statut client</Form.Label>
+              <Form.Select
+                value={kpiFilters.clients.status}
+                onChange={(e) =>
+                  setKpiFilters((s) => ({
+                    ...s,
+                    clients: { ...s.clients, status: getVal(e) as 'all' | 'payé' | 'non payé' | 'other' },
+                  }))
+                }>
+                <option value="all">Tous</option>
+                <option value="payé">Payé</option>
+                <option value="non payé">Non payé</option>
+                <option value="other">Autre</option>
+              </Form.Select>
+            </Form.Group>
+          )}
+
+          {showModal === 'caisses' && (
+            <Form.Group>
+              <Form.Label>Nombre minimal de caisses</Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                value={kpiFilters.caisses.min}
+                onChange={(e) =>
+                  setKpiFilters((s) => ({
+                    ...s,
+                    caisses: { ...s.caisses, min: getNum(e) },
+                  }))
+                }
+              />
+            </Form.Group>
+          )}
+
+          {showModal === 'ecart' && (
+            <Form.Group>
+              <Form.Label>Écart minimal (kg)</Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                value={kpiFilters.ecart.min}
+                onChange={(e) =>
+                  setKpiFilters((s) => ({
+                    ...s,
+                    ecart: { ...s.ecart, min: getNum(e) },
+                  }))
+                }
+              />
+            </Form.Group>
+          )}
+
+          {showModal === 'trans' && (
+            <Form.Group>
+              <Form.Label>Type de stock</Form.Label>
+              <Form.Select
+                value={kpiFilters.trans.type}
+                onChange={(e) =>
+                  setKpiFilters((s) => ({
+                    ...s,
+                    trans: { ...s.trans, type: getVal(e) as 'all' | 'huile' | 'olive' },
+                  }))
+                }>
+                <option value="all">Tous</option>
+                <option value="huile">Huile</option>
+                <option value="olive">Olive</option>
+              </Form.Select>
+            </Form.Group>
+          )}
+
+          {showModal === 'payroll' && (
+            <Form.Check
+              type="switch"
+              id="include-overtime"
+              label="Inclure les heures supplémentaires"
+              checked={kpiFilters.payroll.includeOvertime}
+              onChange={(e) =>
+                setKpiFilters((s) => ({
+                  ...s,
+                  payroll: { ...s.payroll, includeOvertime: e.target.checked },
+                }))
+              }
+            />
+          )}
         </Modal.Body>
+
         <Modal.Footer>
           <Button variant="secondary" onClick={closeModal}>
             Fermer
@@ -1043,7 +1846,6 @@ export default function ModernDashboardClient() {
         </Modal.Footer>
       </Modal>
 
-      {/* Add some custom CSS for modern look */}
       <style jsx>{`
         .modern-dashboard {
           padding: 1rem;
@@ -1051,15 +1853,82 @@ export default function ModernDashboardClient() {
 
         .modern-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
 
-        .stat-icon {
-          transition: all 0.3s ease;
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.75rem;
+          margin-top: 0.25rem;
         }
 
-        .modern-card:hover .stat-icon {
-          transform: scale(1.1);
+        .summary-chip {
+          border: 1px solid ${palette.border};
+          background: ${palette.cardBgSoft};
+          border-radius: 14px;
+          padding: 0.85rem 0.9rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.2rem;
+        }
+
+        .summary-chip-label {
+          font-size: 0.8rem;
+          color: ${palette.muted};
+        }
+
+        .list-line {
+          border: 1px solid ${palette.border};
+          background: ${palette.cardBgSoft};
+          border-radius: 14px;
+          padding: 0.85rem 0.95rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .list-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+        }
+
+        .list-icon.danger {
+          background: ${palette.dangerA};
+          color: ${palette.danger};
+        }
+
+        .list-icon.warning {
+          background: ${palette.warningA};
+          color: ${palette.warning};
+        }
+
+        .empty-state {
+          border: 1px dashed ${palette.border};
+          border-radius: 14px;
+          padding: 1rem;
+          text-align: center;
+          background: ${palette.cardBgSoft};
+        }
+
+        @media (max-width: 767px) {
+          .modern-dashboard {
+            padding: 0.75rem;
+          }
+
+          .summary-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .list-line {
+            flex-direction: column;
+            align-items: flex-start;
+          }
         }
       `}</style>
     </div>

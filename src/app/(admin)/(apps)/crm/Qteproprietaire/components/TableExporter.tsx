@@ -17,13 +17,13 @@ interface CustomerType {
 
 // 📍 Informations société
 const COMPANY_INFO = {
-  name: "Huillerie bouchema",
-  address: "Chebba",
-  mf: "XXXXXXXX",
-  rc: "XXXXXXX",
-  rib: "XXXXXXXX",
-  tvaRate: 0.19,
-  stampDuty: 0.0,
+  name: "المعصرة العصرية ",
+  address: "",
+  // mf: "XXXXXXXX",
+  // rc: "XXXXXXX",
+  // rib: "XXXXXXXX",
+  // tvaRate: 0.19,
+  // stampDuty: 0.0,
 };
 
 // ✅ Nombres comme l’ancien modèle : 10200.00 (pas de milliers)
@@ -128,8 +128,8 @@ export const exportToPDF = async (
     doc.setFontSize(9);
     doc.setTextColor(80);
     doc.text(`Adresse: ${COMPANY_INFO.address}`, margin, y + 5);
-    doc.text(`MF: ${COMPANY_INFO.mf} | RC: ${COMPANY_INFO.rc}`, margin, y + 9);
-    doc.text(`RIB: ${COMPANY_INFO.rib}`, margin, y + 13);
+    // doc.text(`MF: ${COMPANY_INFO.mf} | RC: ${COMPANY_INFO.rc}`, margin, y + 9);
+    // doc.text(`RIB: ${COMPANY_INFO.rib}`, margin, y + 13);
 
     // ✅ Titre changé (modifie ici comme tu veux)
     y += 24;

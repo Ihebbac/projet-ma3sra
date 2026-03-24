@@ -36,41 +36,35 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
   const [autoDate, setAutoDate] = useState<boolean>(true)
   const [clientId, setClientId] = useState<string>('')
 
-  // === EFFET POUR REMPLIR AUTOMATIQUEMENT LES CHAMPS ===
   useEffect(() => {
     if (clientId && clients && clients.length > 0) {
-      const selectedClient = clients.find((client: any) => client._id === clientId);
-  
+      const selectedClient = clients.find((client: any) => client._id === clientId)
+
       if (selectedClient) {
-        setFormValues(prev => ({
+        setFormValues((prev: any) => ({
           ...prev,
           nomPrenom: selectedClient.nomPrenom || '',
           numTelephone: selectedClient.numTelephone || '',
-          type: selectedClient.type || ''
-        }));
+          type: selectedClient.type || '',
+        }))
       }
     }
-  }, [clientId, clients]);
+  }, [clientId, clients])
 
   const getTodayDate = () => {
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   }
 
-  // dateCreation séparée pour éviter re-render Flatpickr
   const [dateCreation, setDateCreation] = useState<string>(getTodayDate())
-
-  // dernier champ édité pour la sync bidirectionnelle
   const [lastEdited, setLastEdited] = useState<'olive' | 'oliveNet' | null>(null)
 
-  // État initial du formulaire (dateCreation est géré séparément)
   const getInitialFormData = () => ({
-    nomPrenom: '', // Corrigé (était nomPrneom)
+    nomPrenom: '',
     prixKg: 0,
     numTelephone: '',
     type: 'فلاح',
-    commentaire: '', // Corrigé (était commentaire1)
-    // dateCreation retiré d'ici (géré dans dateCreation)
+    commentaire: '',
     nombreCaisses: 0,
     quantiteOlive: 0,
     quantiteHuile: 0,
@@ -89,7 +83,6 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
 
   const [formValues, setFormValues] = useState(getInitialFormData())
 
-  // Récupération automatique de la date via API si autoDate est activé
   const fetchInternetDate = async () => {
     try {
       const response = await fetch('https://worldtimeapi.org/api/timezone/Africa/Tunis')
@@ -111,7 +104,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
       setPrixKilo(0.2)
       setOpenOlive(true)
       setOpenHuile(true)
-      setClientId('') // Reset la sélection du client
+      setClientId('')
       ;(async () => {
         if (autoDate) {
           const apiDate = await fetchInternetDate()
@@ -125,7 +118,6 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, autoDate])
 
-  // === FORMULES (inchangées) ===
   const calculateNetQuantity = (olive: number, caisses: number) => Math.max(0, olive - caisses * POIDS_CAISSE)
 
   const calculateWibaAndQfza = (oliveNet: number, wiba: number) => {
@@ -153,31 +145,25 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
 
   const calculatePrixFinal = (huile: number, prixKg: number) => Math.round(huile > 0 && prixKg > 0 ? huile * prixKg : 0)
 
-  // ---- Sync bidirectionnelle : si user édite olive ou oliveNet ----
-  // Quand lastEdited === 'olive' => calcule quantiteOliveNet
-  // Quand lastEdited === 'oliveNet' => calcule quantiteOlive
   useEffect(() => {
-    // on lit les valeurs actuelles
     const olive = Number(formValues.quantiteOlive ?? 0)
     const oliveNet = Number(formValues.quantiteOliveNet ?? 0)
     const caisses = Number(formValues.nombreCaisses ?? 0)
 
     if (lastEdited === 'olive') {
       const computedNet = calculateNetQuantity(olive, caisses)
-      // n'écrase que si c'est différent (évite rerender inutile)
       if (computedNet !== oliveNet) {
-        setFormValues((prev) => ({ ...prev, quantiteOliveNet: computedNet }))
+        setFormValues((prev: any) => ({ ...prev, quantiteOliveNet: computedNet }))
       }
     } else if (lastEdited === 'oliveNet') {
       const computedOlive = oliveNet + caisses * POIDS_CAISSE
       if (computedOlive !== olive) {
-        setFormValues((prev) => ({ ...prev, quantiteOlive: computedOlive }))
+        setFormValues((prev: any) => ({ ...prev, quantiteOlive: computedOlive }))
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formValues.quantiteOlive, formValues.quantiteOliveNet, formValues.nombreCaisses, lastEdited])
 
-  // === RE-CALCUL AUTOMATIQUE (inchangé sauf qu'on respecte lastEdited pour quantiteOliveNet) ===
   useEffect(() => {
     const { quantiteOlive, nombreCaisses, quantiteHuile } = formValues
 
@@ -190,9 +176,8 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
     const huileParQfza = calculateHuileParQfza(quantiteHuile, oliveNet, poidsWiba)
     const prixFinal = calculatePrixFinal(oliveNet, prixKg)
 
-    setFormValues((prev) => ({
+    setFormValues((prev: any) => ({
       ...prev,
-      // Si l'utilisateur vient de modifier oliveNet manuellement, on ne l'écrase pas ici
       quantiteOliveNet: lastEdited === 'oliveNet' ? prev.quantiteOliveNet : oliveNet,
       nisba,
       kattou3,
@@ -205,7 +190,6 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
       prixFinal,
       prixKg: prixKg,
       nomutilisatuer: user?.email,
-      // NB: on N'ÉCRASE PAS dateCreation ici (il est géré séparément)
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formValues.quantiteOlive, formValues.nombreCaisses, formValues.quantiteHuile, poidsWiba, prixKg, lastEdited])
@@ -220,35 +204,30 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
     })
   }
 
-  // === CHANGEMENTS INPUT ===
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { // Ajout de HTMLTextAreaElement
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    
-    // Corrigé : 'commentaire' (au lieu de ' commentaire1')
     const isText = ['nomPrenom', 'type', 'dateCreation', 'commentaire'].includes(name)
 
-    // pour quantiteOlive ou quantiteOliveNet -> marquer lastEdited et set la valeur brute
     if (name === 'quantiteOlive') {
       setLastEdited('olive')
       const numeric = parseFloat(value) || 0
-      setFormValues((prev) => ({ ...prev, quantiteOlive: numeric }))
+      setFormValues((prev: any) => ({ ...prev, quantiteOlive: numeric }))
       return
     }
+
     if (name === 'quantiteOliveNet') {
       setLastEdited('oliveNet')
       const numeric = parseFloat(value) || 0
-      setFormValues((prev) => ({ ...prev, quantiteOliveNet: numeric }))
+      setFormValues((prev: any) => ({ ...prev, quantiteOliveNet: numeric }))
       return
     }
 
-    // autres champs
-    setFormValues((prev) => ({
+    setFormValues((prev: any) => ({
       ...prev,
-      [name]: isText ? value : parseFloat((value as any) as string) || 0,
+      [name]: isText ? value : parseFloat(value as string) || 0,
     }))
   }
 
-  // Flatpickr handler : on change on met à jour la state séparée dateCreation (string)
   const handleDateChange = (dates: Date[]) => {
     if (dates[0]) {
       const date = new Date(dates[0])
@@ -266,7 +245,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
         ...formValues,
         numTelephone: toNumber(formValues.numTelephone),
         prixKg: toNumber(formValues.prixKg),
-        dateCreation: dateCreation, // envoyer la date séparée
+        dateCreation: dateCreation,
       }
 
       const res = await fetch('http://192.168.1.15:8170/clients', {
@@ -277,6 +256,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
 
       if (!res.ok) throw new Error(await res.text())
       const created = await res.json()
+
       showAlert({
         icon: 'success',
         text: 'Client ajouté avec succès!',
@@ -284,6 +264,7 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
         timer: 1500,
         position: 'top-end',
       })
+
       onAdded?.(created)
       onClientSaved?.()
       onHide()
@@ -301,7 +282,6 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
 
   const format = (v: number) => (v > 0 ? v.toFixed(2) : '')
 
-  // === INTERFACE ===
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
       <Form onSubmit={handleSubmit}>
@@ -311,7 +291,6 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
 
         <Modal.Body>
           <Container fluid>
-            {/* --- Sélection du client --- */}
             <Row className="mb-3">
               <Col>
                 <Form.Group>
@@ -325,58 +304,70 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
               </Col>
             </Row>
 
-       
             <Row className="g-3 mb-4">
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Nom & Prénom</Form.Label>
-                  <Form.Control name="nomPrenom" value={formValues.nomPrenom} onChange={(e: any) => handleChange(e)} placeholder="Ex: Ahmed Trabelsi" />
+                  <Form.Control
+                    name="nomPrenom"
+                    value={formValues.nomPrenom}
+                    onChange={(e: any) => handleChange(e)}
+                    placeholder="Ex: Ahmed Trabelsi"
+                  />
                 </Form.Group>
               </Col>
-              
-              {/* === CHAMP COMMENTAIRE CORRIGÉ ET AGRANDI === */}
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Commentaire</Form.Label>
                   <Form.Control
-                    as="textarea" // <-- Rend le champ multi-lignes
-                    rows={3} // <-- Définit la hauteur par défaut
-                    name="commentaire" // <-- Corrigé (était 'commentaire')
-                    value={formValues.commentaire} // <-- Corrigé (était 'commentaire1')
+                    as="textarea"
+                    rows={3}
+                    name="commentaire"
+                    value={formValues.commentaire}
                     onChange={(e: any) => handleChange(e)}
                     placeholder="Ajouter un commentaire..."
                   />
                 </Form.Group>
               </Col>
-              {/* ============================================= */}
 
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Téléphone</Form.Label>
-                  <Form.Control name="numTelephone" value={formValues.numTelephone} onChange={(e: any) => handleChange(e)} placeholder="Ex: 96 458 362" />
+                  <Form.Control
+                    name="numTelephone"
+                    value={formValues.numTelephone}
+                    onChange={(e: any) => handleChange(e)}
+                    placeholder="Ex: 96 458 362"
+                  />
                 </Form.Group>
               </Col>
-              {/* <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Type</Form.Label>
-                  <Form.Select name="type" value={formValues.type} onChange={(e: any) => handleChange(e)}>
-                    <option value="">Sélectionner...</option>
-                    <option value="فلاح">فلاح</option>
-                    <option value="كيال">كيال</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col> */}
 
               <Col md={6}>
                 <Form.Group>
-                  <Form.Check type="switch" id="autoDateSwitch" label="Date automatique (API)" checked={autoDate} onChange={(e) => setAutoDate(e.target.checked)} />
-                  <Flatpickr className="form-control mt-2" value={dateCreation} onChange={handleDateChange} options={{ dateFormat: 'Y-m-d' }} disabled={autoDate} />
+                  <Form.Check
+                    type="switch"
+                    id="autoDateSwitch"
+                    label="Date automatique (API)"
+                    checked={autoDate}
+                    onChange={(e) => setAutoDate(e.target.checked)}
+                  />
+                  <Flatpickr
+                    className="form-control mt-2"
+                    value={dateCreation}
+                    onChange={handleDateChange}
+                    options={{ dateFormat: 'Y-m-d' }}
+                    disabled={autoDate}
+                  />
                 </Form.Group>
               </Col>
             </Row>
 
-            {/* --- Section Olive --- */}
-            <div className="d-flex justify-content-between align-items-center mb-2" style={{ cursor: 'pointer' }} onClick={() => setOpenOlive(!openOlive)}>
+            <div
+              className="d-flex justify-content-between align-items-center mb-2"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setOpenOlive(!openOlive)}
+            >
               <h4>🍃 Quantité d'olive</h4>
               {openOlive ? <ChevronUp /> : <ChevronDown />}
             </div>
@@ -386,27 +377,49 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nombre de caisses</Form.Label>
-                    <Form.Control type="number" name="nombreCaisses" value={formValues.nombreCaisses || ''} onChange={(e: any) => handleChange(e)} />
-                    <Form.Text className="text-muted">olive net = olive - (caisses × 30)</Form.Text>
+                    <Form.Control
+                      type="number"
+                      name="nombreCaisses"
+                      value={formValues.nombreCaisses || ''}
+                      onChange={(e: any) => handleChange(e)}
+                    />
+                    <Form.Text className="text-muted">
+                      olive net = olive - (caisses × 30)
+                    </Form.Text>
                   </Form.Group>
                 </Col>
+
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive (kg)</Form.Label>
-                    <Form.Control type="number" name="quantiteOlive" value={formValues.quantiteOlive || ''} onChange={(e: any) => handleChange(e)} />
+                    <Form.Control
+                      type="number"
+                      name="quantiteOlive"
+                      value={formValues.quantiteOlive || ''}
+                      onChange={(e: any) => handleChange(e)}
+                    />
                   </Form.Group>
                 </Col>
+
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Olive(Net kg) الزيتون</Form.Label>
-                    <Form.Control type="number" name="quantiteOliveNet" value={formValues.quantiteOliveNet || ''} onChange={(e: any) => handleChange(e)} />
+                    <Form.Control
+                      type="number"
+                      name="quantiteOliveNet"
+                      value={formValues.quantiteOliveNet || ''}
+                      onChange={(e: any) => handleChange(e)}
+                    />
                   </Form.Group>
                 </Col>
               </Row>
             )}
 
-            {/* --- Section Huile --- */}
-            <div className="d-flex justify-content-between align-items-center mb-2" style={{ cursor: 'pointer' }} onClick={() => setOpenHuile(!openHuile)}>
+            <div
+              className="d-flex justify-content-between align-items-center mb-2"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setOpenHuile(!openHuile)}
+            >
               <h4>🧴 Quantité d'huile & Rendement</h4>
               {openHuile ? <ChevronUp /> : <ChevronDown />}
             </div>
@@ -416,44 +429,68 @@ const CustomerModal: React.FC<any> = ({ show, onHide, onAdded, onClientSaved, us
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Quantité Huile (NET kg) الزيت</Form.Label>
-                    <Form.Control type="number" name="quantiteHuile" value={formValues.quantiteHuile || ''} onChange={(e: any) => handleChange(e)} />
+                    <Form.Control
+                      type="number"
+                      name="quantiteHuile"
+                      value={formValues.quantiteHuile || ''}
+                      onChange={(e: any) => handleChange(e)}
+                    />
                   </Form.Group>
                 </Col>
+
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Nisba % (النسبة)</Form.Label>
-                    <Form.Control type="number" name="nisba" value={format(formValues.nisba)} onChange={(e: any) => handleChange(e)} />
+                    <Form.Control
+                      type="number"
+                      name="nisba"
+                      value={format(formValues.nisba)}
+                      onChange={(e: any) => handleChange(e)}
+                    />
                     <Form.Text className="text-muted">= (huile / olive net) × 100</Form.Text>
                   </Form.Group>
                 </Col>
+
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Ktou3 (القطوع)</Form.Label>
-                    <Form.Control type="number" name="kattou3" value={format(formValues.kattou3)} onChange={(e: any) => handleChange(e)} />
+                    <Form.Control
+                      type="number"
+                      name="kattou3"
+                      value={format(formValues.kattou3)}
+                      onChange={(e: any) => handleChange(e)}
+                    />
                   </Form.Group>
                 </Col>
               </Row>
             )}
 
-            {/* --- Prix du kilo et Wiba --- */}
             <Row className="g-3 mb-4">
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>💵 Prix du kilo (DT/kg)</Form.Label>
-                  <Form.Control type="number" value={prixKg} onChange={(e) => setPrixKilo(parseFloat(e.target.value) || 0)} />
+                  <Form.Control
+                    type="number"
+                    value={prixKg}
+                    onChange={(e) => setPrixKilo(parseFloat(e.target.value) || 0)}
+                  />
                   <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
                 </Form.Group>
               </Col>
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>🪣 Quantité Wiba (KG)</Form.Label>
-                  <Form.Control type="number" value={poidsWiba} onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)} />
+                  <Form.Control
+                    type="number"
+                    value={poidsWiba}
+                    onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || POIDS_WIBA_DEFAUT)}
+                  />
                   <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
                 </Form.Group>
               </Col>
             </Row>
 
-            {/* --- Résumé des valeurs --- */}
             <Card className="p-3 mb-4 shadow-sm border-success">
               <Row className="text-center">
                 <Col>

@@ -1,40 +1,24 @@
-import React, { useState } from 'react'
-import { Modal, Button, Table, Container, Row, Col, Card, Collapse, Badge } from 'react-bootstrap'
-import {
-  User,
-  Calendar,
-  Phone,
-  Hash,
-  Box,
-  Droplet,
-  Percent,
-  Gauge,
-  ChevronDown,
-  ChevronUp,
-  Calculator,
-  Scale,
-  Package,
-  TrendingUp,
-  BarChart3,
-} from 'lucide-react'
+'use client'
 
-// Définitions de types (ajustées pour inclure tous les champs de l'API)
+import React, { useMemo, useState, useEffect } from 'react'
+import { Modal, Button, Table, Container, Row, Col, Card, Badge, Accordion, Alert, Form } from 'react-bootstrap'
+import { User, Calendar, Phone, Box, Droplet, Percent, Gauge, Calculator, Scale, Package, TrendingUp, BarChart3, Hash } from 'lucide-react'
+import QRCode from 'qrcode'
+
 type CustomerType = {
   _id: string
   nomPrenom: string
   numCIN: number
-  commentaire:string
+  commentaire: string
   numTelephone: number
   type: 'fallah' | 'kayyel' | string
-  dateCreation: string // format YYYY-MM-DD
+  dateCreation: string
   nombreCaisses?: number
   quantiteOlive?: number
   quantiteOliveNet?: number
   quantiteHuile?: number
   kattou3?: number
   nisba?: number
-
-  // Champs supplémentaires de calculs (selon votre exemple JSON)
   nisbaReelle?: number
   quantiteHuileTheorique?: number
   differenceHuile?: number
@@ -44,404 +28,510 @@ type CustomerType = {
   prixFinal?: number
   prixKg?: number
   nomutilisatuer: string
+  status?: 'payé' | 'non payé'
+  publicTrackingToken?: string
+  trackingEnabled?: boolean
 }
 
 type CustomerModalProps = {
   show: boolean
   onHide: () => void
   customer: CustomerType | null
+  onPrintQr?: (customer: CustomerType) => void
+  getPublicTrackingUrl?: (customer: CustomerType) => string
 }
 
-// Fonction pour formater la date
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
 const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr)
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  return `${day}-${month}-${year}`
+  const d = new Date(dateStr)
+  if (Number.isNaN(d.getTime())) return dateStr
+  return `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}`
 }
 
-/**
- * Fonction pour arrondir les nombres à 2 décimales et ajouter l'unité.
- */
 const formatValueAndRound = (value: number | undefined, unit: string = '', decimalPlaces: number = 2) => {
-  if (value === undefined || value === null) {
-    return '-'
-  }
+  if (value === undefined || value === null) return '-'
   return `${value.toFixed(decimalPlaces)}${unit}`
 }
 
-// Fonction pour déterminer la couleur du badge type
 const getTypeBadgeVariant = (type: string) => {
-  switch (type) {
-    case 'فلاح':
-      return 'success'
-    case 'كيال':
-      return 'primary'
-    default:
-      return 'secondary'
-  }
+  if (type === 'فلاح' || type === 'fallah') return 'success'
+  if (type === 'كيال' || type === 'kayyel') return 'primary'
+  return 'secondary'
 }
 
-const CustomerModalViewDetail = ({ show, onHide, customer, user }: any) => {
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const format = (v: number) => (v > 0 ? v.toFixed(3) : '')
-  console.log('customer', customer)
+const format3 = (v?: number) => (typeof v === 'number' && !Number.isNaN(v) ? v.toFixed(3) : '-')
 
-  if (!customer) return null
+function IconPill({ icon, text }: { icon: React.ReactNode; text: React.ReactNode }) {
+  return (
+    <div className="d-flex align-items-center gap-2 text-body-secondary small">
+      <span className="d-flex">{icon}</span>
+      <span>{text}</span>
+    </div>
+  )
+}
 
-  // Constantes pour les messages d'aide dans les calculs
+function KpiCard({
+  label,
+  value,
+  sub,
+  icon,
+  tone = 'primary',
+}: {
+  label: string
+  value: React.ReactNode
+  sub?: React.ReactNode
+  icon: React.ReactNode
+  tone?: 'primary' | 'success' | 'warning' | 'info' | 'danger' | 'secondary'
+}) {
+  const toneMap: Record<string, string> = {
+    primary: 'border-primary text-primary',
+    success: 'border-success text-success',
+    warning: 'border-warning text-warning',
+    info: 'border-info text-info',
+    danger: 'border-danger text-danger',
+    secondary: 'border-secondary text-secondary',
+  }
+
+  return (
+    <Card className="h-100 shadow-sm border-0 bg-body">
+      <Card.Body className="p-3">
+        <div className="d-flex justify-content-between align-items-start">
+          <div>
+            <div className="text-body-secondary small">{label}</div>
+            <div className="fs-5 fw-bold mt-1 text-body">{value}</div>
+            {sub ? <div className="text-body-secondary small mt-1">{sub}</div> : null}
+          </div>
+          <div className={`d-flex align-items-center justify-content-center rounded-3 border ${toneMap[tone]} px-2 py-1`}>{icon}</div>
+        </div>
+      </Card.Body>
+    </Card>
+  )
+}
+
+export default function CustomerModalViewDetail({ show, onHide, customer, onPrintQr, getPublicTrackingUrl }: CustomerModalProps) {
+  const [techOpen, setTechOpen] = useState(false)
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (show) setTechOpen(false)
+  }, [show])
+
+  useEffect(() => {
+    let mounted = true
+
+    const generateQr = async () => {
+      try {
+        if (!customer || !getPublicTrackingUrl) {
+          if (mounted) setQrCodeDataUrl('')
+          return
+        }
+
+        const url = getPublicTrackingUrl(customer)
+        if (!url) {
+          if (mounted) setQrCodeDataUrl('')
+          return
+        }
+
+        const dataUrl = await QRCode.toDataURL(url, {
+          width: 260,
+          margin: 1,
+        })
+
+        if (mounted) {
+          setQrCodeDataUrl(dataUrl)
+        }
+      } catch (error) {
+        console.error('Erreur génération QR:', error)
+        if (mounted) setQrCodeDataUrl('')
+      }
+    }
+
+    if (show) {
+      void generateQr()
+    } else {
+      setQrCodeDataUrl('')
+      setCopied(false)
+    }
+
+    return () => {
+      mounted = false
+    }
+  }, [show, customer, getPublicTrackingUrl])
+
   const POIDS_CAISSE = 30
   const POIDS_WIBA = 27
   const WIBA_PAR_QFIZ = 16
+  const masseVolumiqueHuile = 0.918
 
-  // Pré-calculs
-  const quantiteOliveNet = customer.quantiteOliveNet ?? Math.max(0, (customer.quantiteOlive ?? 0) - (customer.nombreCaisses ?? 0) * POIDS_CAISSE)
-  const nombreWiba = customer.nombreWiba ?? (quantiteOliveNet > 0 ? quantiteOliveNet / POIDS_WIBA : 0)
-  const nombreQfza = customer.nombreQfza ?? (nombreWiba > 0 ? nombreWiba / WIBA_PAR_QFIZ : 0)
-  const olive = customer.quantiteOliveNet?.toFixed(2) ?? '-'
-  const huile = customer.quantiteHuile?.toFixed(2) ?? '-'
-  const masseVolumiqueHuile = 0.918 // kg/L
+  const computed = useMemo(() => {
+    if (!customer) {
+      return {
+        quantiteOliveNet: 0,
+        nombreWiba: 0,
+        nombreQfza: 0,
+        GALBA: '-',
+        efficacite: 0,
+      }
+    }
 
-  const huileKg = customer.quantiteHuile ?? 0
-  const huileLitres = huileKg / masseVolumiqueHuile
-  const totalGalba = huileLitres / 10
+    const quantiteOliveNet = customer.quantiteOliveNet ?? Math.max(0, (customer.quantiteOlive ?? 0) - (customer.nombreCaisses ?? 0) * POIDS_CAISSE)
 
-  const galbaEntier = Math.floor(totalGalba)
-  const resteGalba = (totalGalba - galbaEntier).toFixed(1)
-  const huile_converti = huileLitres.toFixed(1)
-  const GALBA = `${galbaEntier} GALBA (${resteGalba} فاصل)`
-  // Calcul de l'efficacité
-  const efficacite = customer.nisbaReelle && customer.nisba ? ((customer.nisbaReelle - customer.nisba) / customer.nisba) * 100 : 0
+    const nombreWiba = customer.nombreWiba ?? (quantiteOliveNet > 0 ? quantiteOliveNet / POIDS_WIBA : 0)
+    const nombreQfza = customer.nombreQfza ?? (nombreWiba > 0 ? nombreWiba / WIBA_PAR_QFIZ : 0)
+
+    const huileKg = customer.quantiteHuile ?? 0
+    const huileLitres = huileKg / masseVolumiqueHuile
+    const totalGalba = huileLitres / 10
+    const galbaEntier = Math.floor(totalGalba)
+    const resteGalba = (totalGalba - galbaEntier).toFixed(1)
+    const GALBA = `${galbaEntier} GALBA (${resteGalba} فاصل)`
+
+    const efficacite = customer.nisbaReelle && customer.nisba ? ((customer.nisbaReelle - customer.nisba) / customer.nisba) * 100 : 0
+
+    return { quantiteOliveNet, nombreWiba, nombreQfza, GALBA, efficacite }
+  }, [customer])
+
+  if (!customer) {
+    return (
+      <Modal show={show} onHide={onHide} centered>
+        <Modal.Header closeButton className="bg-body-tertiary border-bottom">
+          <Modal.Title>Détails du client</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="bg-body">
+          <Alert variant="secondary" className="mb-0">
+            Aucun client sélectionné.
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer className="bg-body-tertiary border-top">
+          <Button variant="secondary" onClick={onHide}>
+            Fermer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    )
+  }
+
+  const addedBy = customer.nomutilisatuer?.split('@')?.[0] || 'Non défini'
+  const typeVariant = getTypeBadgeVariant(customer.type)
+  const trackingUrl = getPublicTrackingUrl ? getPublicTrackingUrl(customer) : ''
+  const trackingActive = customer.status !== 'payé' && customer.trackingEnabled !== false
+  const statusHuile = Number(customer.quantiteHuile ?? 0) > 0 ? 'Prêt' : 'En cours'
+
+  const handleCopyLink = async () => {
+    if (!trackingUrl) return
+
+    try {
+      await navigator.clipboard.writeText(trackingUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch (error) {
+      console.error('Erreur copie lien:', error)
+    }
+  }
 
   return (
-    <Modal show={show} onHide={onHide} size="xl" centered className="customer-detail-modal">
-      <Modal.Header closeButton className="bg-light border-bottom">
-        <Modal.Title className="d-flex align-items-center">
-          <User className="me-2 text-primary" size={24} />
-          <Row>
-            <Col xs>
-              {' '}
-              <div>
-                <div className="fw-bold fs-4">{customer.nomPrenom}</div>
-                <div className="text-muted fs-6">Détails du client</div>
+    <Modal show={show} onHide={onHide} size="xl" centered>
+      <Modal.Header closeButton className="bg-body-tertiary border-bottom">
+        <div className="w-100 d-flex flex-wrap justify-content-between align-items-start gap-2">
+          <div className="d-flex align-items-start gap-3">
+            <div
+              className="rounded-4 bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+              style={{ width: 44, height: 44 }}>
+              <User size={20} />
+            </div>
+
+            <div>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <div className="fw-bold fs-4 text-body">{customer.nomPrenom}</div>
+                <Badge bg={typeVariant} className="text-uppercase">
+                  {customer.type}
+                </Badge>
+                <Badge bg={statusHuile === 'Prêt' ? 'success' : 'warning'} text={statusHuile === 'Prêt' ? undefined : 'dark'}>
+                  Huile: {statusHuile}
+                </Badge>
               </div>
-            </Col>
-            <Col xs>
-              {' '}
-              <h3 className="mb-0 d-flex align-items-center">
-                <Badge bg="success">Ajouté par : {customer?.nomutilisatuer?.split('@')[0] || 'Non défini'}</Badge>
-              </h3>
-            </Col>
-          </Row>
-        </Modal.Title>
-      </Modal.Header>
 
-      <Modal.Body className="p-0">
-        <Container fluid className="py-3">
-          {/* Section 1: Informations du Client */}
-          <Card className="border-0 shadow-sm mb-4">
-            <Card.Body>
-              <Row className="g-3">
-                <Col xs>
-                  <div className="d-flex align-items-center p-3 bg-light rounded">
-                    <div className="bg-primary rounded-circle p-2 me-3">
-                      <User size={16} className="text-white" />
-                    </div>
-                    <div>
-                      <small className="text-muted d-block">Nom & Prénom</small>
-                      <h5 className="mb-0">{customer.nomPrenom}</h5>
-                    </div>
-                  </div>
-                </Col>
-
-                <Col xs>
-                  <div className="d-flex align-items-center p-3 bg-light rounded">
-                    <div className="bg-info rounded-circle p-2 me-3">
-                      <Phone size={16} className="text-white" />
-                    </div>
-                    <div>
-                      <small className="text-muted d-block">Téléphone</small>
-                      <h5 className="mb-0">{customer.numTelephone}</h5>
-                    </div>
-                  </div>
-                </Col>
-
-                <Col xs>
-                  <div className="d-flex align-items-center p-3 bg-light rounded">
-                    <div className="bg-warning rounded-circle p-2 me-3">
-                      <Box size={16} className="text-white" />
-                    </div>
-                    <div>
-                      <small className="text-muted d-block">Type</small>
-                      <Badge bg={getTypeBadgeVariant(customer.type)} className="fs-6">
-                        {customer.type}
-                      </Badge>
-                    </div>
-                  </div>
-                </Col>
-            
-
-                <Col xs>
-                  <div className="d-flex align-items-center p-3 bg-light rounded">
-                    <div className="bg-secondary rounded-circle p-2 me-3">
-                      <Calendar size={16} className="text-white" />
-                    </div>
-                    <div>
-                      <small className="text-muted d-block">Date de Création</small>
-                      <h5 className="mb-0">{formatDate(customer.dateCreation)}</h5>
-                    </div>
-                  </div>
-                </Col>
-              </Row>
-              <Row>
-              <Col >
-                  <div className="d-flex align-items-center p-3 bg-light rounded">
-                   
-                    <div>
-                      <small className="text-muted d-block">commentaire</small>
-                   
-                       <h3>{customer.commentaire}</h3> 
-                     
-                    </div>
-                  </div>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
-
-          {/* Section 2: Métriques Principales */}
-          <Card className="border-0 shadow-sm mb-4">
-            <Card.Header className=" border-bottom">
-              <h5 className="mb-0 d-flex align-items-center">
-                <BarChart3 className="me-2 text-success" size={20} />
-                Métriques de Production
-              </h5>
-            </Card.Header>
-            <Card.Body>
-              <Row className="g-3">
-                {/* Olive Brute et Caisses */}
-                <Col md={6} lg={3}>
-                  <Card className="border-start border-start-4 border-start-warning h-100">
-                    <Card.Body>
-                      <div className="d-flex align-items-center">
-                        <Package className="text-warning me-3" size={24} />
-                        <div>
-                          <small className="text-muted d-block">Olive Brute</small>
-                          <h4 className="mb-0">{formatValueAndRound(customer.quantiteOlive, ' kg')}</h4>
-                          <small className="text-muted">{customer.nombreCaisses ?? 0} caisses</small>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-
-                {/* Olive Nette */}
-                <Col md={6} lg={3}>
-                  <Card className="border-start border-start-4 border-start-success h-100">
-                    <Card.Body>
-                      <div className="d-flex align-items-center">
-                        <Scale className="text-success me-3" size={24} />
-                        <div>
-                          <small className="text-muted d-block">Olive Nette</small>
-                          <h4 className="mb-0">{formatValueAndRound(quantiteOliveNet, ' kg')}</h4>
-                          <small className="text-muted">Net après caisses</small>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-
-                {/* Huile Produite */}
-                <Col md={6} lg={3}>
-                  <Card className="border-start border-start-4 border-start-info h-100">
-                    <Card.Body>
-                      <div className="d-flex align-items-center">
-                        <Droplet className="text-info me-3" size={24} />
-                        <div>
-                          <small className="text-muted d-block">Huile Produite</small>
-                          <h4 className="mb-0">{formatValueAndRound(customer.quantiteHuile, ' kg')}</h4>
-                          <small className="text-muted">Production totale</small>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-
-                {/* Nisba */}
-                <Col md={6} lg={3}>
-                  <Card className="border-start border-start-4 border-start-primary h-100">
-                    <Card.Body>
-                      <div className="d-flex align-items-center">
-                        <Percent className="text-primary me-3" size={24} />
-                        <div>
-                          <small className="text-muted d-block">Nisba</small>
-                          <h4 className="mb-0">{formatValueAndRound(customer.nisba, ' %')}</h4>
-                          <small className="text-muted">Rendement</small>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={6} lg={3}>
-                  <Card className="border-start border-start-4 border-start-primary h-100">
-                    <Card.Body>
-                      <div className="d-flex align-items-center">
-                        <Percent className="text-primary me-3" size={24} />
-                        <div>
-                          <small className="text-muted d-block">GALBA</small>
-                          <h4 className="mb-0">{GALBA}</h4>
-                          <small className="text-muted">GALBA</small>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
-
-          {/* Section 3: Indicateurs de Performance */}
-          <Card className="border-0 shadow-sm mb-4">
-            <Card.Header className=" border-bottom">
-              <h5 className="mb-0 d-flex align-items-center">
-                <TrendingUp className="me-2 text-warning" size={20} />
-                Performance du Rendement
-              </h5>
-            </Card.Header>
-            <Card.Body>
-              <Row className="g-3">
-                <Col md={4}>
-                  <div className="text-center p-3 border rounded">
-                    <div className="fs-5 fw-bold text-primary">{formatValueAndRound(customer.nisbaReelle, '%')}</div>
-                    <small className="text-muted">النسبة الفعلية</small>
-                    <div className="mt-2">
-                      <Badge bg={customer.nisbaReelle && customer.nisba && customer.nisbaReelle > customer.nisba ? 'success' : 'danger'}>
-                        {customer.nisbaReelle && customer.nisba && customer.nisbaReelle > customer.nisba ? '+ ' : ''}
-                        {formatValueAndRound(efficacite, '%')}
-                      </Badge>
-                    </div>
-                  </div>
-                </Col>
-
-                <Col md={4}>
-                  <div className="text-center p-3 border rounded">
-                    <div className="fs-5 fw-bold text-success">{formatValueAndRound(customer.quantiteHuileTheorique, ' kg')}</div>
-                    <small className="text-muted">الزيت المتوقع</small>
-                  </div>
-                </Col>
-
-                <Col md={4}>
-                  <div className="text-center p-3 border rounded">
-                    <div className={`fs-5 fw-bold ${customer.differenceHuile && customer.differenceHuile > 0 ? 'text-success' : 'text-danger'}`}>
-                      {customer.differenceHuile && customer.differenceHuile > 0 ? '+' : ''}
-                      {formatValueAndRound(customer.differenceHuile, ' kg')}
-                    </div>
-                    <small className="text-muted">الفرق</small>
-                  </div>
-                </Col>
-              </Row>
-              <Row>
-                <Col md={4}>
-                  <div className="text-center p-3 border rounded">
-                    <div className={`fs-5 fw-bold ${customer.prixKg && customer.prixKg > 0 ? 'text-success' : 'text-danger'}`}>
-                      {customer.prixKg && customer.prixKg > 0 ? '+' : ''}
-                      {format(customer.prixKg)}
-                    </div>
-                    <small className="text-muted">Prix par Kg</small>
-                  </div>
-                </Col>
-                <Col md={4}>
-                  <div className="text-center p-3 border rounded">
-                    <div className={`fs-5 fw-bold ${customer.prixFinal && customer.prixFinal > 0 ? 'text-success' : 'text-danger'}`}>
-                      {customer.prixFinal && customer.prixFinal > 0 ? '+' : ''}
-                      {format(customer.prixFinal)}
-                    </div>
-                    <small className="text-muted">Montant totale en Dinar</small>
-                  </div>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
-
-          {/* Bouton Voir Plus / Voir Moins */}
-          <div className="text-center mb-4">
-            <Button variant="outline-primary" onClick={() => setShowAdvanced(!showAdvanced)} className="d-inline-flex align-items-center">
-              <Calculator size={16} className="me-2" />
-              {showAdvanced ? 'Masquer les détails techniques' : 'Afficher les détails techniques'}
-              {showAdvanced ? <ChevronUp size={16} className="ms-2" /> : <ChevronDown size={16} className="ms-2" />}
-            </Button>
+              <div className="d-flex flex-wrap gap-3 mt-1">
+                <IconPill icon={<Phone size={14} />} text={customer.numTelephone} />
+                <IconPill icon={<Hash size={14} />} text={`CIN: ${customer.numCIN}`} />
+                <IconPill icon={<Calendar size={14} />} text={formatDate(customer.dateCreation)} />
+                <IconPill icon={<Box size={14} />} text={`Ajouté par: ${addedBy}`} />
+              </div>
+            </div>
           </div>
 
-          {/* Section 4: Détails Techniques (Affichage conditionnel) */}
-          <Collapse in={showAdvanced}>
-            <div>
-              <Card className="border-0 shadow-sm">
-                <Card.Header className="bg-light border-bottom">
-                  <h5 className="mb-0 d-flex align-items-center">
-                    <Gauge className="me-2 text-secondary" size={20} />
-                    Détails Techniques des Calculs
-                  </h5>
-                </Card.Header>
+          <div className="text-end">
+            <Badge bg="secondary">ID: {customer._id}</Badge>
+          </div>
+        </div>
+      </Modal.Header>
+
+      <Modal.Body className="bg-body">
+        <Container fluid>
+          <Row className="g-3 mb-3">
+            <Col md={6} lg={3}>
+              <KpiCard
+                label="Olive brute"
+                value={formatValueAndRound(customer.quantiteOlive, ' kg')}
+                sub={`${customer.nombreCaisses ?? 0} caisses`}
+                icon={<Package size={18} />}
+                tone="warning"
+              />
+            </Col>
+
+            <Col md={6} lg={3}>
+              <KpiCard
+                label="Olive nette"
+                value={formatValueAndRound(computed.quantiteOliveNet, ' kg')}
+                sub="Après caisses"
+                icon={<Scale size={18} />}
+                tone="success"
+              />
+            </Col>
+
+            <Col md={6} lg={3}>
+              <KpiCard
+                label="Huile produite"
+                value={formatValueAndRound(customer.quantiteHuile, ' kg')}
+                sub="Production"
+                icon={<Droplet size={18} />}
+                tone="info"
+              />
+            </Col>
+
+            <Col md={6} lg={3}>
+              <KpiCard
+                label="Nisba"
+                value={formatValueAndRound(customer.nisba, ' %')}
+                sub={`GALBA: ${computed.GALBA}`}
+                icon={<Percent size={18} />}
+                tone="primary"
+              />
+            </Col>
+          </Row>
+
+          <Row className="g-3">
+            <Col lg={5}>
+              <Card className="shadow-sm border-0 mb-3 bg-body">
                 <Card.Body>
-                  <Row className="g-3">
-                    <Col md={6}>
-                      <Table bordered size="sm" className="mb-0">
-                        <tbody>
-                          <tr>
-                            <td className="fw-bold bg-light" style={{ width: '60%' }}>
-                              {' '}
-                              القطوع
-                            </td>
-                            <td>{formatValueAndRound(customer.kattou3)}</td>
-                          </tr>
-                          <tr>
-                            <td className="fw-bold bg-light"> الزيت في كل قفيز </td>
-                            <td>{formatValueAndRound(customer.huileParQfza, ' L/Qfiz')}</td>
-                          </tr>
-                          <tr>
-                            <td className="fw-bold bg-light">عدد الويبات الجملي</td>
-                            <td>{formatValueAndRound(customer.nombreWiba, '', 3)}</td>
-                          </tr>
-                        </tbody>
-                      </Table>
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <BarChart3 size={18} className="text-primary" />
+                    <div className="fw-semibold text-body">Informations</div>
+                  </div>
+
+                  <div className="p-3 rounded bg-body border">
+                    <div className="text-body-secondary small mb-1">Commentaire</div>
+                    <div className="fw-semibold text-body">{customer.commentaire || '-'}</div>
+                  </div>
+                </Card.Body>
+              </Card>
+              <Col>
+                <Card className="shadow-sm border-0 bg-body">
+                  <Card.Body>
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <Calculator size={18} className="text-secondary" />
+                      <div className="fw-semibold text-body">Conversion (lecture rapide)</div>
+                    </div>
+
+                    <Row className="g-2">
+                      <Col xs={6}>
+                        <div className="p-3 bg-body border rounded">
+                          <div className="text-body-secondary small">Wiba (calc)</div>
+                          <div className="fw-bold text-body">{formatValueAndRound(customer.nombreWiba ?? computed.nombreWiba, '', 3)}</div>
+                        </div>
+                      </Col>
+                      <Col xs={6}>
+                        <div className="p-3 bg-body border rounded">
+                          <div className="text-body-secondary small">Qfza (calc)</div>
+                          <div className="fw-bold text-body">{formatValueAndRound(customer.nombreQfza ?? computed.nombreQfza, '', 3)}</div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Card className="shadow-sm border-0 mb-3 bg-body">
+                <Card.Body>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <Hash size={18} className="text-success" />
+                    <div className="fw-semibold text-body">QR Code de suivi</div>
+                  </div>
+
+                  <div className="border rounded-3 p-3 text-center">
+                    {qrCodeDataUrl ? (
+                      <img src={qrCodeDataUrl} alt="QR Code suivi client" style={{ width: 220, height: 220, objectFit: 'contain' }} />
+                    ) : (
+                      <div className="text-muted small">QR indisponible</div>
+                    )}
+
+                    <div className="mt-3 d-flex justify-content-center gap-2 flex-wrap">
+                      <Badge bg={trackingActive ? 'success' : 'danger'}>QR {trackingActive ? 'actif' : 'désactivé'}</Badge>
+                      <Badge bg={customer.status === 'payé' ? 'success' : 'danger'}>
+                        Paiement: {customer.status === 'payé' ? 'Payé' : 'Non payé'}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-3">
+                      <Form.Control value={trackingUrl} readOnly className="text-center small" />
+                    </div>
+
+                    <div className="mt-3 d-flex justify-content-center gap-2 flex-wrap">
+                      <Button variant="outline-primary" size="sm" onClick={handleCopyLink} disabled={!trackingUrl}>
+                        {copied ? 'Lien copié' : 'Copier lien'}
+                      </Button>
+                      <Button variant="primary" size="sm" onClick={() => onPrintQr?.(customer)} disabled={!trackingUrl}>
+                        Imprimer QR
+                      </Button>
+                    </div>
+
+                    <div className="small text-muted mt-3">
+                      {trackingActive ? 'Le client peut encore consulter ce lien.' : 'Le lien est fermé automatiquement après paiement.'}
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            <Col lg={7}>
+              <Card className="shadow-sm border-0 mb-3 bg-body">
+                <Card.Body>
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <TrendingUp size={18} className="text-warning" />
+                    <div className="fw-semibold text-body">Performance</div>
+                  </div>
+
+                  <Row className="g-2">
+                    <Col md={4}>
+                      <div className="p-3 bg-body border rounded h-100 text-center">
+                        <div className="text-body-secondary small">النسبة الفعلية</div>
+                        <div className="fw-bold fs-5 text-body">{formatValueAndRound(customer.nisbaReelle, '%')}</div>
+                        <Badge bg={(customer.nisbaReelle ?? 0) > (customer.nisba ?? 0) ? 'success' : 'danger'} className="mt-2">
+                          {formatValueAndRound(computed.efficacite, '%')}
+                        </Badge>
+                      </div>
                     </Col>
-                    <Col md={6}>
-                      <Table bordered size="sm" className="mb-0">
-                        <tbody>
-                          <tr>
-                            <td className="fw-bold bg-light" style={{ width: '60%' }}>
-                              عدد القفزة
-                            </td>
-                            <td>{formatValueAndRound(customer.nombreQfza, '', 3)}</td>
-                          </tr>
-                          <tr>
-                            <td className="fw-bold bg-light">وزن القاجو</td>
-                            <td>{POIDS_CAISSE} kg</td>
-                          </tr>
-                          <tr>
-                            <td className="fw-bold bg-light">وزن الويبة</td>
-                            <td>{POIDS_WIBA} kg</td>
-                          </tr>
-                        </tbody>
-                      </Table>
+
+                    <Col md={4}>
+                      <div className="p-3 bg-body border rounded h-100 text-center">
+                        <div className="text-body-secondary small">الزيت المتوقع</div>
+                        <div className="fw-bold fs-5 text-body">{formatValueAndRound(customer.quantiteHuileTheorique, ' kg')}</div>
+                      </div>
+                    </Col>
+
+                    <Col md={4}>
+                      <div className="p-3 bg-body border rounded h-100 text-center">
+                        <div className="text-body-secondary small">الفرق</div>
+                        <div className={`fw-bold fs-5 ${(customer.differenceHuile ?? 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                          {(customer.differenceHuile ?? 0) > 0 ? '+' : ''}
+                          {formatValueAndRound(customer.differenceHuile, ' kg')}
+                        </div>
+                      </div>
                     </Col>
                   </Row>
                 </Card.Body>
               </Card>
-            </div>
-          </Collapse>
+
+              <Card className="shadow-sm border-0 bg-body">
+                <Card.Body>
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <BarChart3 size={18} className="text-success" />
+                    <div className="fw-semibold text-body">Prix</div>
+                  </div>
+
+                  <Row className="g-2">
+                    <Col md={6}>
+                      <div className="p-3 bg-body border rounded h-100">
+                        <div className="text-body-secondary small">Prix par Kg</div>
+                        <div className="fw-bold fs-5 text-body">{format3(customer.prixKg)}</div>
+                      </div>
+                    </Col>
+                    <Col md={6}>
+                      <div className="p-3 bg-body border rounded h-100">
+                        <div className="text-body-secondary small">Montant total (DT)</div>
+                        <div className="fw-bold fs-5 text-body">{format3(customer.prixFinal)}</div>
+                      </div>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            <Col xs={12}>
+              <Accordion activeKey={techOpen ? '0' : undefined} className="mt-2">
+                <Accordion.Item eventKey="0">
+                  <Accordion.Header onClick={() => setTechOpen((v) => !v)}>
+                    <div className="d-flex align-items-center gap-2">
+                      <Gauge size={18} className="text-secondary" />
+                      <span className="fw-semibold">Détails techniques (calculs)</span>
+                      <Badge bg="secondary" className="ms-2">
+                        optionnel
+                      </Badge>
+                    </div>
+                  </Accordion.Header>
+
+                  <Accordion.Body className="bg-body">
+                    <Row className="g-3">
+                      <Col md={6}>
+                        <Table bordered size="sm" className="mb-0">
+                          <tbody>
+                            <tr>
+                              <td className="fw-bold bg-body-tertiary" style={{ width: '60%' }}>
+                                القطوع
+                              </td>
+                              <td className="text-body">{formatValueAndRound(customer.kattou3)}</td>
+                            </tr>
+                            <tr>
+                              <td className="fw-bold bg-body-tertiary"> الزيت في كل قفيز </td>
+                              <td className="text-body">{formatValueAndRound(customer.huileParQfza, ' L/Qfiz')}</td>
+                            </tr>
+                            <tr>
+                              <td className="fw-bold bg-body-tertiary">عدد الويبات الجملي</td>
+                              <td className="text-body">{formatValueAndRound(customer.nombreWiba ?? computed.nombreWiba, '', 3)}</td>
+                            </tr>
+                          </tbody>
+                        </Table>
+                      </Col>
+
+                      <Col md={6}>
+                        <Table bordered size="sm" className="mb-0">
+                          <tbody>
+                            <tr>
+                              <td className="fw-bold bg-body-tertiary" style={{ width: '60%' }}>
+                                عدد القفزة
+                              </td>
+                              <td className="text-body">{formatValueAndRound(customer.nombreQfza ?? computed.nombreQfza, '', 3)}</td>
+                            </tr>
+                            <tr>
+                              <td className="fw-bold bg-body-tertiary">وزن القاجو</td>
+                              <td className="text-body">{POIDS_CAISSE} kg</td>
+                            </tr>
+                            <tr>
+                              <td className="fw-bold bg-body-tertiary">وزن الويبة</td>
+                              <td className="text-body">{POIDS_WIBA} kg</td>
+                            </tr>
+                          </tbody>
+                        </Table>
+                      </Col>
+                    </Row>
+
+                    <Alert variant="info" className="mt-3 mb-0">
+                      هذه التفاصيل تقنية فقط — التلخيص موجود في الأعلى.
+                    </Alert>
+                  </Accordion.Body>
+                </Accordion.Item>
+              </Accordion>
+            </Col>
+          </Row>
         </Container>
       </Modal.Body>
 
-      <Modal.Footer className="bg-light border-top">
+      <Modal.Footer className="bg-body-tertiary border-top d-flex justify-content-end">
         <Button variant="outline-secondary" onClick={onHide}>
           Fermer
         </Button>
-        <Button variant="primary">Exporter les Données</Button>
       </Modal.Footer>
     </Modal>
   )
 }
-
-export default CustomerModalViewDetail

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from 'react-bootstrap'
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle, Spinner } from 'react-bootstrap'
 
 type DeleteConfirmationModalProps = {
   show: boolean
@@ -12,6 +12,7 @@ type DeleteConfirmationModalProps = {
   modalTitle?: string
   confirmButtonText?: string
   cancelButtonText?: string
+  loading?: boolean
   children?: ReactNode
 }
 
@@ -20,35 +21,46 @@ const DeleteConfirmationModal = ({
   onHide,
   onConfirm,
   selectedCount,
-  itemName = 'row',
+  itemName = 'client',
   confirmButtonVariant = 'danger',
   cancelButtonVariant = 'light',
-  modalTitle = 'Confirm Deletion',
-  confirmButtonText = 'Delete',
-  cancelButtonText = 'Cancel',
+  modalTitle = 'Confirmation de suppression',
+  confirmButtonText = 'Supprimer',
+  cancelButtonText = 'Annuler',
+  loading = false,
   children,
 }: DeleteConfirmationModalProps) => {
   const getConfirmationMessage = () => {
     if (children) return children
 
     if (selectedCount > 1) {
-      return `Are you sure you want to delete these ${selectedCount} ${itemName}s?`
+      return `Voulez-vous vraiment supprimer ${selectedCount} ${itemName}s ?`
     }
-    return `Are you sure you want to delete this ${itemName}?`
+
+    return `Voulez-vous vraiment supprimer ce ${itemName} ?`
   }
 
   return (
-    <Modal show={show} onHide={onHide} centered>
-      <ModalHeader closeButton>
+    <Modal
+      show={show}
+      onHide={loading ? undefined : onHide}
+      centered
+      backdrop={loading ? 'static' : true}
+      keyboard={!loading}
+    >
+      <ModalHeader closeButton={!loading}>
         <ModalTitle>{modalTitle}</ModalTitle>
       </ModalHeader>
+
       <ModalBody>{getConfirmationMessage()}</ModalBody>
+
       <ModalFooter>
-        <Button variant={cancelButtonVariant} onClick={onHide}>
+        <Button variant={cancelButtonVariant} onClick={onHide} disabled={loading}>
           {cancelButtonText}
         </Button>
-        <Button variant={confirmButtonVariant} onClick={onConfirm}>
-          {confirmButtonText}
+
+        <Button variant={confirmButtonVariant} onClick={onConfirm} disabled={loading}>
+          {loading ? <Spinner size="sm" animation="border" /> : confirmButtonText}
         </Button>
       </ModalFooter>
     </Modal>
