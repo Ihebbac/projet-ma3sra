@@ -20,6 +20,8 @@ import {
   TbAlertTriangle,
   TbBell,
   TbBellRinging,
+  TbCalculator,
+  TbCash,
   TbCheck,
   TbEdit,
   TbEye,
@@ -28,6 +30,8 @@ import {
   TbPlus,
   TbRefresh,
   TbTrash,
+  TbTrendingUp,
+  TbTrendingDown,
 } from 'react-icons/tb'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
@@ -148,6 +152,8 @@ const isInvalidatedCaisse = (caisse?: Caisse | null) =>
       caisse?.caisseAlertStatus === 'pending',
   )
 
+const API_BASE_URL = 'http://localhost:8170'
+
 const CustomersCard = () => {
   const [data, setData] = useState<Caisse[]>([])
   const [filteredData, setFilteredData] = useState<Caisse[]>([])
@@ -167,6 +173,7 @@ const CustomersCard = () => {
     {},
   )
 
+  const [loading, setLoading] = useState(false)
   const [notifications, setNotifications] = useState<CaisseNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loadingNotifications, setLoadingNotifications] = useState(false)
@@ -192,8 +199,9 @@ const CustomersCard = () => {
   const isCaissier = user?.roles?.includes('caissier') ?? false
 
   const fetchCaisses = useCallback(async () => {
+    setLoading(true)
     try {
-      const res = await fetch('http://192.168.1.15:8170/caisse')
+      const res = await fetch(`${API_BASE_URL}/caisse`)
       if (!res.ok) throw new Error('Fetch caisses failed')
 
       const json = await res.json()
@@ -229,6 +237,8 @@ const CustomersCard = () => {
     } catch (err) {
       console.error('Error fetching caisses:', err)
       setData([])
+    } finally {
+      setLoading(false)
     }
   }, [])
 
@@ -236,7 +246,7 @@ const CustomersCard = () => {
     setLoadingNotifications(true)
 
     try {
-      const res = await fetch('http://192.168.1.15:8170/caisse/notifications/all')
+      const res = await fetch(`${API_BASE_URL}/caisse/notifications/all`)
       if (!res.ok) throw new Error('Fetch notifications failed')
 
       const json = await res.json()
@@ -273,7 +283,7 @@ const CustomersCard = () => {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const res = await fetch(
-        'http://192.168.1.15:8170/caisse/notifications/unread-count',
+        `${API_BASE_URL}/caisse/notifications/unread-count`,
       )
       if (!res.ok) throw new Error('Fetch unread count failed')
 
@@ -449,7 +459,7 @@ const CustomersCard = () => {
         setProcessingNotificationId(notificationId)
 
         const res = await fetch(
-          `http://192.168.1.15:8170/caisse/notifications/${notificationId}/read`,
+          `${API_BASE_URL}/caisse/notifications/${notificationId}/read`,
           { method: 'PATCH' },
         )
 
@@ -471,7 +481,7 @@ const CustomersCard = () => {
       try {
         setProcessingCaisseId(caisseId)
 
-        const res = await fetch(`http://192.168.1.15:8170/caisse/${caisseId}`, {
+        const res = await fetch(`${API_BASE_URL}/caisse/${caisseId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -503,7 +513,7 @@ const CustomersCard = () => {
         }
 
         const res = await fetch(
-          `http://192.168.1.15:8170/caisse/notifications/${notification._id}/resolve`,
+          `${API_BASE_URL}/caisse/notifications/${notification._id}/resolve`,
           { method: 'PATCH' },
         )
 
@@ -739,7 +749,6 @@ const CustomersCard = () => {
                 variant="danger"
                 size="sm"
                 className="px-2"
-                disabled
                 onClick={() => {
                   setSelectedRowIds({ [row.id]: true })
                   setShowDeleteModal(true)
@@ -812,7 +821,7 @@ const CustomersCard = () => {
 
     await Promise.all(
       [...idsToDelete].map((id) =>
-        fetch(`http://192.168.1.15:8170/caisse/${id}`, {
+        fetch(`${API_BASE_URL}/caisse/${id}`, {
           method: 'DELETE',
         }).catch(() => null),
       ),
@@ -863,20 +872,15 @@ const CustomersCard = () => {
       {(activeNotifications.length > 0 || activeAlertsCount > 0) && (
         <Row className="mb-3">
           <Col xs={12}>
-            <Card
-              className="border-danger"
-              style={{ background: 'rgba(220, 53, 69, 0.04)' }}
-            >
-              <CardHeader className="d-flex flex-wrap justify-content-between align-items-center gap-2 border-danger py-2">
+            <Card className="shadow-sm border-danger">
+              <CardHeader className="d-flex flex-wrap justify-content-between align-items-center gap-2 bg-danger-subtle border-danger py-2">
                 <div className="d-flex align-items-center gap-2">
                   {unreadCount > 0 ? (
                     <TbBellRinging className="text-danger fs-5" />
                   ) : (
                     <TbBell className="text-danger fs-5" />
                   )}
-                  <span className="fw-bold text-danger">
-                    Alertes caisse
-                  </span>
+                  <span className="fw-bold text-danger">Alertes caisse</span>
                 </div>
 
                 <div className="d-flex align-items-center gap-2">
@@ -887,86 +891,88 @@ const CustomersCard = () => {
                 </div>
               </CardHeader>
 
-              <div className="p-2">
+              <div className="p-3">
                 {loadingNotifications ? (
-                  <div className="d-flex align-items-center gap-2 text-muted">
+                  <div className="d-flex align-items-center gap-2 text-muted py-3 justify-content-center">
                     <Spinner animation="border" size="sm" />
-                    Chargement...
+                    Chargement des notifications...
                   </div>
                 ) : activeNotifications.length === 0 ? (
-                  <Alert variant="warning" className="mb-0 py-2">
-                    <div className="d-flex align-items-center gap-2">
-                      <TbAlertTriangle />
-                      <span>
-                        Des lignes sont signalées dans la caisse.
-                      </span>
-                    </div>
-                  </Alert>
+                  <div className="d-flex align-items-center gap-2 p-3 rounded-3 bg-warning-subtle text-warning">
+                    <TbAlertTriangle size={20} />
+                    <span className="fw-semibold">
+                      {activeAlertsCount > 0
+                        ? 'Des lignes sont signalées dans la caisse en attente de résolution.'
+                        : 'Aucune alerte active.'}
+                    </span>
+                  </div>
                 ) : (
                   <div className="d-flex flex-column gap-2">
                     {activeNotifications.map((notification) => (
-                      <Alert
+                      <div
                         key={notification._id}
-                        variant={notification.isRead ? 'warning' : 'danger'}
-                        className="mb-0 py-2"
+                        className={`p-3 rounded-3 border ${
+                          notification.isRead
+                            ? 'bg-warning-subtle border-warning-subtle'
+                            : 'bg-danger-subtle border-danger-subtle'
+                        }`}
                       >
-                        <div className="d-flex flex-column gap-2">
-                          <div className="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                            <div>
-                              <div className="fw-bold">{notification.title}</div>
-                              <div style={{ whiteSpace: 'pre-line' }}>
-                                {notification.message}
-                              </div>
-
-                              {notification.clientCreatedDate && (
-                                <div className="mt-1">
-                                  <Badge bg="secondary">
-                                    Date client : {formatDateDDMMYYYY(notification.clientCreatedDate)}
-                                  </Badge>
-                                </div>
+                        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                          <div className="flex-grow-1">
+                            <div className="fw-bold d-flex align-items-center gap-2 mb-1">
+                              {!notification.isRead && (
+                                <span className="badge bg-danger rounded-pill" style={{ width: 8, height: 8, padding: 0 }} />
                               )}
+                              {notification.title}
+                            </div>
+                            <div style={{ whiteSpace: 'pre-line' }} className="small">
+                              {notification.message}
+                            </div>
 
+                            <div className="d-flex flex-wrap gap-2 mt-2">
+                              {notification.clientCreatedDate && (
+                                <Badge bg="secondary">
+                                  Client: {formatDateDDMMYYYY(notification.clientCreatedDate)}
+                                </Badge>
+                              )}
                               {notification.createdAt && (
-                                <small className="text-muted d-block mt-1">
-                                  Date notification : {formatDateTimeDDMMYYYYHHMMSS(notification.createdAt)}
+                                <small className="text-muted">
+                                  {formatDateTimeDDMMYYYYHHMMSS(notification.createdAt)}
                                 </small>
                               )}
                             </div>
+                          </div>
 
-                            <div className="d-flex flex-wrap gap-2">
-                              {!notification.isRead && (
-                                <Button
-                                  size="sm"
-                                  variant="outline-dark"
-                                  disabled={processingNotificationId === notification._id}
-                                  onClick={() =>
-                                    handleMarkNotificationAsRead(notification._id)
-                                  }
-                                >
-                                  {processingNotificationId === notification._id ? (
-                                    <Spinner animation="border" size="sm" />
-                                  ) : (
-                                    'Marquer lue'
-                                  )}
-                                </Button>
-                              )}
-
+                          <div className="d-flex flex-wrap gap-2 flex-shrink-0">
+                            {!notification.isRead && (
                               <Button
                                 size="sm"
-                                variant="success"
+                                variant="outline-secondary"
                                 disabled={processingNotificationId === notification._id}
-                                onClick={() => handleResolveNotification(notification)}
+                                onClick={() => handleMarkNotificationAsRead(notification._id)}
                               >
                                 {processingNotificationId === notification._id ? (
                                   <Spinner animation="border" size="sm" />
                                 ) : (
-                                  'Clôturer / Corriger'
+                                  'Marquer lue'
                                 )}
                               </Button>
-                            </div>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="success"
+                              disabled={processingNotificationId === notification._id}
+                              onClick={() => handleResolveNotification(notification)}
+                            >
+                              {processingNotificationId === notification._id ? (
+                                <Spinner animation="border" size="sm" />
+                              ) : (
+                                'Clôturer'
+                              )}
+                            </Button>
                           </div>
                         </div>
-                      </Alert>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -978,54 +984,70 @@ const CustomersCard = () => {
 
       <Row className="g-3">
         <Col xl={3} md={6}>
-          <Card className="h-100">
-            <CardHeader className="border-light d-flex justify-content-between align-items-center">
-              Total net (Aujourd'hui)
-              <span
-                className={`fw-bold ${
-                  totalTodayNet >= 0 ? 'text-success' : 'text-danger'
-                }`}
-              >
-                {totalTodayNet >= 0 ? '+' : '-'} {fmtMoney(Math.abs(totalTodayNet))} DT
-              </span>
-            </CardHeader>
+          <Card className="h-100 shadow-sm border-0 bg-body">
+            <Card.Body className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-body-secondary small mb-1">Net (Aujourd'hui)</div>
+                  <div className={`fs-5 fw-bold ${totalTodayNet >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {totalTodayNet >= 0 ? '+' : '-'} {fmtMoney(Math.abs(totalTodayNet))} DT
+                  </div>
+                </div>
+                <div className={`rounded-3 px-2 py-1 ${totalTodayNet >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}>
+                  <TbCash size={20} />
+                </div>
+              </div>
+            </Card.Body>
           </Card>
         </Col>
 
         <Col xl={3} md={6}>
-          <Card className="h-100">
-            <CardHeader className="border-light d-flex justify-content-between align-items-center">
-              Crédit (Aujourd'hui)
-              <span className="fw-bold text-success">
-                + {fmtMoney(totalCreditToday)} DT
-              </span>
-            </CardHeader>
+          <Card className="h-100 shadow-sm border-0 bg-body">
+            <Card.Body className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-body-secondary small mb-1">Crédit (Aujourd'hui)</div>
+                  <div className="fs-5 fw-bold text-success">+ {fmtMoney(totalCreditToday)} DT</div>
+                </div>
+                <div className="rounded-3 bg-success-subtle text-success px-2 py-1">
+                  <TbTrendingUp size={20} />
+                </div>
+              </div>
+            </Card.Body>
           </Card>
         </Col>
 
         <Col xl={3} md={6}>
-          <Card className="h-100">
-            <CardHeader className="border-light d-flex justify-content-between align-items-center">
-              Débit (Aujourd'hui)
-              <span className="fw-bold text-danger">
-                - {fmtMoney(totalDebitToday)} DT
-              </span>
-            </CardHeader>
+          <Card className="h-100 shadow-sm border-0 bg-body">
+            <Card.Body className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-body-secondary small mb-1">Débit (Aujourd'hui)</div>
+                  <div className="fs-5 fw-bold text-danger">- {fmtMoney(totalDebitToday)} DT</div>
+                </div>
+                <div className="rounded-3 bg-danger-subtle text-danger px-2 py-1">
+                  <TbTrendingDown size={20} />
+                </div>
+              </div>
+            </Card.Body>
           </Card>
         </Col>
 
         <Col xl={3} md={6}>
-          <Card className="h-100">
-            <CardHeader className="border-light d-flex justify-content-between align-items-center">
-              Total (Filtre courant)
-              <span
-                className={`fw-bold ${
-                  filteredNet >= 0 ? 'text-success' : 'text-danger'
-                }`}
-              >
-                {filteredNet >= 0 ? '+' : '-'} {fmtMoney(Math.abs(filteredNet))} DT
-              </span>
-            </CardHeader>
+          <Card className="h-100 shadow-sm border-0 bg-body">
+            <Card.Body className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-body-secondary small mb-1">Total (Filtre courant)</div>
+                  <div className={`fs-5 fw-bold ${filteredNet >= 0 ? 'text-success' : 'text-danger'}`}>
+                    {filteredNet >= 0 ? '+' : '-'} {fmtMoney(Math.abs(filteredNet))} DT
+                  </div>
+                </div>
+                <div className={`rounded-3 px-2 py-1 ${filteredNet >= 0 ? 'bg-info-subtle text-info' : 'bg-warning-subtle text-warning'}`}>
+                  <TbCalculator size={20} />
+                </div>
+              </div>
+            </Card.Body>
           </Card>
         </Col>
       </Row>
@@ -1125,7 +1147,7 @@ const CustomersCard = () => {
               </div>
             </CardHeader>
 
-            <DataTable<Caisse> table={table} emptyMessage="Aucune caisse trouvée" />
+            <DataTable<Caisse> table={table} emptyMessage="Aucune caisse trouvée" loading={loading} />
 
             <CardFooter className="border-0">
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">

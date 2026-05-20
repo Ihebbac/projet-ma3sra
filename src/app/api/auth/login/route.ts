@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server'
 import { signSession } from '@/lib/jwt'
 
-const API = 'http://192.168.1.15:8170'
+const API = 'http://localhost:8170'
 
 function isHttps(req: Request) {
   const proto = req.headers.get('x-forwarded-proto')

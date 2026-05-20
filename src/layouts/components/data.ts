@@ -98,11 +98,11 @@ export const userDropdownItems: UserDropdownItemType[] = [
   // {
   //   isDivider: true,
   // },
-  {
-    label: 'Lock Screen',
-    icon: TbLock,
-    url: '/auth-1/lock-screen',
-  },
+  // {
+  //   label: 'Lock Screen',
+  //   icon: TbLock,
+  //   url: '/auth-2/sign-in',
+  // },
   {
     label: 'Log Out',
     icon: TbLogout2,
@@ -192,6 +192,7 @@ export const menuItems: MenuItemType[] = [
   { key: 'crm-achat-base',    icon: LuInbox, label: 'Achat base', url: '/crm/achatBase' },
   // { key: 'Export', label: 'Export',icon: LuHandshake, url: '/crm/Export' },
   { key: 'Stock propriétaire', label: 'Stock propriétaire', icon: FaStoreAlt, url: '/crm/Qteproprietaire' },
+  { key: 'citerne propriétaire', label: 'citerne propriétaire', icon: FaStoreAlt, url: '/crm/Qteproprietaire_citerne' },
   { key: 'TransfertStockproprietaire', label: 'TransfertStockproprietaire', icon: GiCardExchange, url: '/crm/TransfertStockproprietaire' },
   {
     key: 'Employés',
@@ -953,9 +954,9 @@ export const horizontalMenuItems: MenuItemType[] = [
           { key: 'reset-pass', label: 'Reset Password', url: '/auth-1/reset-password' },
           { key: 'new-pass', label: 'New Password', url: '/auth-1/new-password' },
           { key: 'two-factor', label: 'Two Factor', url: '/auth-1/two-factor' },
-          { key: 'lock-screen', label: 'Lock Screen', url: '/auth-1/lock-screen' },
+          { key: 'lock-screen', label: 'Lock Screen', url: '/auth-2/lock-screen' },
           { key: 'success-mail', label: 'Success Mail', url: '/auth-1/success-mail' },
-          { key: 'login-pin', label: 'Login with PIN', url: '/auth-1/login-pin' },
+          { key: 'login-pin', label: 'Login with PIN', url: '/auth-2/login-pin' },
           { key: 'delete-account', label: 'Delete Account', url: '/auth-1/delete-account' },
         ],
       },

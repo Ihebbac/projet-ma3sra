@@ -122,7 +122,7 @@ type ThemePalette = {
   badgeBg: string
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://192.168.1.15:8170'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8170'
 
 const inRange = (iso: string, from?: Date | null, to?: Date | null) => {
   const d = new Date(iso)
@@ -749,12 +749,14 @@ export default function ModernDashboardClient() {
     return sum(clientsF.filter((c) => Number(c.kattou3 ?? 0) >= minKattou3).map((c) => Number(c.quantiteOliveNet || 0)))
   }, [clientsF, kpiFilters.olive])
 
-  const kKattou3 = useMemo(() => {
-    const arr = clientsF
-      .map((c) => Number(c.kattou3 ?? 0))
-      .filter((v) => v >= kpiFilters.kattou3.min && v <= kpiFilters.kattou3.max)
-    return avg(arr)
-  }, [clientsF, kpiFilters.kattou3])
+ const [kKattou3, setKKattou3] = useState(0)
+
+useEffect(() => {
+  const arr = clientsF
+    .map((c) => Number(c.kattou3 ?? 0))
+    .filter((v) => v > 0 && v >= kpiFilters.kattou3.min && v <= kpiFilters.kattou3.max)
+  setKKattou3(arr.length > 0 ? avg(arr) : 0)
+}, [clientsF, kpiFilters.kattou3.min, kpiFilters.kattou3.max])
 
   const kPaid = useMemo(() => {
     const filtered = clientsF.filter((c) => {

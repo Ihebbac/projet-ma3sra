@@ -31,7 +31,7 @@ import {
   TbCalendar,
   TbUser,
 } from 'react-icons/tb'
-
+import { IoIosAdd } from "react-icons/io";
 import TransfertModal from './components/TransfertModal'
 import ViewTransactionModal, { printThermalTicket } from './components/ViewTransactionModal'
 import { ProprietaireType, TransactionType } from './types'
@@ -39,7 +39,7 @@ import { ProprietaireType, TransactionType } from './types'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
 
-const API_BASE_URL = 'http://192.168.1.15:8170'
+const API_BASE_URL = 'http://localhost:8170'
 
 const formatDateTime = (value?: string | Date) => {
   if (!value) return '-'
@@ -316,8 +316,8 @@ const TransfertStockProprietaire = () => {
           </Button>
 
           <Button variant="primary" size="sm" onClick={() => setShowTransfert(true)}>
-            <TbRepeat className="me-1" />
-            Retrait de stock
+            <IoIosAdd className="me-1" />
+            Enregistrer une vente
           </Button>
         </div>
       </div>

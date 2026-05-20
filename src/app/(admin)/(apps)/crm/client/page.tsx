@@ -5,6 +5,7 @@ import DataTable from '@/components/table/DataTable'
 import DeleteConfirmationModal from '@/components/table/DeleteConfirmationModal'
 import TablePagination from '@/components/table/TablePagination'
 import {
+  ColumnDef,
   createColumnHelper,
   getCoreRowModel,
   getFilteredRowModel,
@@ -16,38 +17,12 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import 'flatpickr/dist/flatpickr.css'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Flatpickr from 'react-flatpickr'
 import { CgUnavailable } from 'react-icons/cg'
 import { LuSearch } from 'react-icons/lu'
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  Col,
-  Container,
-  Dropdown,
-  Modal,
-  OverlayTrigger,
-  Row,
-  Tooltip,
-} from 'react-bootstrap'
-import {
-  TbCash,
-  TbChartBar,
-  TbEdit,
-  TbEye,
-  TbFileExport,
-  TbNote,
-  TbPlus,
-  TbPrinter,
-  TbQrcode,
-  TbRefresh,
-  TbTrash,
-} from 'react-icons/tb'
+import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Col, Container, Dropdown, Modal, OverlayTrigger, Row, Tooltip, Spinner } from 'react-bootstrap'
+import { TbCash, TbChartBar, TbEdit, TbEye, TbFileExport, TbNote, TbPlus, TbPrinter, TbQrcode, TbRefresh, TbTrash, TbDroplet, TbScale, TbShoppingBag, TbPercentage } from 'react-icons/tb'
 import CustomerEditModal from '../client/components/CustomerEditModal'
 import CustomerModalViewDetail from '../client/components/CustomerModalViewDetail'
 import CustomerModal from './components/CustomerModal'
@@ -58,12 +33,12 @@ import QRCode from 'qrcode'
 
 type CustomerType = {
   _id: string
-  numCIN: string
+  numCIN: number
   nomPrenom: string
   commentaire: string
   numTelephone: number
   type: string
-  dateCreation?: string | null
+  dateCreation: string
   nombreCaisses?: number
   quantiteOlive?: number
   quantiteHuile?: number
@@ -78,8 +53,8 @@ type CustomerType = {
   huileParQfza?: number
   prixFinal?: number
   prixKg?: number
-  status: 'payé' | 'non payé'
-  nomutilisatuer: string
+  status?: 'payé' | 'non payé'
+  nomutilisatuer?: string
   depotStatus?: 'pret' | 'en_cours'
   aImprimer?: boolean
   publicTrackingToken?: string
@@ -100,7 +75,51 @@ type DailyStatsType = {
 
 const columnHelper = createColumnHelper<CustomerType>()
 const ReactSwal = withReactContent(Swal)
-const API_BASE_URL = 'http://192.168.1.15:8170'
+const API_BASE_URL = 'http://localhost:8170'
+
+const IdCell = ({ fullId }: { fullId: string }) => {
+  const [showFull, setShowFull] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const display = showFull ? fullId : `${fullId.slice(0, 4)}...${fullId.slice(-3)}`
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard?.writeText(fullId)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1200)
+  }
+  return (
+    <span style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <span
+        style={{ cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'monospace', color: '#6b7280' }}
+        onClick={() => setShowFull(!showFull)}
+        title={showFull ? 'Masquer' : 'Cliquer pour voir ID complet'}
+      >
+        {display}
+      </span>
+      <button
+        type="button"
+        onClick={handleCopy}
+        title="Copier l'ID"
+        style={{
+          border: `1px solid ${copied ? '#22c55e' : '#d1d5db'}`,
+          background: copied ? '#f0fdf4' : '#f9fafb',
+          borderRadius: 4,
+          padding: '0 6px',
+          cursor: 'pointer',
+          fontSize: '0.7rem',
+          color: copied ? '#22c55e' : '#6b7280',
+          lineHeight: '18px',
+          fontWeight: 500,
+          transition: 'all 0.15s',
+        }}
+        onMouseEnter={(e) => { if (!copied) { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.color = '#3b82f6'; e.currentTarget.style.background = '#eff6ff'; } }}
+        onMouseLeave={(e) => { if (!copied) { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.background = '#f9fafb'; } }}
+      >
+        {copied ? '✓ Copié' : 'Copier'}
+      </button>
+    </span>
+  )
+}
 
 const showAlert = (options: SweetAlertOptions) => {
   ReactSwal.fire({
@@ -140,8 +159,7 @@ const normalize = (str: string | undefined | null) =>
     .replace(/\s+/g, ' ')
     .trim()
 
-const normalizePhone = (value: string | number | undefined | null) =>
-  (value ?? '').toString().replace(/\D/g, '')
+const normalizePhone = (value: string | number | undefined | null) => (value ?? '').toString().replace(/\D/g, '')
 
 const levenshtein = (a: string, b: string): number => {
   const matrix: number[][] = []
@@ -153,11 +171,7 @@ const levenshtein = (a: string, b: string): number => {
       if (b[i - 1] === a[j - 1]) {
         matrix[i][j] = matrix[i - 1][j - 1]
       } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j - 1] + 1,
-        )
+        matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + 1)
       }
     }
   }
@@ -234,9 +248,7 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
   const nisba = customer.nisba?.toFixed(1) ?? '-'
   const nom = customer.nomPrenom.slice(0, W)
   const tel = customer.numTelephone ?? '-'
-  const caissier = customer?.nomutilisatuer
-    ? customer.nomutilisatuer.split('@')[0]
-    : '—'
+  const caissier = customer?.nomutilisatuer ? customer.nomutilisatuer.split('@')[0] : '—'
 
   content.push(center(LOGO_PLACEHOLDER))
   content.push(LINE)
@@ -298,9 +310,9 @@ const generateThermalTicketContent = (customer: CustomerType): string => {
 
 const CustomersCard = () => {
   const [data, setData] = useState<CustomerType[]>([])
-  const [filteredData, setFilteredData] = useState<CustomerType[]>([])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [selectedDates, setSelectedDates] = useState<Date[]>([new Date()])
+  const [selectedDates, setSelectedDates] = useState<Date[]>([])
+  const [selectedYear, setSelectedYear] = useState<number | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 8 })
   const [selectedRowIds, setSelectedRowIds] = useState<Record<string, boolean>>({})
@@ -310,7 +322,6 @@ const CustomersCard = () => {
   const [showModalEdit, setShowModalEdit] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showMultiDeleteModal, setShowMultiDeleteModal] = useState(false)
-  const [dailyStats, setDailyStats] = useState<DailyStatsType | null>(null)
   const [showStats, setShowStats] = useState(false)
   const [user, setUser] = useState<any>()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -326,43 +337,43 @@ const CustomersCard = () => {
     return `${origin}/suivi/${customer.publicTrackingToken}`
   }, [])
 
-const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
-  try {
-    const trackingUrl = getPublicTrackingUrl(customer)
+  const handlePrintQrTicket = useCallback(
+    async (customer: CustomerType) => {
+      try {
+        const trackingUrl = getPublicTrackingUrl(customer)
 
-    if (!trackingUrl) {
-      showAlert({
-        icon: 'warning',
-        text: 'Aucun lien de suivi disponible pour ce client.',
-        confirmButtonText: 'OK',
-      })
-      return
-    }
+        if (!trackingUrl) {
+          showAlert({
+            icon: 'warning',
+            text: 'Aucun lien de suivi disponible pour ce client.',
+            confirmButtonText: 'OK',
+          })
+          return
+        }
 
-    const qrDataUrl = await QRCode.toDataURL(trackingUrl, {
-      width: 180,
-      margin: 1,
-    })
+        const qrDataUrl = await QRCode.toDataURL(trackingUrl, {
+          width: 180,
+          margin: 1,
+        })
 
-    const isTrackingActive =
-      customer.status !== 'payé' && customer.trackingEnabled !== false
+        const isTrackingActive = customer.status !== 'payé' && customer.trackingEnabled !== false
 
-    const printWindow = window.open('', '', 'height=400,width=600')
+        const printWindow = window.open('', '', 'height=400,width=600')
 
-    if (!printWindow) {
-      alert("Impossible d'ouvrir la fenêtre d'impression. Veuillez vérifier les bloqueurs de pop-up.")
-      return
-    }
+        if (!printWindow) {
+          alert("Impossible d'ouvrir la fenêtre d'impression. Veuillez vérifier les bloqueurs de pop-up.")
+          return
+        }
 
-    const creationDate = customer.dateCreation ?? new Date().toISOString()
-    const date = formatDateDDMMYYYY1(creationDate)
-    const time = new Date(creationDate).toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    const num = `#${customer._id.slice(-6)}`
+        const creationDate = customer.dateCreation ?? new Date().toISOString()
+        const date = formatDateDDMMYYYY1(creationDate)
+        const time = new Date(creationDate).toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        const num = `#${customer._id.slice(-6)}`
 
-    printWindow.document.write(`
+        printWindow.document.write(`
       <html>
         <head>
           <title>Ticket QR Suivi</title>
@@ -447,149 +458,197 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
       </html>
     `)
 
-    printWindow.document.close()
-  } catch (error) {
-    console.error('Erreur impression QR:', error)
-    showAlert({
-      icon: 'error',
-      text: "Erreur lors de l'impression du QR code",
-      confirmButtonText: 'OK',
-    })
-  }
-}, [getPublicTrackingUrl])
-
-  const calculateDailyStats = useCallback(
-    (customers: CustomerType[], dateFilter: Date[] = []) => {
-      let clientsToCalculate = customers
-
-      if (dateFilter.length > 0) {
-        if (dateFilter.length === 1) {
-          const d = dateFilter[0]
-          clientsToCalculate = clientsToCalculate.filter((item) => {
-            if (!item.dateCreation) return false
-            const dt = new Date(item.dateCreation)
-            return (
-              dt.getFullYear() === d.getFullYear() &&
-              dt.getMonth() === d.getMonth() &&
-              dt.getDate() === d.getDate()
-            )
-          })
-        } else if (dateFilter.length === 2) {
-          const start = dateFilter[0]
-          const end = dateFilter[1]
-          clientsToCalculate = clientsToCalculate.filter((item) => {
-            if (!item.dateCreation) return false
-            const dt = new Date(item.dateCreation)
-            return dt >= start && dt <= end
-          })
-        }
-      }
-
-      const totalQuantiteHuile = clientsToCalculate.reduce(
-        (sum, client) => sum + (client.quantiteHuile || 0),
-        0,
-      )
-      const totalQuantiteOlive = clientsToCalculate.reduce(
-        (sum, client) => sum + (client.quantiteOliveNet || 0),
-        0,
-      )
-      const totalPrixFinal = clientsToCalculate.reduce(
-        (sum, client) => sum + (client.prixFinal || 0),
-        0,
-      )
-      const clientCount = clientsToCalculate.length
-      const clientsPayes = clientsToCalculate.filter(
-        (client) => client.status === 'payé',
-      ).length
-      const clientsNonPayes = clientCount - clientsPayes
-
-      const totalPrixpayer = clientsToCalculate.reduce((sum, client) => {
-        const prixFinal = client.prixFinal ?? 0
-        if (client.status === 'payé') return sum + prixFinal
-        return sum
-      }, 0)
-
-      const totalPrixnonpayer = clientsToCalculate.reduce((sum, client) => {
-        const prixFinal = client.prixFinal ?? 0
-        if (client.status !== 'payé') return sum + prixFinal
-        return sum
-      }, 0)
-
-      const dateLabel =
-        dateFilter.length === 0
-          ? "Aujourd'hui"
-          : dateFilter.length === 1
-            ? `Le ${formatDateDDMMYYYY(dateFilter[0].toISOString())}`
-            : `Du ${formatDateDDMMYYYY(dateFilter[0].toISOString())} au ${formatDateDDMMYYYY(dateFilter[1].toISOString())}`
-
-      return {
-        date: dateLabel,
-        totalQuantiteHuile,
-        totalQuantiteOlive,
-        totalPrixFinal,
-        clientCount,
-        clientsPayes,
-        clientsNonPayes,
-        totalPrixpayer,
-        totalPrixnonpayer,
+        printWindow.document.close()
+      } catch (error) {
+        console.error('Erreur impression QR:', error)
+        showAlert({
+          icon: 'error',
+          text: "Erreur lors de l'impression du QR code",
+          confirmButtonText: 'OK',
+        })
       }
     },
-    [],
+    [getPublicTrackingUrl],
   )
+  
+  const getYearOptions = () => {
+    const currentYear = new Date().getFullYear()
+    const years = []
+    for (let i = 0; i <= 5; i++) {
+      years.push(currentYear - i)
+    }
+    return years
+  }
+  
+  const calculateDailyStats = useCallback((customers: CustomerType[], dateFilter: Date[] = []) => {
+    let clientsToCalculate = customers
+
+    if (dateFilter.length > 0) {
+      if (dateFilter.length === 1) {
+        const d = dateFilter[0]
+        clientsToCalculate = clientsToCalculate.filter((item) => {
+          if (!item.dateCreation) return false
+          const dt = new Date(item.dateCreation)
+          return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() && dt.getDate() === d.getDate()
+        })
+      } else if (dateFilter.length === 2) {
+        const start = dateFilter[0]
+        const end = dateFilter[1]
+        clientsToCalculate = clientsToCalculate.filter((item) => {
+          if (!item.dateCreation) return false
+          const dt = new Date(item.dateCreation)
+          return dt >= start && dt <= end
+        })
+      }
+    }
+
+    const totalQuantiteHuile = clientsToCalculate.reduce((sum, client) => sum + (client.quantiteHuile || 0), 0)
+    const totalQuantiteOlive = clientsToCalculate.reduce((sum, client) => sum + (client.quantiteOliveNet || 0), 0)
+    const totalPrixFinal = clientsToCalculate.reduce((sum, client) => sum + (client.prixFinal || 0), 0)
+    const clientCount = clientsToCalculate.length
+    const clientsPayes = clientsToCalculate.filter((client) => client.status === 'payé').length
+    const clientsNonPayes = clientCount - clientsPayes
+
+    const totalPrixpayer = clientsToCalculate.reduce((sum, client) => {
+      const prixFinal = client.prixFinal ?? 0
+      if (client.status === 'payé') return sum + prixFinal
+      return sum
+    }, 0)
+
+    const totalPrixnonpayer = clientsToCalculate.reduce((sum, client) => {
+      const prixFinal = client.prixFinal ?? 0
+      if (client.status !== 'payé') return sum + prixFinal
+      return sum
+    }, 0)
+
+    const dateLabel =
+      dateFilter.length === 0
+        ? "Aujourd'hui"
+        : dateFilter.length === 1
+          ? `Le ${formatDateDDMMYYYY(dateFilter[0].toISOString())}`
+          : `Du ${formatDateDDMMYYYY(dateFilter[0].toISOString())} au ${formatDateDDMMYYYY(dateFilter[1].toISOString())}`
+
+    return {
+      date: dateLabel,
+      totalQuantiteHuile,
+      totalQuantiteOlive,
+      totalPrixFinal,
+      clientCount,
+      clientsPayes,
+      clientsNonPayes,
+      totalPrixpayer,
+      totalPrixnonpayer,
+    }
+  }, [])
 
   useEffect(() => {
-    const rawUser =
-      typeof window !== 'undefined' ? localStorage.getItem('user') : null
+    const rawUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
     setUser(rawUser ? JSON.parse(rawUser) : null)
   }, [])
 
-  const fetchClients = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/clients`)
-      if (!res.ok) throw new Error('Fetch clients failed')
-      const json = await res.json()
+// Modifiez votre fonction fetchClients pour qu'elle gère correctement le loading
+const fetchClients = useCallback(async () => {
+  setLoading(true); // Active le loading AU DÉBUT de l'appel API
+  try {
+    const res = await fetch(`${API_BASE_URL}/clients`)
+    if (!res.ok) throw new Error('Fetch clients failed')
+    const json = await res.json()
 
-      const normalized: CustomerType[] = (Array.isArray(json) ? json : []).map(
-        (c: any) => ({
-          ...c,
-          numCIN: c.numCIN ?? '',
-          dateCreation: c.dateCreation ? new Date(c.dateCreation).toISOString() : null,
-          depotStatus: Number(c.quantiteHuile ?? 0) > 0 ? 'pret' : 'en_cours',
-          publicTrackingToken: c.publicTrackingToken ?? '',
-          trackingEnabled:
-            typeof c.trackingEnabled === 'boolean'
-              ? c.trackingEnabled
-              : c.status !== 'payé',
-        }),
-      )
+    const normalized: CustomerType[] = (Array.isArray(json) ? json : []).map((c: any) => ({
+      ...c,
+      numCIN: c.numCIN ?? '',
+      dateCreation: c.dateCreation ? new Date(c.dateCreation).toISOString() : null,
+      depotStatus: Number(c.quantiteHuile ?? 0) > 0 ? 'pret' : 'en_cours',
+      publicTrackingToken: c.publicTrackingToken ?? '',
+      trackingEnabled: typeof c.trackingEnabled === 'boolean' ? c.trackingEnabled : c.status !== 'payé',
+    }))
 
-      setData(normalized)
-      setFilteredData(normalized)
-      const todayStats = calculateDailyStats(normalized, [])
-      setDailyStats(todayStats)
-    } catch (err) {
-      console.error('Error fetching clients:', err)
-      setData([])
-      setFilteredData([])
-      setDailyStats(null)
-    }
-  }, [calculateDailyStats])
+    setData(normalized)
+  } catch (err) {
+    console.error('Error fetching clients:', err)
+    setData([])
+  } finally {
+    setLoading(false); // Désactive le loading APRÈS que tout soit terminé
+  }
+}, [calculateDailyStats])
 
   useEffect(() => {
-    void fetchClients()
+     fetchClients()
   }, [fetchClients])
 
-  useEffect(() => {
-    if (data.length > 0) {
-      const stats = calculateDailyStats(data, selectedDates)
-      setDailyStats(stats)
-    }
-  }, [selectedDates, data, calculateDailyStats])
+  const dailyStats = useMemo(() => calculateDailyStats(data, selectedDates), [data, selectedDates, calculateDailyStats])
 
-  const handleClientSaved = async () => {
-    await fetchClients()
-    setPagination((p: any) => ({ ...p, pageIndex: 0 }))
+  const filteredData = useMemo(() => {
+    let result = [...data]
+
+    if (globalFilter.trim() !== '') {
+      const rawFilter = globalFilter.trim()
+      const normalizedFilter = normalize(rawFilter)
+      const terms = normalizedFilter.split(' ').filter(Boolean)
+      const phoneSearch = normalizePhone(rawFilter)
+
+      result = result.filter((item: CustomerType) => {
+        const name = normalize(item.nomPrenom)
+        const nameReversed = name.split(' ').reverse().join(' ')
+        const phone = normalizePhone(item.numTelephone)
+        const id = normalize(String(item._id))
+
+        const directFullNameMatch = name.includes(normalizedFilter) || nameReversed.includes(normalizedFilter)
+        const directPhoneMatch = phoneSearch ? phone.includes(phoneSearch) : false
+        const directIdMatch = id.includes(normalizedFilter)
+
+        const termsMatch =
+          terms.length === 0
+            ? true
+            : terms.every((t) => {
+                const isHexLike = /^[0-9a-f]+$/.test(t) && t.length >= 3
+                if (isHexLike) return id.includes(t)
+
+                return smartMatch(name, t) || smartMatch(nameReversed, t) || phone.includes(t.replace(/\D/g, '')) || id.includes(t)
+              })
+
+        return directFullNameMatch || directPhoneMatch || directIdMatch || termsMatch
+      })
+    }
+
+    if (selectedYear !== null) {
+      result = result.filter((item: CustomerType) => {
+        if (!item.dateCreation) return false
+        const dt = new Date(item.dateCreation)
+        return dt.getFullYear() === selectedYear
+      })
+    }
+
+    if (selectedDates.length === 1) {
+      const d = selectedDates[0]
+      result = result.filter((item: CustomerType) => {
+        if (!item.dateCreation) return false
+        const dt = new Date(item.dateCreation)
+        return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() && dt.getDate() === d.getDate()
+      })
+    } else if (selectedDates.length === 2) {
+      const [start, end] = selectedDates
+      result = result.filter((item: CustomerType) => {
+        if (!item.dateCreation) return false
+        const dt = new Date(item.dateCreation)
+        return dt >= start && dt <= end
+      })
+    }
+
+    return result
+  }, [data, globalFilter, selectedYear, selectedDates])
+
+const handleClientSaved = async () => {
+  setLoading(true); // On lance le chargement global
+  try {
+    await fetchClients(); // On attend que la liste soit récupérée et normalisée
+    setPagination((p: any) => ({ ...p, pageIndex: 0 })); // On revient à la première page
+  } catch (err) {
+    console.error("Erreur lors du rafraîchissement après ajout:", err);
+  } finally {
+    setLoading(false); // On arrête le chargement, quoi qu'il arrive
   }
+};
 
   const handleConfirmPayment = async () => {
     if (!customerToPay || !selectedPaymentDate) return
@@ -629,8 +688,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
   }
 
   const handleTogglePaymentStatus = async (customer: CustomerType) => {
-    const newStatus: 'payé' | 'non payé' =
-      customer.status === 'payé' ? 'non payé' : 'payé'
+    const newStatus: 'payé' | 'non payé' = customer.status === 'payé' ? 'non payé' : 'payé'
 
     if (newStatus === 'payé') {
       setCustomerToPay(customer)
@@ -647,98 +705,25 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
     if (!confirmed) return
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/clients/${customer._id}/status`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus }),
-        },
-      )
+      const response = await fetch(`${API_BASE_URL}/clients/${customer._id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => '')
-        throw new Error(
-          errorText || 'Erreur lors de la mise à jour du statut client',
-        )
+        throw new Error(errorText || 'Erreur lors de la mise à jour du statut client')
       }
 
       await fetchClients()
 
-      alert(
-        'Le client a été marqué comme non payé. Une alerte a été envoyée à la caisse.',
-      )
+      alert('Le client a été marqué comme non payé. Une alerte a été envoyée à la caisse.')
     } catch (error) {
       console.error('Erreur changement statut client:', error)
       alert('Erreur lors du changement de statut')
     }
   }
-
-  useEffect(() => {
-    let result = [...data]
-
-    if (globalFilter.trim() !== '') {
-      const rawFilter = globalFilter.trim()
-      const normalizedFilter = normalize(rawFilter)
-      const terms = normalizedFilter.split(' ').filter(Boolean)
-      const phoneSearch = normalizePhone(rawFilter)
-
-      result = result.filter((item: CustomerType) => {
-        const name = normalize(item.nomPrenom)
-        const nameReversed = name.split(' ').reverse().join(' ')
-        const phone = normalizePhone(item.numTelephone)
-        const id = normalize(String(item._id))
-
-        const directFullNameMatch =
-          name.includes(normalizedFilter) || nameReversed.includes(normalizedFilter)
-
-        const directPhoneMatch = phoneSearch ? phone.includes(phoneSearch) : false
-        const directIdMatch = id.includes(normalizedFilter)
-
-        const termsMatch =
-          terms.length === 0
-            ? true
-            : terms.every((t) => {
-                const isHexLike = /^[0-9a-f]+$/.test(t) && t.length >= 3
-                if (isHexLike) return id.includes(t)
-
-                return (
-                  smartMatch(name, t) ||
-                  smartMatch(nameReversed, t) ||
-                  phone.includes(t.replace(/\D/g, '')) ||
-                  id.includes(t)
-                )
-              })
-
-        return (
-          directFullNameMatch || directPhoneMatch || directIdMatch || termsMatch
-        )
-      })
-    }
-
-    if (selectedDates.length === 1) {
-      const d = selectedDates[0]
-      result = result.filter((item: CustomerType) => {
-        if (!item.dateCreation) return false
-        const dt = new Date(item.dateCreation)
-        return (
-          dt.getFullYear() === d.getFullYear() &&
-          dt.getMonth() === d.getMonth() &&
-          dt.getDate() === d.getDate()
-        )
-      })
-    } else if (selectedDates.length === 2) {
-      const [start, end] = selectedDates
-      result = result.filter((item: CustomerType) => {
-        if (!item.dateCreation) return false
-        const dt = new Date(item.dateCreation)
-        return dt >= start && dt <= end
-      })
-    }
-
-    setFilteredData(result)
-    setPagination((p: any) => ({ ...p, pageIndex: 0 }))
-  }, [globalFilter, selectedDates, data])
 
   const handlePrintTicket = (customer: CustomerType) => {
     const ticketContent = generateThermalTicketContent(customer)
@@ -812,14 +797,24 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
       enableColumnFilter: false,
     },
 
+    columnHelper.accessor('_id', {
+      header: 'ID',
+      cell: (info) => {
+        const fullId = info.getValue()
+        return <IdCell fullId={fullId} />
+      },
+      meta: {
+        thClassName: 'd-none d-lg-table-cell',
+        tdClassName: 'd-none d-lg-table-cell',
+      },
+    }),
+
     columnHelper.accessor('nomPrenom', {
       header: 'اسم الفلاح',
       cell: (info) => (
         <div className="d-flex flex-column">
           <span className="fw-semibold">{info.getValue()}</span>
-          <small className="text-muted d-md-none">
-            {info.row.original.numTelephone}
-          </small>
+          <small className="text-muted d-md-none">{info.row.original.numTelephone}</small>
         </div>
       ),
     }),
@@ -852,10 +847,8 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
     }),
 
     columnHelper.accessor('kattou3', {
-      header: 'القطوع',
-      cell: (info) => (
-        <span>{info.getValue() != null ? Number(info.getValue()).toFixed(2) : 'N/A'} %</span>
-      ),
+      header: 'القطوع %',
+      cell: (info) => <span>{info.getValue() != null ? Number(info.getValue()).toFixed(2) : 'N/A'} </span>,
       meta: {
         thClassName: 'd-none d-lg-table-cell',
         tdClassName: 'd-none d-lg-table-cell',
@@ -864,11 +857,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
 
     columnHelper.accessor('nisbaReelle', {
       header: 'النسبة %',
-      cell: (info) => (
-        <Badge bg="success">
-          {info.getValue() != null ? Number(info.getValue()).toFixed(2) : 'N/A'}%
-        </Badge>
-      ),
+      cell: (info) => <Badge bg="success">{info.getValue() != null ? Number(info.getValue()).toFixed(2) : 'N/A'}%</Badge>,
       meta: {
         thClassName: 'd-none d-lg-table-cell',
         tdClassName: 'd-none d-lg-table-cell',
@@ -877,11 +866,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
 
     columnHelper.accessor('prixFinal', {
       header: 'الثمن',
-      cell: (info) => (
-        <Badge bg="secondary">
-          {info.getValue() != null ? Number(info.getValue()).toFixed(2) : 'N/A'}TND
-        </Badge>
-      ),
+      cell: (info) => <Badge bg="secondary">{info.getValue() != null ? Number(info.getValue()).toFixed(2) : 'N/A'}TND</Badge>,
       meta: {
         thClassName: 'd-none d-md-table-cell',
         tdClassName: 'd-none d-md-table-cell',
@@ -897,12 +882,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
         }
 
         return (
-          <OverlayTrigger
-            placement="top"
-            overlay={
-              <Tooltip id={`tooltip-comment-${info.row.id}`}>{String(comment)}</Tooltip>
-            }
-          >
+          <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-comment-${info.row.id}`}>{String(comment)}</Tooltip>}>
             <span style={{ cursor: 'help' }}>
               <TbNote className="fs-lg text-info" />
             </span>
@@ -934,11 +914,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
 
     columnHelper.accessor('status', {
       header: 'الدفع',
-      cell: (info) => (
-        <Badge bg={info.getValue() === 'payé' ? 'success' : 'danger'}>
-          {info.getValue() === 'payé' ? 'Payé' : 'Non Payé'}
-        </Badge>
-      ),
+      cell: (info) => <Badge bg={info.getValue() === 'payé' ? 'success' : 'danger'}>{info.getValue() === 'payé' ? 'Payé' : 'Non Payé'}</Badge>,
     }),
 
     columnHelper.accessor('depotStatus', {
@@ -984,8 +960,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
                 setShowModalDetail(true)
                 setSelectedCustomer(customer)
               }}
-              title="Voir détails"
-            >
+              title="Voir détails">
               <TbEye className="fs-lg" />
             </Button>
 
@@ -996,8 +971,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
                 setShowModalEdit(true)
                 setSelectedCustomer(customer)
               }}
-              title="Modifier"
-            >
+              title="Modifier">
               <TbEdit className="fs-lg" />
             </Button>
 
@@ -1006,14 +980,12 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
               size="sm"
               onClick={() => handleTogglePaymentStatus(customer)}
               title={`Statut: ${customer.status}. Cliquer pour changer`}
-              className="position-relative"
-            >
+              className="position-relative">
               <TbCash className="fs-lg" />
               <span
                 className={`position-absolute top-0 start-100 translate-middle p-1 border border-light rounded-circle ${
                   isPaid ? 'bg-success' : 'bg-danger'
-                }`}
-              >
+                }`}>
                 <span className="visually-hidden">Statut</span>
               </span>
             </Button>
@@ -1023,17 +995,11 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
               size="sm"
               onClick={() => handlePrintTicket(customer)}
               disabled={!isPaid}
-              title={!isPaid ? "Impossible d'imprimer - Client non payé" : 'Imprimer le ticket'}
-            >
+              title={!isPaid ? "Impossible d'imprimer - Client non payé" : 'Imprimer le ticket'}>
               <TbPrinter className="fs-lg" />
             </Button>
 
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => handlePrintQrTicket(customer)}
-              title="Imprimer ticket QR"
-            >
+            <Button variant="default" size="sm" onClick={() => handlePrintQrTicket(customer)} title="Imprimer ticket QR">
               <TbQrcode className="fs-lg" />
             </Button>
 
@@ -1045,8 +1011,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
                 setSelectedRowIds({ [customer._id]: true })
               }}
               disabled={isPaid && user?.roles?.includes('caissier')}
-              title={hasPrinted ? 'Impossible de supprimer - Déjà imprimé' : 'Supprimer'}
-            >
+              title={hasPrinted ? 'Impossible de supprimer - Déjà imprimé' : 'Supprimer'}>
               <TbTrash className="fs-lg" />
             </Button>
           </div>
@@ -1063,9 +1028,10 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
     onPaginationChange: setPagination,
     onRowSelectionChange: setSelectedRowIds,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
     enableRowSelection: true,
   })
 
@@ -1076,15 +1042,23 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
   const end = Math.min((pageIndex + 1) * pageSize, totalItems)
 
   const handleDelete = async () => {
-    const selectedIds = Object.keys(selectedRowIds)
-    if (!selectedIds.length) return
+    const tableSelectedRows = table.getSelectedRowModel().flatRows
+    let idsToDelete: string[]
+
+    if (tableSelectedRows.length > 0) {
+      idsToDelete = tableSelectedRows.map((r) => r.original._id)
+    } else {
+      idsToDelete = Object.keys(selectedRowIds)
+    }
+
+    if (!idsToDelete.length) return
 
     setLoading(true)
     setIsDeleting(true)
 
     try {
       const responses = await Promise.all(
-        selectedIds.map((id) =>
+        idsToDelete.map((id) =>
           fetch(`${API_BASE_URL}/clients/${id}`, {
             method: 'DELETE',
           }),
@@ -1101,10 +1075,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
 
       showAlert({
         icon: 'success',
-        text:
-          selectedIds.length > 1
-            ? 'Clients supprimés avec succès !'
-            : 'Client supprimé avec succès !',
+        text: idsToDelete.length > 1 ? 'Clients supprimés avec succès !' : 'Client supprimé avec succès !',
         showConfirmButton: false,
         timer: 1500,
         position: 'top-end',
@@ -1190,31 +1161,86 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
         </Col>
       </Row>
 
-      <Row className="justify-content-md-center g-2 g-md-3">
-        <Col xs={12} md>
-          <Card className="border-light p-2">
-            <h6 className="mb-1">Clients payés / total (Aujourd'hui)</h6>
-            <h4 className="mb-0 text-success">
-              {dailyStats?.clientsPayes || 0} / {dailyStats?.clientCount || 0} = {dailyStats?.totalPrixpayer?.toFixed(2)}DT
-            </h4>
+      <Row className="g-2 g-md-3">
+        <Col xs={12} sm={6} md={3}>
+          <Card className="shadow-sm border-0 h-100 bg-body">
+            <Card.Body className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-body-secondary small mb-1">Payés / Total</div>
+                  <div className="fs-5 fw-bold text-success mb-1">
+                    {dailyStats?.clientsPayes || 0} / {dailyStats?.clientCount || 0}
+                  </div>
+                  <div className="text-body-secondary small">
+                    <TbCash className="me-1" />
+                    {dailyStats?.totalPrixpayer?.toFixed(2) || '0.00'} DT
+                  </div>
+                </div>
+                <div className="rounded-3 bg-success-subtle text-success px-2 py-1">
+                  <TbCash size={20} />
+                </div>
+              </div>
+            </Card.Body>
           </Card>
         </Col>
 
-        <Col xs={12} md>
-          <Card className="border-light p-2">
-            <h6 className="mb-1">Clients non payés / total (Aujourd'hui)</h6>
-            <h4 className="mb-0 text-danger">
-              {dailyStats?.clientsNonPayes || 0} / {dailyStats?.clientCount || 0}= {dailyStats?.totalPrixnonpayer?.toFixed(2)}DT
-            </h4>
+        <Col xs={12} sm={6} md={3}>
+          <Card className="shadow-sm border-0 h-100 bg-body">
+            <Card.Body className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-body-secondary small mb-1">Non payés / Total</div>
+                  <div className="fs-5 fw-bold text-danger mb-1">
+                    {dailyStats?.clientsNonPayes || 0} / {dailyStats?.clientCount || 0}
+                  </div>
+                  <div className="text-body-secondary small">
+                    <TbCash className="me-1" />
+                    {dailyStats?.totalPrixnonpayer?.toFixed(2) || '0.00'} DT
+                  </div>
+                </div>
+                <div className="rounded-3 bg-danger-subtle text-danger px-2 py-1">
+                  <TbCash size={20} />
+                </div>
+              </div>
+            </Card.Body>
           </Card>
         </Col>
 
-        <Col xs={12} md>
-          <Card className="border-light p-2">
-            <h6 className="mb-1">Quantité Huile (kg)</h6>
-            <h4 className="mb-0 text-primary">
-              {dailyStats?.totalQuantiteHuile?.toFixed(2) || '0.00'} KG
-            </h4>
+        <Col xs={12} sm={6} md={3}>
+          <Card className="shadow-sm border-0 h-100 bg-body">
+            <Card.Body className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-body-secondary small mb-1">Huile produite</div>
+                  <div className="fs-5 fw-bold text-primary mb-1">
+                    {dailyStats?.totalQuantiteHuile?.toFixed(2) || '0.00'}
+                  </div>
+                  <div className="text-body-secondary small">KG</div>
+                </div>
+                <div className="rounded-3 bg-primary-subtle text-primary px-2 py-1">
+                  <TbDroplet size={20} />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col xs={12} sm={6} md={3}>
+          <Card className="shadow-sm border-0 h-100 bg-body">
+            <Card.Body className="p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-body-secondary small mb-1">Olive nette</div>
+                  <div className="fs-5 fw-bold text-warning mb-1">
+                    {dailyStats?.totalQuantiteOlive?.toFixed(2) || '0.00'}
+                  </div>
+                  <div className="text-body-secondary small">KG</div>
+                </div>
+                <div className="rounded-3 bg-warning-subtle text-warning px-2 py-1">
+                  <TbScale size={20} />
+                </div>
+              </div>
+            </Card.Body>
           </Card>
         </Col>
       </Row>
@@ -1228,13 +1254,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
                   <TbPlus className="fs-lg" /> Ajouter
                 </Button>
 
-                <CustomerModal
-                  show={showModal}
-                  onHide={() => setShowModal(false)}
-                  onClientSaved={handleClientSaved}
-                  user={user}
-                  clients={data}
-                />
+                <CustomerModal show={showModal} onHide={() => setShowModal(false)} onClientSaved={handleClientSaved} user={user} clients={data as any} />
 
                 {selectedCount > 0 && (
                   <Button variant="danger" size="sm" onClick={handleMultiDelete}>
@@ -1242,9 +1262,9 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
                   </Button>
                 )}
 
-                <Button variant="info" size="sm" onClick={() => setShowStats(!showStats)}>
+                {/* <Button variant="info" size="sm" onClick={() => setShowStats(!showStats)}>
                   <TbChartBar className="fs-lg" /> Statistiques
-                </Button>
+                </Button> */}
 
                 <Dropdown>
                   <Dropdown.Toggle variant="outline-secondary" size="sm" id="dropdown-export-data">
@@ -1262,8 +1282,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
                           return
                         }
                         exportToXLSX(rows as any, 'fitoura_data')
-                      }}
-                    >
+                      }}>
                       📊 Exporter en XLSX (Excel)
                     </Dropdown.Item>
 
@@ -1277,8 +1296,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
                           return
                         }
                         exportToPDF(rows as any, 'Rapport_clients')
-                      }}
-                    >
+                      }}>
                       🧾 Exporter en PDF
                     </Dropdown.Item>
                   </Dropdown.Menu>
@@ -1296,9 +1314,36 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
                   />
                   <LuSearch className="app-search-icon text-muted" />
                 </div>
-
+                
+                {/* Nouveau filtre par année */}
                 <div className="d-flex align-items-center gap-2 w-100 w-md-auto">
-                  <span className="text-nowrap">Date :</span>
+                  <span className="text-nowrap">Année :</span>
+                  <select
+                    className="form-select"
+                    value={selectedYear ?? ''}
+                    onChange={(e) => setSelectedYear(e.target.value ? parseInt(e.target.value) : null)}
+                    style={{ width: '120px' }}>
+                    <option value="">Toutes les années</option>
+                    {getYearOptions().map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedYear !== null && (
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      onClick={() => setSelectedYear(null)}
+                      title="Réinitialiser le filtre année">
+                      <CgUnavailable />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Filtre par plage de dates */}
+                <div className="d-flex align-items-center gap-2 w-100 w-md-auto">
+                  <span className="text-nowrap">Période :</span>
                   <Flatpickr
                     className="form-control"
                     options={{
@@ -1318,7 +1363,7 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
             </CardHeader>
 
             <div className="table-responsive">
-              <DataTable<CustomerType> table={table} emptyMessage="Aucun client trouvé" />
+              <DataTable<CustomerType> table={table} emptyMessage="Aucun client trouvé" loading={loading} />
             </div>
 
             <CardFooter className="border-0">
@@ -1362,49 +1407,49 @@ const handlePrintQrTicket = useCallback(async (customer: CustomerType) => {
       <CustomerModalViewDetail
         show={showModalDetail}
         onHide={() => setShowModalDetail(false)}
-        customer={selectedCustomer}
-        user={user}
-        clients={data}
-        onPrintQr={handlePrintQrTicket}
+        customer={selectedCustomer as any}
+        onPrintQr={handlePrintQrTicket as any}
         getPublicTrackingUrl={getPublicTrackingUrl}
       />
 
-      <CustomerEditModal
-        show={showModalEdit}
-        onHide={() => setShowModalEdit(false)}
-        customer={selectedCustomer}
-        onClientSaved={handleClientSaved}
-      />
+      <CustomerEditModal show={showModalEdit} onHide={() => setShowModalEdit(false)} customer={selectedCustomer as any} onClientSaved={handleClientSaved} />
 
       <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirmer le paiement</Modal.Title>
+        <Modal.Header closeButton className="bg-success-subtle border-success">
+          <Modal.Title className="d-flex align-items-center gap-2">
+            <TbCash size={22} className="text-success" />
+            Confirmer le paiement
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="py-4">
           {customerToPay && (
-            <>
-              <p>
-                Client : <strong>{customerToPay.nomPrenom}</strong>
-              </p>
-              <p>
-                Montant : <strong>{customerToPay.prixFinal?.toFixed(3)} TND</strong>
-              </p>
-              <p>Choisir la date de paiement :</p>
-              <Flatpickr
-                value={selectedPaymentDate ?? undefined}
-                onChange={(dates: Date[]) => setSelectedPaymentDate(dates[0] ?? null)}
-                className="form-control"
-                options={{ dateFormat: 'Y-m-d' }}
-              />
-            </>
+            <div className="d-flex flex-column gap-3">
+              <div className="d-flex justify-content-between align-items-center p-3 bg-body-tertiary rounded-3">
+                <span className="text-body-secondary">Client</span>
+                <span className="fw-bold fs-5">{customerToPay.nomPrenom}</span>
+              </div>
+              <div className="d-flex justify-content-between align-items-center p-3 bg-success-subtle rounded-3">
+                <span className="text-body-secondary">Montant</span>
+                <span className="fw-bold fs-4 text-success">{customerToPay.prixFinal?.toFixed(3)} TND</span>
+              </div>
+              <div>
+                <label className="text-body-secondary small mb-2">Date de paiement</label>
+                <Flatpickr
+                  value={selectedPaymentDate ?? undefined}
+                  onChange={(dates: Date[]) => setSelectedPaymentDate(dates[0] ?? null)}
+                  className="form-control"
+                  options={{ dateFormat: 'Y-m-d' }}
+                />
+              </div>
+            </div>
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>
+        <Modal.Footer className="border-0 pt-0">
+          <Button variant="light" onClick={() => setShowPaymentModal(false)}>
             Annuler
           </Button>
-          <Button variant="success" onClick={handleConfirmPayment}>
-            Confirmer
+          <Button variant="success" onClick={handleConfirmPayment} className="px-4">
+            <TbCash className="me-1" /> Confirmer le paiement
           </Button>
         </Modal.Footer>
       </Modal>

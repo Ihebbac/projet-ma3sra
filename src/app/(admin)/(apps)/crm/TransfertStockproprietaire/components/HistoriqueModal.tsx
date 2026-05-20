@@ -18,7 +18,7 @@ import { ProprietaireType, TransactionType } from '../types'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
 
-const API_BASE_URL = 'http://192.168.1.15:8170'
+const API_BASE_URL = 'http://localhost:8170'
 
 const formatDate = (value?: string | Date) => {
   if (!value) return '-'

@@ -6,7 +6,7 @@ import { TbCurrencyDollar, TbRepeat, TbX } from 'react-icons/tb'
 
 import { ProprietaireType } from '../types'
 
-const API_BASE_URL = 'http://192.168.1.15:8170'
+const API_BASE_URL = 'http://localhost:8170'
 
 type MotifType =
   | 'Vente'

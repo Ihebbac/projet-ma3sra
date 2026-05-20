@@ -66,7 +66,7 @@ const CaisseEditModal = ({ show, onHide, caisse, onUpdated }: Props) => {
 
     setLoading(true)
     try {
-      const res = await fetch(`http://192.168.1.15:8170/caisse/${id}`, {
+      const res = await fetch(`http://localhost:8170/caisse/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

@@ -13,7 +13,7 @@ type Props = {
   show: boolean
   onHide: () => void
   employe: Employe | null
-  apiHost: string // ex: http://192.168.1.15:8170
+  apiHost: string // ex: http://localhost:8170
   onDone: () => void // refresh list
 }
 

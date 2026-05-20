@@ -1,42 +1,28 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import {
-  Modal,
-  Button,
-  Row,
-  Col,
-  Form,
-  Container,
-  Card,
-  Spinner,
-} from 'react-bootstrap'
+import { Modal, Button, Row, Col, Form, Spinner } from 'react-bootstrap'
 import Flatpickr from 'react-flatpickr'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { User, Phone, Tag, Calendar, MessageSquare, Box, Scale, Droplet, Percent, Gauge, DollarSign, Weight } from 'lucide-react'
 
-// === CONSTANTES ===
 const POIDS_CAISSE = 30
-const WIBA_PAR_QFIZ = 16
-const DENSITE_HUILE = 0.916
 const POIDS_WIBA_DEFAUT = 27
 
 type Customer = {
-  id?: string
   _id?: string
   nomPrenom?: string
   numTelephone?: number | string
   dateCreation?: string
   type?: string
-  commentaire?: string // <-- AJOUTÉ
+  commentaire?: string
   nombreCaisses?: number
   quantiteOlive?: number
   quantiteHuile?: number
   poidsWiba?: number
   prixKg?: number
-  prixFinal?: number
 }
 
-type CustomerModalProps = {
+type Props = {
   show: boolean
   onHide: () => void
   customer: Customer | null
@@ -44,512 +30,372 @@ type CustomerModalProps = {
   onClientSaved?: () => void
 }
 
-type FormValues = {
-  nomPrenom: string
-  numTelephone: string | number
-  type: string
-  dateCreation: string
-  commentaire: string // <-- AJOUTÉ
-  nombreCaisses: number
-  quantiteOlive: number
-  quantiteHuile: number
-  quantiteOliveNet: number
-  kattou3: number
-  nisba: number
-  nisbaReelle: number
-  quantiteHuileTheorique: number
-  differenceHuile: number
-  nombreWiba: number
-  nombreQfza: number
-  huileParQfza: number
-  prixFinal: number
-}
-
 const toNumber = (v: any): number | undefined => {
   const n = Number(v)
   return isNaN(n) ? undefined : n
 }
 
-const format = (v: number) => (v > 0 ? v.toFixed(2) : '')
-
-// === FORMULES ===
-const calculateNetQuantity = (olive: number, caisses: number) => Math.max(0, olive - caisses * POIDS_CAISSE)
-
-const calculateWibaAndQfza = (oliveNet: number, wiba: number) => {
-  const nWiba = oliveNet > 0 && wiba > 0 ? oliveNet / wiba : 0
-  const nQfza = nWiba / WIBA_PAR_QFIZ
-  return { nWiba, nQfza }
+const styles = `
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-const calculateNisba = (huile: number, oliveNet: number) => (oliveNet > 0 && huile > 0 ? (huile / oliveNet) * 100 : 0)
-
-const calculateHuileTheorique = (oliveNet: number, nisba: number) => (oliveNet * nisba) / 100
-
-const calculateKattou3 = (huile: number, oliveNet: number, wiba: number) => {
-  if (oliveNet <= 0 || huile <= 0 || wiba <= 0) return 0
-  const huileLitres = huile / DENSITE_HUILE
-  const { nWiba, nQfza } = calculateWibaAndQfza(oliveNet, wiba)
-  if (nQfza <= 0) return 0
-  return huileLitres / nQfza / 10
+.customer-card {
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  transition: all 0.2s ease;
 }
-
-const calculateHuileParQfza = (huile: number, oliveNet: number, wiba: number) => {
-  const { nQfza } = calculateWibaAndQfza(oliveNet, wiba)
-  return nQfza > 0 ? huile / nQfza : 0
+.customer-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
 }
+.card-accent-blue { border-left: 3px solid #3b82f6; }
+.card-accent-green { border-left: 3px solid #22c55e; }
+.card-accent-orange { border-left: 3px solid #f59e0b; }
+.summary-bar {
+  background: linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 100%);
+  border-radius: 10px;
+  border-left: 3px solid #3b82f6;
+}
+.total-box {
+  background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+  border-radius: 8px;
+  border-left: 3px solid #f59e0b;
+}
+`
 
-// PRIX SANS VIRGULE - ARRONDI
-const calculatePrixFinal = (oliveNet: number, prixKg: number) => Math.round(oliveNet > 0 && prixKg > 0 ? oliveNet * prixKg : 0)
-
-const CustomerEditModal: React.FC<CustomerModalProps> = ({ show, onHide, customer, onUpdated, onClientSaved }) => {
-  const [openOlive, setOpenOlive] = useState(true)
-  const [openHuile, setOpenHuile] = useState(true)
+const CustomerEditModal: React.FC<Props> = ({ show, onHide, customer, onUpdated, onClientSaved }) => {
   const [loading, setLoading] = useState(false)
   const [lastEdited, setLastEdited] = useState<'olive' | 'oliveNet' | null>(null)
 
-  const [poidsWiba, setPoidsWiba] = useState<number>(POIDS_WIBA_DEFAUT)
-  const [prixKg, setPrixKilo] = useState<number>(0)
-
-  // Fonction pour obtenir la date d'aujourd'hui au format YYYY-MM-DD
   const getTodayDate = () => {
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   }
 
-  const initializeFormValues = (c: Customer, initialPoidsWiba: number, initialPrixKilo: number): FormValues => {
+  const getInitialFormData = (c: Customer) => {
     const qOlive = toNumber(c.quantiteOlive) ?? 0
     const nCaisses = toNumber(c.nombreCaisses) ?? 0
     const qHuile = toNumber(c.quantiteHuile) ?? 0
-
-    const oliveNet = calculateNetQuantity(qOlive, nCaisses)
-    const { nWiba, nQfza } = calculateWibaAndQfza(oliveNet, initialPoidsWiba)
-    const nisba = calculateNisba(qHuile, oliveNet)
-    const kattou3 = calculateKattou3(qHuile, oliveNet, initialPoidsWiba)
-    const huileTheorique = calculateHuileTheorique(oliveNet, nisba)
-    const diff = qHuile - huileTheorique
-    const huileParQfza = calculateHuileParQfza(qHuile, oliveNet, initialPoidsWiba)
-    const prixFinal = calculatePrixFinal(oliveNet, initialPrixKilo)
+    const net = Math.max(0, qOlive - (nCaisses * POIDS_CAISSE))
 
     return {
-      nomPrenom: c.nomPrenom ?? '',
-      numTelephone: c.numTelephone ?? '',
-      type: c.type ?? '',
-      // CORRECTION DATE: Utilise la date du client ou aujourd'hui si non définie
+      nomPrenom: c.nomPrenom || '',
+      numTelephone: c.numTelephone || '',
+      type: c.type || '',
+      commentaire: c.commentaire || '',
       dateCreation: c.dateCreation ? c.dateCreation.split('T')[0] : getTodayDate(),
-      commentaire: c.commentaire ?? '', // <-- AJOUTÉ
       nombreCaisses: nCaisses,
       quantiteOlive: qOlive,
+      quantiteOliveNet: net,
       quantiteHuile: qHuile,
-      quantiteOliveNet: oliveNet,
-      kattou3: kattou3,
-      nisba: nisba,
-      nisbaReelle: nisba,
-      quantiteHuileTheorique: huileTheorique,
-      differenceHuile: diff,
-      nombreWiba: nWiba,
-      nombreQfza: nQfza,
-      huileParQfza: huileParQfza,
-      prixFinal: prixFinal,
+      nisba: 0,
+      kattou3: 0,
+      prixKg: c.prixKg || 0,
+      poidsWiba: c.poidsWiba || POIDS_WIBA_DEFAUT,
     }
   }
 
-  const [formValues, setFormValues] = useState<FormValues>({} as FormValues)
+  const [formValues, setFormValues] = useState(getInitialFormData({}))
 
-  // Initialisation quand le client change
   useEffect(() => {
     if (customer) {
-      const newPoidsWiba = customer.poidsWiba && toNumber(customer.poidsWiba) !== undefined ? toNumber(customer.poidsWiba)! : POIDS_WIBA_DEFAUT
-      const newPrixKilo = customer.prixKg && toNumber(customer.prixKg) !== undefined ? toNumber(customer.prixKg)! : 0
-      
-      setPoidsWiba(newPoidsWiba)
-      setPrixKilo(newPrixKilo)
-      setFormValues(initializeFormValues(customer, newPoidsWiba, newPrixKilo))
+      setFormValues(getInitialFormData(customer))
       setLastEdited(null)
     }
   }, [customer])
 
-  // Sync bidirectionnelle olive ↔ oliveNet
-  useEffect(() => {
-    const olive = Number(formValues.quantiteOlive ?? 0)
-    const oliveNet = Number(formValues.quantiteOliveNet ?? 0)
-    const caisses = Number(formValues.nombreCaisses ?? 0)
+  const getComputed = () => {
+    const { nombreCaisses, quantiteOlive, quantiteOliveNet, quantiteHuile, prixKg, poidsWiba } = formValues
+    const olive = Number(quantiteOlive || 0)
+    const net = Number(quantiteOliveNet || 0)
+    const huile = Number(quantiteHuile || 0)
+    const wiba = Number(poidsWiba || POIDS_WIBA_DEFAUT)
 
-    if (lastEdited === 'olive') {
-      const computedNet = calculateNetQuantity(olive, caisses)
-      if (computedNet !== oliveNet) {
-        setFormValues((prev) => ({ ...prev, quantiteOliveNet: computedNet }))
-      }
-    } else if (lastEdited === 'oliveNet') {
-      const computedOlive = oliveNet + caisses * POIDS_CAISSE
-      if (computedOlive !== olive) {
-        setFormValues((prev) => ({ ...prev, quantiteOlive: computedOlive }))
-      }
-    }
-  }, [formValues.quantiteOlive, formValues.quantiteOliveNet, formValues.nombreCaisses, lastEdited])
+    const nisba = net > 0 && huile > 0 ? (huile / net) * 100 : 0
+    const nWiba = net > 0 && wiba > 0 ? net / wiba : 0
+    const nQfza = nWiba / 16
+    const huileLitres = huile / 0.916
+    const kattou3 = nQfza > 0 ? (huileLitres / nQfza / 10) : 0
+    const prixFinal = Math.round(net * (Number(prixKg) || 0))
 
-  // Recalcul automatique
-  useEffect(() => {
-    const { quantiteOlive, nombreCaisses, quantiteHuile } = formValues
+    return { net, nisba, nWiba, nQfza, kattou3, prixFinal }
+  }
 
-    const oliveNet = calculateNetQuantity(quantiteOlive, nombreCaisses)
-    const { nWiba, nQfza } = calculateWibaAndQfza(oliveNet, poidsWiba)
-    const nisba = calculateNisba(quantiteHuile, oliveNet)
-    const kattou3 = calculateKattou3(quantiteHuile, oliveNet, poidsWiba)
-    const huileTheorique = calculateHuileTheorique(oliveNet, nisba)
-    const diff = quantiteHuile - huileTheorique
-    const huileParQfza = calculateHuileParQfza(quantiteHuile, oliveNet, poidsWiba)
-    const prixFinal = calculatePrixFinal(oliveNet, prixKg)
-
-    setFormValues((prev) => ({
-      ...prev,
-      quantiteOliveNet: lastEdited === 'oliveNet' ? prev.quantiteOliveNet : oliveNet,
-      nisba,
-      kattou3,
-      nombreWiba: nWiba,
-      nombreQfza: nQfza,
-      quantiteHuileTheorique: huileTheorique,
-      differenceHuile: diff,
-      huileParQfza,
-      nisbaReelle: nisba,
-      prixFinal,
-    }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formValues.quantiteOlive, formValues.nombreCaisses, formValues.quantiteHuile, poidsWiba, prixKg, lastEdited,formValues.prixFinal])
+  const computed = getComputed()
 
   if (!customer) return null
 
-  const clientId = customer._id ?? customer.id
+  const clientId = customer._id
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { // <-- AJOUTÉ HTMLTextAreaElement
+  const handleChange = (e: any) => {
     const { name, value } = e.target
-    const isText = ['nomPrenom', 'type', 'dateCreation', 'commentaire'].includes(name) // <-- AJOUTÉ 'commentaire'
+    const isText = ['nomPrenom', 'type', 'commentaire'].includes(name)
 
-    // Sync bidirectionnelle
     if (name === 'quantiteOlive') {
       setLastEdited('olive')
       const numeric = parseFloat(value) || 0
-      setFormValues((prev) => ({ ...prev, quantiteOlive: numeric }))
+      setFormValues((prev) => ({
+        ...prev,
+        quantiteOlive: numeric,
+        quantiteOliveNet: Math.max(0, numeric - (Number(prev.nombreCaisses || 0) * POIDS_CAISSE)),
+      }))
       return
     }
+
     if (name === 'quantiteOliveNet') {
       setLastEdited('oliveNet')
       const numeric = parseFloat(value) || 0
-      setFormValues((prev) => ({ ...prev, quantiteOliveNet: numeric }))
+      setFormValues((prev) => ({
+        ...prev,
+        quantiteOliveNet: numeric,
+        quantiteOlive: numeric + (Number(prev.nombreCaisses || 0) * POIDS_CAISSE),
+      }))
+      return
+    }
+
+    if (name === 'nombreCaisses') {
+      const caisses = parseFloat(value) || 0
+      setFormValues((prev) => ({
+        ...prev,
+        nombreCaisses: caisses,
+        quantiteOliveNet: Math.max(0, Number(prev.quantiteOlive || 0) - (caisses * POIDS_CAISSE)),
+      }))
       return
     }
 
     setFormValues((prev) => ({
       ...prev,
-      [name]: isText ? value : parseFloat(value) || 0,
+      [name]: isText ? value : parseFloat(value as string) || 0,
     }))
-  }
-
-  const handleDateChange = (dates: Date[]) => {
-    if (dates[0]) {
-      const date = new Date(dates[0])
-      const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-      setFormValues((prev) => ({ ...prev, dateCreation: formattedDate }))
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!clientId) {
-      alert('ID client manquant')
-      return
-    }
+    if (!clientId) return
 
     setLoading(true)
 
     try {
       const body = {
         nomPrenom: formValues.nomPrenom,
-        numTelephone: toNumber(formValues.numTelephone),
+        numTelephone: Number(formValues.numTelephone) || 0,
         type: formValues.type,
         dateCreation: formValues.dateCreation,
-        commentaire: formValues.commentaire, // <-- AJOUTÉ
-        nombreCaisses: formValues.nombreCaisses,
-        quantiteOlive: formValues.quantiteOlive,
-        quantiteHuile: formValues.quantiteHuile,
-        quantiteOliveNet: formValues.quantiteOliveNet,
-        nisba: formValues.nisba,
-        kattou3: formValues.kattou3,
-        prixKg: prixKg,
-        prixFinal: formValues.prixFinal,
-        poidsWiba: poidsWiba,
+        commentaire: formValues.commentaire,
+        nombreCaisses: Number(formValues.nombreCaisses) || 0,
+        quantiteOlive: Number(formValues.quantiteOlive) || 0,
+        quantiteOliveNet: computed.net,
+        quantiteHuile: Number(formValues.quantiteHuile) || 0,
+        nisba: Number(formValues.nisba) || computed.nisba,
+        kattou3: Number(formValues.kattou3) || computed.kattou3,
+        prixKg: Number(formValues.prixKg) || 0,
+        prixFinal: computed.prixFinal,
+        poidsWiba: Number(formValues.poidsWiba) || POIDS_WIBA_DEFAUT,
       }
 
-      const res = await fetch(`http://192.168.1.15:8170/clients/${clientId}`, {
+      const res = await fetch(`http://localhost:8170/clients/${clientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
 
       if (!res.ok) throw new Error(await res.text())
-      const updated = await res.json()
-      alert('✅ Client modifié avec succès')
-      onUpdated?.(updated)
+      await res.json()
+      onUpdated?.(body)
       onClientSaved?.()
       onHide()
     } catch (err) {
       console.error(err)
-      alert('❌ Erreur : impossible de modifier le client')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
-      <Form onSubmit={handleSubmit}>
-        <Modal.Header closeButton>
-          <Modal.Title>✏️ Modifier le client</Modal.Title>
-        </Modal.Header>
+    <>
+      <style>{styles}</style>
+      <Modal show={show} onHide={onHide} size="lg" centered>
+        <Form onSubmit={handleSubmit}>
+          <Modal.Header closeButton className="border-0 pb-0">
+            <div>
+              <Modal.Title>Modifier le client</Modal.Title>
+              <div className="small text-body-secondary mt-1">{customer.nomPrenom}</div>
+            </div>
+          </Modal.Header>
 
-        <Modal.Body>
-          <Container fluid>
-            {/* --- Infos Client --- */}
-            <h5>Informations du client</h5>
-            
-            {/* === LAYOUT MODIFIÉ (similaire à l'ajout) === */}
-            <Row className="g-3 mb-4">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Nom & Prénom</Form.Label>
-                  <Form.Control
-                    name="nomPrenom"
-                    value={formValues.nomPrenom}
-                    onChange={handleChange}
-                    placeholder="Ex: Ahmed Trabelsi"
-                    required
-                  />
-                </Form.Group>
+          <Modal.Body className="py-3">
+            <Row className="g-3">
+              {/* Infos Client */}
+              <Col xs={12}>
+                <div className="customer-card card-accent-blue p-3" style={{ animation: 'fadeInUp 0.3s ease 0.05s both' }}>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <div className="d-flex" style={{ color: '#3b82f6' }}><User size={16} /></div>
+                    <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>Informations client</span>
+                  </div>
+                  <Row className="g-2">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary">Nom & Prénom</Form.Label>
+                        <Form.Control name="nomPrenom" value={formValues.nomPrenom} onChange={handleChange} size="sm" required />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><Phone size={12} className="me-1" />Téléphone</Form.Label>
+                        <Form.Control name="numTelephone" type="number" value={formValues.numTelephone || ''} onChange={handleChange} size="sm" />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><Tag size={12} className="me-1" />Type</Form.Label>
+                        <Form.Select name="type" value={formValues.type} onChange={handleChange} size="sm">
+                          <option value="فلاح">فلاح</option>
+                          <option value="كيال">كيال</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><Calendar size={12} className="me-1" />Date</Form.Label>
+                        <Flatpickr
+                          className="form-control form-control-sm"
+                          value={formValues.dateCreation}
+                          onChange={(dates: Date[]) => {
+                            if (dates[0]) {
+                              const d = dates[0]
+                              setFormValues((prev) => ({ ...prev, dateCreation: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }))
+                            }
+                          }}
+                          options={{ dateFormat: 'Y-m-d' }}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={8}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><MessageSquare size={12} className="me-1" />Commentaire</Form.Label>
+                        <Form.Control as="textarea" rows={1} name="commentaire" value={formValues.commentaire || ''} onChange={handleChange} size="sm" />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </div>
               </Col>
 
-              {/* === CHAMP COMMENTAIRE AJOUTÉ === */}
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Commentaire</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    name="commentaire"
-                    value={formValues.commentaire || ''} // || '' pour éviter "undefined"
-                    onChange={handleChange}
-                    placeholder="Ajouter un commentaire..."
-                  />
-                </Form.Group>
+              {/* Production + Prix */}
+              <Col md={7}>
+                <div className="customer-card card-accent-green p-3 h-100" style={{ animation: 'fadeInUp 0.3s ease 0.1s both' }}>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <div className="d-flex" style={{ color: '#22c55e' }}><Scale size={16} /></div>
+                    <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>Production</span>
+                  </div>
+                  <Row className="g-2">
+                    <Col xs={4}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><Box size={12} className="me-1" />Caisses</Form.Label>
+                        <Form.Control type="number" name="nombreCaisses" value={formValues.nombreCaisses || ''} onChange={handleChange} size="sm" />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={4}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary">Olive brute</Form.Label>
+                        <Form.Control type="number" name="quantiteOlive" value={formValues.quantiteOlive || ''} onChange={handleChange} size="sm" />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={4}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary">Olive net</Form.Label>
+                        <Form.Control type="number" name="quantiteOliveNet" value={formValues.quantiteOliveNet || ''} onChange={handleChange} size="sm" />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={4}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><Droplet size={12} className="me-1" />Huile (kg)</Form.Label>
+                        <Form.Control type="number" name="quantiteHuile" value={formValues.quantiteHuile || ''} onChange={handleChange} size="sm" />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={4}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><Percent size={12} className="me-1" />Nisba %</Form.Label>
+                        <Form.Control type="number" step="0.01" name="nisba" value={formValues.nisba || ''} onChange={handleChange} placeholder={computed.nisba.toFixed(1)} size="sm" />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={4}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><Gauge size={12} className="me-1" />Kattou3</Form.Label>
+                        <Form.Control type="number" step="0.01" name="kattou3" value={formValues.kattou3 || ''} onChange={handleChange} placeholder={computed.kattou3.toFixed(1)} size="sm" />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </div>
               </Col>
-              
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Téléphone</Form.Label>
-                  <Form.Control
-                    name="numTelephone"
-                    type="number"
-                    value={formValues.numTelephone || ''}
-                    onChange={handleChange}
-                    placeholder="Ex: 96 458 362"
-                  />
-                </Form.Group>
-              </Col>
-              
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Type</Form.Label>
-                  <Form.Select name="type" value={formValues.type} onChange={handleChange}>
-                    <option value="">Sélectionner...</option>
-                    <option value="فلاح">فلاح</option>
-                    <option value="كيال">كيال</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Date création</Form.Label>
-                  <Flatpickr
-                    className="form-control"
-                    value={formValues.dateCreation}
-                    onChange={handleDateChange}
-                    options={{
-                      dateFormat: 'Y-m-d',
-                      defaultDate: formValues.dateCreation,
-                    }}
-                  />
-                </Form.Group>
+
+              <Col md={5}>
+                <div className="customer-card card-accent-orange p-3 h-100" style={{ animation: 'fadeInUp 0.3s ease 0.15s both' }}>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <div className="d-flex" style={{ color: '#f59e0b' }}><DollarSign size={16} /></div>
+                    <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>Prix</span>
+                  </div>
+                  <Row className="g-2">
+                    <Col xs={12}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><DollarSign size={12} className="me-1" />Prix du kg (DT)</Form.Label>
+                        <Form.Control type="number" step="0.1" value={formValues.prixKg} onChange={(e) => setFormValues((prev) => ({ ...prev, prixKg: parseFloat(e.target.value) || 0 }))} size="sm" />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12}>
+                      <Form.Group>
+                        <Form.Label className="small text-secondary"><Weight size={12} className="me-1" />Poids Wiba (kg)</Form.Label>
+                        <Form.Control type="number" value={formValues.poidsWiba} onChange={(e) => setFormValues((prev) => ({ ...prev, poidsWiba: parseFloat(e.target.value) || POIDS_WIBA_DEFAUT }))} size="sm" />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12}>
+                      <div className="total-box p-2 mt-1 text-center">
+                        <div className="small text-secondary">Total à payer</div>
+                        <div className="fw-bold fs-5" style={{ color: '#d97706' }}>{Math.round(computed.prixFinal)} <span className="small fw-normal">TND</span></div>
+                      </div>
+                    </Col>
+                  </Row>
+                </div>
               </Col>
             </Row>
 
-            {/* --- Section Olive --- */}
-            <div
-              className="d-flex justify-content-between align-items-center mb-2"
-              style={{ cursor: 'pointer' }}
-              onClick={() => setOpenOlive(!openOlive)}
-            >
-              <h4>🍃 Quantité d'olive</h4>
-              {openOlive ? <ChevronUp /> : <ChevronDown />}
+            {/* Résumé */}
+            <div className="summary-bar p-3 mt-3" style={{ animation: 'fadeInUp 0.3s ease 0.2s both' }}>
+              <Row className="text-center g-2">
+                {[
+                  { label: 'Olive net', value: `${computed.net.toFixed(1)} kg`, icon: Scale },
+                  { label: 'Huile', value: `${Number(formValues.quantiteHuile || 0).toFixed(1)} kg`, icon: Droplet },
+                  { label: 'Nisba', value: `${computed.nisba.toFixed(1)}%`, icon: Percent },
+                  { label: 'Kattou3', value: `${computed.kattou3.toFixed(1)}`, icon: Gauge },
+                  { label: 'Wiba', value: `${computed.nWiba.toFixed(1)}`, icon: Weight },
+                  { label: 'Prix total', value: `${Math.round(computed.prixFinal)} TND`, icon: DollarSign },
+                ].map((item, i) => (
+                  <Col xs={4} md={2} key={i}>
+                    <div className="d-flex align-items-center justify-content-center gap-1 text-secondary mb-1" style={{ fontSize: '0.7rem' }}>
+                      <item.icon size={11} />
+                      <span>{item.label}</span>
+                    </div>
+                    <div className="fw-semibold" style={{ fontSize: '0.85rem' }}>{item.value}</div>
+                  </Col>
+                ))}
+              </Row>
             </div>
+          </Modal.Body>
 
-            {openOlive && (
-              <Row className="g-3 mb-4">
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Nombre de caisses</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="nombreCaisses" 
-                      value={formValues.nombreCaisses || ''} 
-                      onChange={handleChange} 
-                    />
-                    <Form.Text className="text-muted">olive net = olive - (caisses × {POIDS_CAISSE})</Form.Text>
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Quantité Olive (kg)</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteOlive" 
-                      value={formValues.quantiteOlive || ''} 
-                      onChange={handleChange} 
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Quantité Olive Net (kg) الزيتون</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteOliveNet" 
-                      value={formValues.quantiteOliveNet || ''} 
-                      onChange={handleChange} 
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-            )}
-
-            {/* --- Section Huile --- */}
-            <div
-              className="d-flex justify-content-between align-items-center mb-2"
-              style={{ cursor: 'pointer' }}
-              onClick={() => setOpenHuile(!openHuile)}
-            >
-              <h4>🧴 Quantité d'huile & Rendement</h4>
-              {openHuile ? <ChevronUp /> : <ChevronDown />}
-            </div>
-
-            {openHuile && (
-              <Row className="g-3 mb-3">
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Quantité Huile (NET kg) الزيت</Form.Label>
-                    <Form.Control 
-                      type="number" 
-                      name="quantiteHuile" 
-                      value={formValues.quantiteHuile || ''} 
-                      onChange={handleChange} 
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Nisba % (النسبة)</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="nisba" 
-                      value={format(formValues.nisba)} 
-                      readOnly 
-                      disabled 
-                    />
-                    <Form.Text className="text-muted">= (huile / olive net) × 100</Form.Text>
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Ktou3 (القطوع)</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="kattou3" 
-                      value={format(formValues.kattou3)} 
-                      readOnly 
-                      disabled 
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-            )}
-
-            {/* --- Prix et Wiba --- */}
-            <Row className="g-3 mb-4">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>💵 Prix du kilo (DT/kg)</Form.Label>
-                  <Form.Control 
-                    type="number" 
-                    value={prixKg} 
-                    onChange={(e) => setPrixKilo(parseFloat(e.target.value) || 0)} 
-                  />
-                  <Form.Text className="text-muted">Prix sans virgule - arrondi automatique</Form.Text>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>🪣 Quantité Wiba (KG)</Form.Label>
-                  <Form.Control 
-                    type="number" 
-                    value={poidsWiba} 
-                    onChange={(e) => setPoidsWiba(parseFloat(e.target.value) || 0)} 
-                  />
-                  <Form.Text className="text-muted">Modifiable à tout moment</Form.Text>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            {/* --- Résumé des valeurs --- */}
-            <Card className="p-3 mb-4 shadow-sm border-primary">
-              <Row className="text-center">
-                <Col>
-                  <h6>Nom et prénom</h6>
-                  <p className="fw-bold text-success">{formValues.nomPrenom}</p>
-                </Col>
-                <Col>
-                  <h6>Olive Net</h6>
-                  <p className="fw-bold text-success">{format(formValues.quantiteOliveNet)} kg</p>
-                </Col>
-                <Col>
-                  <h6>Huile</h6>
-                  <p className="fw-bold text-success">{format(formValues.quantiteHuile)} kg</p>
-                </Col>
-                <Col>
-                  <h6>Nisba</h6>
-                  <p className="fw-bold text-primary">{format(formValues.nisba)}%</p>
-                </Col>
-                <Col>
-                  <h6>Kattou3</h6>
-                  <p className="fw-bold text-info">{format(formValues.kattou3)}</p>
-                </Col>
-                <Col>
-                  <h6>Prix Total</h6>
-                  {/* PRIX SANS VIRGULE */}
-                  <p className="fw-bold text-danger">{Math.round(formValues.prixFinal)} TND</p>
-                </Col>
-              </Row>
-            </Card>
-          </Container>
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button variant="light" onClick={onHide} disabled={loading}>
-            Annuler
-          </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? <Spinner size="sm" animation="border" /> : 'Modifier'}
-          </Button>
-        </Modal.Footer>
-      </Form>
-    </Modal>
+          <Modal.Footer className="border-0 pt-0 d-flex justify-content-between">
+            <Button variant="light" onClick={onHide} disabled={loading}>
+              Annuler
+            </Button>
+            <Button type="submit" variant="primary" disabled={loading} className="px-4">
+              {loading ? <Spinner size="sm" animation="border" className="me-1" /> : null}
+              {loading ? 'Modification...' : 'Enregistrer'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+    </>
   )
 }
 

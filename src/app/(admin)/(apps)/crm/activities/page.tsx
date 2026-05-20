@@ -1,61 +1,77 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  Alert,
+  Badge,
   Button,
   Card,
   CardBody,
   Col,
   Container,
+  Dropdown,
   Form,
   FormControl,
   FormLabel,
   Modal,
   Row,
-  Table,
-  Dropdown,
-  Alert,
-  Badge,
   Spinner,
+  Table,
 } from 'react-bootstrap'
-import { TbEdit, TbTrash, TbPlus, TbDownload, TbEye, TbRefresh, TbPrinter } from 'react-icons/tb'
+import {
+  TbChevronLeft,
+  TbChevronRight,
+  TbDownload,
+  TbEdit,
+  TbEye,
+  TbPlus,
+  TbPrinter,
+  TbRefresh,
+  TbTrash,
+} from 'react-icons/tb'
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/flatpickr.css'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import {
+  ColumnDef,
+  PaginationState,
+  Row as TableRow,
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
+
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import TablePagination from '@/components/table/TablePagination'
+import DataTable from '@/components/table/DataTable'
 
 // ======================================================================
-// ⚙️ CONFIG API
+// CONFIG API
 // ======================================================================
-const API_ACHATS = 'http://192.168.1.15:8170/achats'
-const API_PROPRIETAIRES = 'http://192.168.1.15:8170/proprietaires'
-const API_CAISSE = 'http://192.168.1.15:8170/caisse' // ✅ endpoint correct (singulier)
+const API_ACHATS = 'http://localhost:8170/achats'
+const API_PROPRIETAIRES = 'http://localhost:8170/proprietaires'
+const API_CAISSE = 'http://localhost:8170/caisse'
 
 const POID_CAISSE = 30
 const POID_WIBA_DEFAUT = 27
-
-// ✅ commentaire standard automatique (quand on ne déduit pas la caisse)
 const STANDARD_CAISSE_COMMENTAIRE = "J'ai choisi de ne pas diminuer le montant de la caisse"
 
 // ======================================================================
-// DTO (référence backend)
+// DTO
 // ======================================================================
 export class CreateCaisseDto {
-  motif: string
-  montant: number
-  type: string
-  date: string
-  uniqueId: string
-  commentaire: string
+  motif!: string
+  montant!: number
+  type!: string
+  date!: string
+  uniqueId!: string
+  commentaire!: string
   nomutilisatuer?: string
 }
 
 // ======================================================================
-// 📥 EXPORT PDF
+// TYPES
 // ======================================================================
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
-
 interface ExportRow {
   [key: string]: string | number
 }
@@ -68,311 +84,6 @@ interface ExportTotals {
   totalCout: number
 }
 
-const customExportToPDF = (data: ExportRow[], title: string, subtitle: string, totals: ExportTotals): void => {
-  if (typeof jsPDF === 'undefined') {
-    alert("Erreur: jsPDF non chargé. Assurez-vous d'avoir installé 'jspdf' et 'jspdf-autotable'.")
-    return
-  }
-
-  const doc = new jsPDF('p', 'mm', 'a4')
-
-  const margin = 14
-  const pageW = doc.internal.pageSize.getWidth()
-  const pageH = doc.internal.pageSize.getHeight()
-  const contentW = pageW - margin * 2
-  const thousandsSep: ' ' | '.' = ' '
-
-  const sanitize = (s: any) => {
-    const str = String(s ?? '')
-    return str
-      .replace(/\b(nom\s*utilisateur|nomutilisateur|utilisateur|username|user)\s*[:\-]\s*[^|•\n\r]+/gi, '')
-      .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '')
-      .replace(/\s{2,}/g, ' ')
-      .trim()
-  }
-
-  const cleanNumber = (value: any) => {
-    if (typeof value === 'number') return value
-    const s = String(value ?? '')
-    return (
-      parseFloat(
-        s
-          .replace(/[\u00A0\u202F]/g, ' ')
-          .replace(/[^0-9.,-]/g, '')
-          .replace(',', '.'),
-      ) || 0
-    )
-  }
-
-  const formatNumberFR = (n: number, decimals = 2) => {
-    const s = n.toLocaleString('fr-FR', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    })
-    return s.replace(/[\u00A0\u202F]/g, thousandsSep)
-  }
-
-  const fmt2 = (v: any) => formatNumberFR(cleanNumber(v), 2)
-  const fmt0 = (v: any) => String(Math.round(cleanNumber(v)))
-
-  const norm = (s: string) =>
-    String(s ?? '')
-      .toLowerCase()
-      .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[_/.-]/g, ' ')
-      .replace(/\s+/g, ' ')
-
-  const flattenRow = (obj: any, prefix = '', out: Record<string, any> = {}) => {
-    if (!obj || typeof obj !== 'object') return out
-    for (const k of Object.keys(obj)) {
-      const val = obj[k]
-      const key = prefix ? `${prefix}.${k}` : k
-      if (val && typeof val === 'object' && !Array.isArray(val)) {
-        flattenRow(val, key, out)
-      } else {
-        out[key] = val
-      }
-    }
-    return out
-  }
-
-  const bestMatchValue = (row: any, keywordGroups: string[][], fallbackKeys: string[] = []) => {
-    const flat = flattenRow(row)
-    const keys = Object.keys(flat)
-
-    for (const fk of fallbackKeys) {
-      if (Object.prototype.hasOwnProperty.call(row as any, fk)) return (row as any)[fk]
-      const foundDirect = keys.find((k) => k.trim() === fk.trim())
-      if (foundDirect) return flat[foundDirect]
-    }
-
-    let bestKey: string | null = null
-    let bestScore = -1
-
-    for (const k of keys) {
-      const nk = norm(k)
-      let score = 0
-      for (const group of keywordGroups) {
-        const ok = group.every((w) => nk.includes(norm(w)))
-        if (ok) score += 10
-      }
-      if (score > 0) score += Math.max(0, 8 - nk.length / 6)
-      if (score > bestScore) {
-        bestScore = score
-        bestKey = k
-      }
-    }
-    return bestKey ? flat[bestKey] : undefined
-  }
-
-  // Header page 1 only
-  const subtitleClean = sanitize(subtitle)
-  const drawHeaderFirstPageOnly = () => {
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(13)
-    doc.setTextColor(0)
-    doc.text(title, margin, 15)
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
-    doc.setTextColor(0)
-
-    let bottomY = 19
-    if (subtitleClean) {
-      const lines = doc.splitTextToSize(subtitleClean, contentW)
-      doc.text(lines, margin, 22)
-      bottomY = 22 + lines.length * 4.2 + 2
-    }
-
-    doc.setDrawColor(0)
-    doc.setLineWidth(0.2)
-    doc.line(margin, bottomY, pageW - margin, bottomY)
-    return bottomY
-  }
-
-  const headerBottomY = drawHeaderFirstPageOnly()
-  const startYFirstPage = headerBottomY + 6
-
-  const body =
-    data?.length > 0
-      ? (data as any[]).map((row) => {
-          const date =
-            bestMatchValue(row, [['date']], ['Date Achat', 'Date', 'date', 'createdAt', 'dateAchat']) ?? ''
-
-          const brut = bestMatchValue(
-            row,
-            [
-              ['quantite', 'olive', 'kg'],
-              ['olive', 'brut'],
-            ],
-            ['Quantité Olive (kg)', 'Quantite Olive (kg)', 'Olive Brut (kg)'],
-          )
-
-          const caisses = bestMatchValue(
-            row,
-            [
-              ['nbre', 'caisse'],
-              ['nombre', 'caisse'],
-              ['caisse'],
-            ],
-            ['Nbre Caisse', 'Nombre Caisse', 'Caisses'],
-          )
-
-          const net = bestMatchValue(
-            row,
-            [
-              ['quantite', 'olive', 'net'],
-              ['olive', 'net'],
-            ],
-            ['Quantité Olive Net (kg)', 'Quantite Olive Net (kg)', 'Olive Net (kg)'],
-          )
-
-          const poidsWiba = bestMatchValue(
-            row,
-            [
-              ['poids', 'wiba'],
-              ['wiba', 'kg'],
-            ],
-            ['Poids Wiba (kg)', 'Poids Wiba'],
-          )
-
-          const prixWiba = bestMatchValue(row, [['prix', 'wiba'], ['wiba', 'prix']], ['Prix Wiba'])
-          const produit = bestMatchValue(row, [['produit', 'wiba'], ['produit']], ['Produit (Wiba)', 'Produit Wiba'])
-
-          const cout = bestMatchValue(
-            row,
-            [
-              ['cout', 'total'],
-              ['cout'],
-              ['total', 'dinar'],
-              ['montant', 'total'],
-            ],
-            ['Coût Total (Dinar)', 'Cout Total (Dinar)', 'Total (Dinar)'],
-          )
-
-          return [String(date ?? ''), fmt2(brut), fmt0(caisses), fmt2(net), fmt2(poidsWiba), fmt2(prixWiba), fmt2(produit), fmt2(cout)]
-        })
-      : []
-
-  if (!body.length) {
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
-    doc.setTextColor(0)
-    doc.text('Aucune donnée à exporter.', margin, startYFirstPage)
-
-    doc.setFontSize(8)
-    doc.text('Page 1 / 1', pageW / 2, pageH - 10, { align: 'center' })
-    doc.save(`${title.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
-    return
-  }
-
-  autoTable(doc, {
-    startY: startYFirstPage,
-    margin: { left: margin, right: margin, top: 12, bottom: 18 },
-    head: [[
-      'Date',
-      'Olive Brut (kg)',
-      'Caisses',
-      'Olive Net (kg)',
-      'Poids Wiba (kg)',
-      'Prix Wiba',
-      'Produit (Wiba)',
-      'Coût Total (Dinar)',
-    ]],
-    body,
-    theme: 'grid',
-    styles: {
-      font: 'helvetica',
-      fontSize: 8.6,
-      textColor: [0, 0, 0],
-      lineColor: [0, 0, 0],
-      lineWidth: 0.15,
-      cellPadding: 2.0,
-      overflow: 'linebreak',
-    },
-    headStyles: {
-      fillColor: [255, 255, 255],
-      textColor: [0, 0, 0],
-      fontStyle: 'bold',
-      lineWidth: 0.2,
-    },
-    columnStyles: {
-      0: { cellWidth: 20 },
-      1: { halign: 'right' },
-      2: { halign: 'center', cellWidth: 12 },
-      3: { halign: 'right', fontStyle: 'bold' },
-      4: { halign: 'right' },
-      5: { halign: 'right' },
-      6: { halign: 'right' },
-      7: { halign: 'right', fontStyle: 'bold' },
-    },
-  })
-
-  let y = ((doc as any).lastAutoTable?.finalY ?? startYFirstPage) + 10
-
-  if (totals) {
-    const totalsRows = [
-      ['Total Quantité Olive Brut', `${formatNumberFR(cleanNumber(totals.totalQuantiteOlive), 2)} kg`],
-      ['Total Quantité Olive Net', `${formatNumberFR(cleanNumber(totals.totalQuantiteOliveNet), 2)} kg`],
-      ['Total Produit', `${formatNumberFR(cleanNumber(totals.totalProduitWiba), 2)} Wiba`],
-      ['Total Coût', `${formatNumberFR(cleanNumber(totals.totalCout), 2)} Dinar`],
-    ]
-
-    if (y + 25 > pageH - 18) {
-      doc.addPage()
-      y = 12
-    }
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(11)
-    doc.setTextColor(0)
-    doc.text('Totaux', margin, y)
-    y += 4
-
-    autoTable(doc, {
-      startY: y,
-      margin: { left: margin, right: margin, top: 12, bottom: 18 },
-      head: [['Libellé', 'Valeur']],
-      body: totalsRows,
-      theme: 'grid',
-      styles: {
-        font: 'helvetica',
-        fontSize: 9,
-        textColor: [0, 0, 0],
-        lineColor: [0, 0, 0],
-        lineWidth: 0.15,
-        cellPadding: 2.0,
-      },
-      headStyles: {
-        fillColor: [255, 255, 255],
-        textColor: [0, 0, 0],
-        fontStyle: 'bold',
-        lineWidth: 0.2,
-      },
-      columnStyles: {
-        0: { cellWidth: contentW * 0.68 },
-        1: { halign: 'right' },
-      },
-    })
-  }
-
-  const pageCount = doc.getNumberOfPages()
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(0)
-    doc.text(`Page ${i} / ${pageCount}`, pageW / 2, pageH - 10, { align: 'center' })
-  }
-
-  doc.save(`${title.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
-}
-
-// ======================================================================
-// Types
-// ======================================================================
 interface AchatData {
   _id: string
   dateAchat: string
@@ -395,77 +106,245 @@ interface AchatPayload {
   prixWiba: number
 }
 
-interface Column {
-  Header: string
-  accessor: keyof AchatData | 'actions' | 'select'
-  className?: string
-}
-
 // ======================================================================
-// Utils
+// UTILS
 // ======================================================================
-const fmt2 = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmt2 = (n: number) =>
+  (Number.isFinite(n) ? n : 0).toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
 
-// ======================================================================
-// Colonnes table
-// ======================================================================
-const COLUMNS: Column[] = [
-  { Header: '', accessor: 'select', className: 'text-center' },
-  { Header: 'Date Achat', accessor: 'dateAchat' },
-  { Header: 'Olive Brut (kg)', accessor: 'quantiteOlive' },
-  { Header: 'Nbre Caisse', accessor: 'nbreCaisse' },
-  { Header: 'Olive Net (kg)', accessor: 'quantiteOliveNet', className: 'fw-bold' },
-  { Header: 'Poids Wiba (kg)', accessor: 'poidWiba' },
-  { Header: 'Prix Wiba', accessor: 'prixWiba' },
-  { Header: 'Produit (Wiba)', accessor: 'produitWiba', className: 'fw-semibold text-success' },
-  { Header: 'Coût Total (DT)', accessor: 'coutTotal', className: 'fw-semibold text-primary' },
-  { Header: 'Actions', accessor: 'actions', className: 'text-center' },
-]
+const calculateDerivedValues = (formData: AchatPayload) => {
+  const poidZitoun = Number(formData.quantiteOlive || 0)
+  const nbreCaisse = Number(formData.nbreCaisse || 0)
+  const poidWiba = Number(formData.poidWiba || 0)
+  const prixWiba = Number(formData.prixWiba || 0)
 
-// ======================================================================
-// Impression thermique
-// ======================================================================
-function generateThermalTicketAchat(a: AchatData): string {
-  const W = 32
-  const LINE = '-'.repeat(W)
-  const SEP = '*'.repeat(W)
+  const quantiteOliveNet = Math.max(0, poidZitoun - nbreCaisse * POID_CAISSE)
 
-  const center = (text: string): string => {
-    const len = [...text].length
-    const padding = Math.max(0, Math.floor((W - len) / 2))
-    return ' '.repeat(padding) + text
+  let produitWiba = 0
+  let coutTotal = 0
+
+  if (quantiteOliveNet > 0 && poidWiba > 0) {
+    produitWiba = Math.round((quantiteOliveNet / poidWiba) * 100) / 100
+    coutTotal = Math.round(produitWiba * prixWiba * 100) / 100
   }
 
-  const date = a.dateAchat || new Date().toISOString().slice(0, 10)
-  const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  return { quantiteOliveNet, produitWiba, coutTotal }
+}
 
-  const rows: string[] = []
-  rows.push(center('🫒 ACHAT OLIVE 🫒'))
-  rows.push(LINE)
-  rows.push(center(`Date: ${date} ${time}`))
-  rows.push(LINE)
-  rows.push(`Olive brut : ${fmt2(a.quantiteOlive)} kg`)
-  rows.push(`Caisses    : ${Number(a.nbreCaisse || 0)}`)
-  rows.push(`Olive net  : ${fmt2(a.quantiteOliveNet)} kg`)
-  rows.push(LINE)
-  rows.push(`Poids Wiba : ${fmt2(a.poidWiba)} kg`)
-  rows.push(`Prix Wiba  : ${fmt2(a.prixWiba)} DT`)
-  rows.push(SEP)
-  rows.push(center(`Produit: ${fmt2(a.produitWiba)} Wiba`))
-  rows.push(center(`TOTAL : ${fmt2(a.coutTotal)} DT`))
-  rows.push(SEP)
-  rows.push(center('Merci'))
-  rows.push('')
-  return rows.join('\n')
+// ======================================================================
+// EXPORT PDF
+// ======================================================================
+const customExportToPDF = (
+  data: ExportRow[],
+  title: string,
+  subtitle: string,
+  totals: ExportTotals,
+): void => {
+  const doc = new jsPDF('p', 'mm', 'a4')
+  const margin = 14
+  const pageW = doc.internal.pageSize.getWidth()
+  const pageH = doc.internal.pageSize.getHeight()
+  const contentW = pageW - margin * 2
+
+  const cleanNumber = (value: unknown) => {
+    if (typeof value === 'number') return value
+    const s = String(value ?? '')
+    return (
+      parseFloat(
+        s
+          .replace(/[\u00A0\u202F]/g, ' ')
+          .replace(/[^0-9.,-]/g, '')
+          .replace(',', '.'),
+      ) || 0
+    )
+  }
+
+  const formatNumberFR = (n: number, decimals = 2) =>
+    n.toLocaleString('fr-FR', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    })
+
+  const fmtPdf2 = (v: unknown) => formatNumberFR(cleanNumber(v), 2)
+  const fmtPdf0 = (v: unknown) => String(Math.round(cleanNumber(v)))
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.text(title, margin, 15)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.text(subtitle, margin, 22)
+
+  doc.setDrawColor(0)
+  doc.setLineWidth(0.2)
+  doc.line(margin, 26, pageW - margin, 26)
+
+  const body = data.map((row) => [
+    String(row['Date Achat'] ?? ''),
+    fmtPdf2(row['Olive Brut (kg)']),
+    fmtPdf0(row['Nbre Caisse']),
+    fmtPdf2(row['Olive Net (kg)']),
+    fmtPdf2(row['Poids Wiba (kg)']),
+    fmtPdf2(row['Prix Wiba']),
+    fmtPdf2(row['Produit (Wiba)']),
+    fmtPdf2(row['Coût Total (DT)']),
+  ])
+
+  autoTable(doc, {
+    startY: 32,
+    margin: { left: margin, right: margin, top: 12, bottom: 18 },
+    head: [[
+      'Date',
+      'Olive Brut (kg)',
+      'Caisses',
+      'Olive Net (kg)',
+      'Poids Wiba (kg)',
+      'Prix Wiba',
+      'Produit (Wiba)',
+      'Coût Total (DT)',
+    ]],
+    body,
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 8.5,
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0],
+      lineWidth: 0.15,
+      cellPadding: 2,
+    },
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+    },
+    columnStyles: {
+      0: { cellWidth: 20 },
+      1: { halign: 'right' },
+      2: { halign: 'center', cellWidth: 12 },
+      3: { halign: 'right' },
+      4: { halign: 'right' },
+      5: { halign: 'right' },
+      6: { halign: 'right' },
+      7: { halign: 'right' },
+    },
+  })
+
+  let y = ((doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 32) + 8
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin, top: 12, bottom: 18 },
+    head: [['Libellé', 'Valeur']],
+    body: [
+      ['Total Quantité Olive Brut', `${formatNumberFR(Number(totals.totalQuantiteOlive || 0), 2)} kg`],
+      ['Total Quantité Olive Net', `${formatNumberFR(Number(totals.totalQuantiteOliveNet || 0), 2)} kg`],
+      ['Total Produit', `${formatNumberFR(Number(totals.totalProduitWiba || 0), 2)} Wiba`],
+      ['Total Coût', `${formatNumberFR(Number(totals.totalCout || 0), 2)} DT`],
+    ],
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 9,
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0],
+      lineWidth: 0.15,
+      cellPadding: 2,
+    },
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+    },
+  })
+
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i += 1) {
+    doc.setPage(i)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.text(`Page ${i} / ${pageCount}`, pageW / 2, pageH - 10, { align: 'center' })
+  }
+
+  doc.save(`${title.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
+}
+
+// ======================================================================
+// IMPRESSION THERMIQUE
+// ======================================================================
+function generateThermalTicketAchat(a: AchatData): string {
+  const W = 32;
+  const LINE = '-'.repeat(W);
+  const SEP = '*'.repeat(W);
+
+  const center = (text: string): string => {
+    const len = [...text].length;
+    const padding = Math.max(0, Math.floor((W - len) / 2));
+    return ' '.repeat(padding) + text;
+  };
+
+  /**
+   * Structure optimisée : 
+   * FR court (8 chars) | Valeur centrée (10 chars) | AR complet (14 chars)
+   */
+  const row3 = (left: string, value: string | number, right: string): string => {
+    const colFR = 8;  
+    const colVal = 10; 
+    const colAR = 14; 
+
+    const L = left.padEnd(colFR, ' ').substring(0, colFR);
+    const R = right.padStart(colAR, ' ').substring(0, colAR);
+    const V = value.toString();
+    
+    const vPad = Math.max(0, Math.floor((colVal - V.length) / 2));
+    const V_centered = ( ' '.repeat(vPad) + V ).padEnd(colVal, ' ');
+
+    return L + V_centered + R;
+  };
+
+  const date = a.dateAchat || '';
+  const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+  const rows: string[] = [];
+  
+  rows.push(center('🫒 ACHAT OLIVE / شراء زيتون 🫒'));
+  rows.push(LINE);
+  rows.push(center(`${date} ${time}`));
+  rows.push(LINE);
+
+  // FR abrégé (Ol.) | Chiffre au milieu | AR complet
+  rows.push(row3(`Ol. brut`, fmt2(a.quantiteOlive), `زيتون خام`));
+  rows.push(row3(`Caisses`, Number(a.nbreCaisse || 0), `عدد الصناديق`));
+  rows.push(row3(`Ol. net`, fmt2(a.quantiteOliveNet), `زيتون صافي`));
+  
+  rows.push(LINE);
+  
+  // rows.push(row3(`Poids W.`, fmt2(a.poidWiba), `وزن الويبة`));
+  rows.push(row3(`Prix W.`, fmt2(a.prixWiba), `سعر الويبة`));
+  
+  rows.push(SEP);
+  
+  rows.push(row3(`Produit`, fmt2(a.produitWiba), `عدد الويبات`)); 
+  rows.push(row3(`TOTAL DT`, fmt2(a.coutTotal), `المجموع الجملي`));
+  
+  rows.push(SEP);
+  rows.push(center('Merci / شكرا'));
+  rows.push('\n\n');
+
+  return rows.join('\n');
 }
 
 function printThermal(content: string) {
   const printWindow = window.open('', '', 'height=400,width=600')
   if (!printWindow) {
-    alert("Impossible d'ouvrir la fenêtre d'impression (popup bloqué).")
+    alert("Impossible d'ouvrir la fenêtre d'impression.")
     return
   }
 
@@ -494,139 +373,84 @@ function printThermal(content: string) {
 }
 
 // ======================================================================
-// Table component
+// PAGINATION CUSTOM
 // ======================================================================
-function CustomDataTable({
-  columns,
-  data,
-  onView,
-  onEdit,
-  onDelete,
-  onPrint,
-  selectedRows,
-  toggleRowSelection,
-  toggleAllSelection,
+function RightTablePagination({
+  pageIndex,
+  pageSize,
+  pageCount,
+  totalRows,
+  onPageChange,
+  onPageSizeChange,
 }: {
-  columns: Column[]
-  data: AchatData[]
-  onView: (row: AchatData) => void
-  onEdit: (row: AchatData) => void
-  onDelete: (id: string) => void
-  onPrint: (row: AchatData) => void
-  selectedRows: string[]
-  toggleRowSelection: (id: string) => void
-  toggleAllSelection: (checked: boolean) => void
+  pageIndex: number
+  pageSize: number
+  pageCount: number
+  totalRows: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
 }) {
-  const isAllSelected = data.length > 0 && selectedRows.length === data.length
-
-  if (!data || data.length === 0) {
-    return <p className="text-center text-muted p-4 mb-0">Aucun achat d'olive enregistré.</p>
-  }
+  const pages = Array.from({ length: pageCount }, (_, i) => i)
 
   return (
-    <div className="table-responsive">
-      <Table className="mb-0 table-striped table-hover align-middle">
-        <thead>
-          <tr>
-            {columns.map((col, idx) => (
-              <th key={idx} className={col.className}>
-                {col.accessor === 'select' ? (
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={(e) => toggleAllSelection(e.target.checked)}
-                    title="Sélectionner tout"
-                  />
-                ) : (
-                  col.Header
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
+    <div className="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-3">
+      <div className="text-muted small">
+        Lignes: <span className="fw-semibold">{totalRows}</span>
+      </div>
 
-        <tbody>
-          {data.map((row) => (
-            <tr key={row._id}>
-              {columns.map((col, idx) => {
-                let content: any = null
-
-                if (col.accessor === 'select') {
-                  content = (
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(row._id)}
-                      onChange={() => toggleRowSelection(row._id)}
-                    />
-                  )
-                } 
-                else if (col.accessor === 'actions') {
-  content = (
-    <div className="d-flex gap-1 flex-wrap flex-md-nowrap align-items-center justify-content-center">
-      <Button
-        variant="default"
+      <Form.Select
         size="sm"
-        onClick={() => onView(row)}
-        title="Voir"
+        value={pageSize}
+        onChange={(e) => onPageSizeChange(Number(e.target.value))}
+        style={{ width: 90 }}
       >
-        <TbEye className="fs-lg" />
-      </Button>
+        {[10, 20, 30, 50, 100].map((size) => (
+          <option key={size} value={size}>
+            {size} / page
+          </option>
+        ))}
+      </Form.Select>
 
-      <Button
-        variant="default"
-        size="sm"
-        onClick={() => onPrint(row)}
-        title="Imprimer ticket"
-      >
-        <TbPrinter className="fs-lg" />
-      </Button>
+      <div className="d-flex align-items-center gap-1">
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => onPageChange(pageIndex - 1)}
+          disabled={pageIndex <= 0}
+          title="Page précédente"
+        >
+          <TbChevronLeft />
+        </Button>
 
-      <Button
-        variant="default"
-        size="sm"
-        onClick={() => onEdit(row)}
-        title="Modifier"
-      >
-        <TbEdit className="fs-lg" />
-      </Button>
-
-      <Button
-        variant="default"
-        size="sm"
-        onClick={() => onDelete(row._id)}
-        title="Supprimer"
-      >
-        <TbTrash className="fs-lg" />
-      </Button>
-    </div>
-  )
-}
-                else {
-                  const v = row[col.accessor as keyof AchatData]
-                  if (typeof v === 'number') {
-                    if (col.accessor === 'nbreCaisse') content = Number(v).toFixed(0)
-                    else content = Number(v).toFixed(2)
-                  } else {
-                    content = v
-                  }
-                }
-
-                return (
-                  <td key={idx} className={col.className}>
-                    {content}
-                  </td>
-                )
-              })}
-            </tr>
+        <div className="d-flex align-items-center gap-1">
+          {pages.map((page) => (
+            <Button
+              key={`page-${page}`}
+              size="sm"
+              variant={page === pageIndex ? 'primary' : 'default'}
+              onClick={() => onPageChange(page)}
+            >
+              {page + 1}
+            </Button>
           ))}
-        </tbody>
-      </Table>
+        </div>
+
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => onPageChange(pageIndex + 1)}
+          disabled={pageIndex >= pageCount - 1}
+          title="Page suivante"
+        >
+          <TbChevronRight />
+        </Button>
+      </div>
     </div>
   )
 }
 
 // ======================================================================
-// Modal add/edit
+// MODAL ADD / EDIT
 // ======================================================================
 function NouveauAchatModal({
   show,
@@ -642,16 +466,17 @@ function NouveauAchatModal({
   const isEditMode = !!dataToEdit
 
   const [formData, setFormData] = useState<AchatPayload>({
-    dateAchat: dataToEdit?.dateAchat || new Date().toISOString().substring(0, 10),
-    quantiteOlive: dataToEdit?.quantiteOlive || 0,
-    nbreCaisse: dataToEdit?.nbreCaisse || 0,
-    poidWiba: dataToEdit?.poidWiba || POID_WIBA_DEFAUT,
-    prixWiba: dataToEdit?.prixWiba || 0,
+    dateAchat: new Date().toISOString().substring(0, 10),
+    quantiteOlive: 0,
+    nbreCaisse: 0,
+    poidWiba: POID_WIBA_DEFAUT,
+    prixWiba: 0,
   })
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (!show) return
+
     setFormData({
       dateAchat: dataToEdit?.dateAchat || new Date().toISOString().substring(0, 10),
       quantiteOlive: dataToEdit?.quantiteOlive || 0,
@@ -663,27 +488,19 @@ function NouveauAchatModal({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    let val: number | string = value
-    if (name !== 'dateAchat') val = value === '' ? 0 : parseFloat(value) || 0
-    setFormData((prev) => ({ ...prev, [name]: val }))
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        name === 'dateAchat'
+          ? value
+          : value === ''
+            ? 0
+            : parseFloat(value) || 0,
+    }))
   }
 
-  const { produitWiba, coutTotal, quantiteOliveNet } = useMemo(() => {
-    const poidZitoun = Number(formData.quantiteOlive || 0)
-    const nbreCaisse = Number(formData.nbreCaisse || 0)
-    const poidWiba = Number(formData.poidWiba || 0)
-    const prixWiba = Number(formData.prixWiba || 0)
-
-    const net = Math.max(0, poidZitoun - nbreCaisse * POID_CAISSE)
-
-    let p = 0
-    let c = 0
-    if (net > 0 && poidWiba > 0) {
-      p = Math.round((net / poidWiba) * 100) / 100
-      c = Math.round(p * prixWiba * 100) / 100
-    }
-    return { quantiteOliveNet: net, produitWiba: p, coutTotal: c }
-  }, [formData])
+  const derived = calculateDerivedValues(formData)
 
   const handleSubmit = async () => {
     if (!(formData.quantiteOlive > 0 && formData.nbreCaisse >= 0 && formData.prixWiba > 0 && formData.poidWiba > 0)) {
@@ -693,14 +510,16 @@ function NouveauAchatModal({
 
     setIsLoading(true)
     try {
-      const payload: AchatPayload = {
-        dateAchat: formData.dateAchat,
-        quantiteOlive: Number(formData.quantiteOlive || 0),
-        nbreCaisse: Number(formData.nbreCaisse || 0),
-        poidWiba: Number(formData.poidWiba || 0),
-        prixWiba: Number(formData.prixWiba || 0),
-      }
-      await handleSave(payload, dataToEdit?._id)
+      await handleSave(
+        {
+          dateAchat: formData.dateAchat,
+          quantiteOlive: Number(formData.quantiteOlive || 0),
+          nbreCaisse: Number(formData.nbreCaisse || 0),
+          poidWiba: Number(formData.poidWiba || 0),
+          prixWiba: Number(formData.prixWiba || 0),
+        },
+        dataToEdit?._id,
+      )
       handleClose()
     } finally {
       setIsLoading(false)
@@ -712,6 +531,7 @@ function NouveauAchatModal({
       <Modal.Header closeButton>
         <Modal.Title>{isEditMode ? 'Modifier Achat' : "Ajouter un Nouvel Achat d'Olive"}</Modal.Title>
       </Modal.Header>
+
       <Modal.Body>
         <Form>
           <Form.Group as={Row} className="mb-3">
@@ -719,7 +539,13 @@ function NouveauAchatModal({
               Date Achat <span className="text-danger">*</span>
             </FormLabel>
             <Col sm={7}>
-              <FormControl type="date" name="dateAchat" value={formData.dateAchat} onChange={handleChange} required />
+              <FormControl
+                type="date"
+                name="dateAchat"
+                value={formData.dateAchat}
+                onChange={handleChange}
+                required
+              />
             </Col>
           </Form.Group>
 
@@ -728,7 +554,14 @@ function NouveauAchatModal({
               Quantité Olive Brut (kg) <span className="text-danger">*</span>
             </FormLabel>
             <Col sm={7}>
-              <FormControl type="number" name="quantiteOlive" value={formData.quantiteOlive || ''} onChange={handleChange} min="0" required />
+              <FormControl
+                type="number"
+                name="quantiteOlive"
+                value={formData.quantiteOlive || ''}
+                onChange={handleChange}
+                min="0"
+                required
+              />
             </Col>
           </Form.Group>
 
@@ -737,17 +570,24 @@ function NouveauAchatModal({
               Nombre Caisse <span className="text-danger">*</span>
             </FormLabel>
             <Col sm={7}>
-              <FormControl type="number" name="nbreCaisse" value={formData.nbreCaisse || ''} onChange={handleChange} min="0" required />
-              <Form.Text className="text-muted">Poids caisses déduit : {Number(formData.nbreCaisse || 0) * POID_CAISSE} kg</Form.Text>
+              <FormControl
+                type="number"
+                name="nbreCaisse"
+                value={formData.nbreCaisse || ''}
+                onChange={handleChange}
+                min="0"
+                required
+              />
+              <Form.Text className="text-muted">
+                Poids caisses déduit : {Number(formData.nbreCaisse || 0) * POID_CAISSE} kg
+              </Form.Text>
             </Col>
           </Form.Group>
 
           <Form.Group as={Row} className="mb-3">
-            <FormLabel column sm={5}>
-              Quantité Olive Net (kg)
-            </FormLabel>
+            <FormLabel column sm={5}>Quantité Olive Net (kg)</FormLabel>
             <Col sm={7}>
-              <div className="form-control bg-light fw-bold">{quantiteOliveNet.toFixed(2)} kg</div>
+              <div className="form-control bg-light fw-bold">{derived.quantiteOliveNet.toFixed(2)} kg</div>
             </Col>
           </Form.Group>
 
@@ -756,7 +596,14 @@ function NouveauAchatModal({
               Poids Wiba (kg) <span className="text-danger">*</span>
             </FormLabel>
             <Col sm={7}>
-              <FormControl type="number" name="poidWiba" value={formData.poidWiba || ''} onChange={handleChange} min="0.1" required />
+              <FormControl
+                type="number"
+                name="poidWiba"
+                value={formData.poidWiba || ''}
+                onChange={handleChange}
+                min="0.1"
+                required
+              />
             </Col>
           </Form.Group>
 
@@ -765,7 +612,14 @@ function NouveauAchatModal({
               Prix Wiba <span className="text-danger">*</span>
             </FormLabel>
             <Col sm={7}>
-              <FormControl type="number" name="prixWiba" value={formData.prixWiba || ''} onChange={handleChange} min="0.1" required />
+              <FormControl
+                type="number"
+                name="prixWiba"
+                value={formData.prixWiba || ''}
+                onChange={handleChange}
+                min="0.1"
+                required
+              />
             </Col>
           </Form.Group>
 
@@ -775,18 +629,19 @@ function NouveauAchatModal({
             <Col sm={6}>
               <div className="p-2 border rounded bg-light">
                 <div className="text-muted small">Produit estimé</div>
-                <div className="fw-bold text-success">{produitWiba.toFixed(2)} Wiba</div>
+                <div className="fw-bold text-success">{derived.produitWiba.toFixed(2)} Wiba</div>
               </div>
             </Col>
             <Col sm={6}>
               <div className="p-2 border rounded bg-light">
                 <div className="text-muted small">Coût total estimé</div>
-                <div className="fw-bold text-primary">{coutTotal.toFixed(2)} DT</div>
+                <div className="fw-bold text-primary">{derived.coutTotal.toFixed(2)} DT</div>
               </div>
             </Col>
           </Row>
         </Form>
       </Modal.Body>
+
       <Modal.Footer>
         <Button variant="secondary" onClick={handleClose} disabled={isLoading}>
           Annuler
@@ -800,9 +655,17 @@ function NouveauAchatModal({
 }
 
 // ======================================================================
-// Detail Modal
+// DETAIL MODAL
 // ======================================================================
-function DetailModal({ show, handleClose, data }: { show: boolean; handleClose: () => void; data: AchatData | null }) {
+function DetailModal({
+  show,
+  handleClose,
+  data,
+}: {
+  show: boolean
+  handleClose: () => void
+  data: AchatData | null
+}) {
   if (!data) return null
 
   return (
@@ -810,52 +673,50 @@ function DetailModal({ show, handleClose, data }: { show: boolean; handleClose: 
       <Modal.Header closeButton>
         <Modal.Title>Détail Achat — …{data._id.slice(-6)}</Modal.Title>
       </Modal.Header>
+
       <Modal.Body>
         <Table bordered striped className="mb-0">
           <tbody>
             <tr>
               <th>Date Achat</th>
-              <td>
-  {data.createdAt 
-    ? new Date(data.createdAt).toLocaleString('fr-FR') 
-    : 'Date non disponible'}
-</td>
+              <td>{data.dateAchat || 'Date non disponible'}</td>
             </tr>
             <tr>
               <th>Quantité Olive Brut</th>
-              <td>{data.quantiteOlive.toFixed(2)} kg</td>
+              <td>{fmt2(data.quantiteOlive)} kg</td>
             </tr>
             <tr>
               <th>Nombre Caisse</th>
-              <td>{data.nbreCaisse.toFixed(0)}</td>
+              <td>{Number(data.nbreCaisse || 0)}</td>
             </tr>
             <tr>
               <th>Poids caisses déduit</th>
-              <td>{(data.nbreCaisse * POID_CAISSE).toFixed(2)} kg</td>
+              <td>{fmt2(Number(data.nbreCaisse || 0) * POID_CAISSE)} kg</td>
             </tr>
             <tr>
               <th>Quantité Olive Net</th>
-              <td className="fw-bold">{data.quantiteOliveNet.toFixed(2)} kg</td>
+              <td className="fw-bold">{fmt2(data.quantiteOliveNet)} kg</td>
             </tr>
             <tr>
               <th>Poids Wiba</th>
-              <td>{data.poidWiba.toFixed(2)} kg</td>
+              <td>{fmt2(data.poidWiba)} kg</td>
             </tr>
             <tr>
               <th>Prix Wiba</th>
-              <td>{data.prixWiba.toFixed(2)} DT</td>
+              <td>{fmt2(data.prixWiba)} DT</td>
             </tr>
             <tr>
               <th>Produit</th>
-              <td className="fw-bold text-success">{data.produitWiba.toFixed(2)} Wiba</td>
+              <td className="fw-bold text-success">{fmt2(data.produitWiba)} Wiba</td>
             </tr>
             <tr>
               <th>Coût Total</th>
-              <td className="fw-bold text-primary">{data.coutTotal.toFixed(2)} DT</td>
+              <td className="fw-bold text-primary">{fmt2(data.coutTotal)} DT</td>
             </tr>
           </tbody>
         </Table>
       </Modal.Body>
+
       <Modal.Footer>
         <Button variant="secondary" onClick={handleClose}>
           Fermer
@@ -866,11 +727,10 @@ function DetailModal({ show, handleClose, data }: { show: boolean; handleClose: 
 }
 
 // ======================================================================
-// ✅ Modal décision caisse (commentaire standard auto)
+// MODAL DECISION CAISSE
 // ======================================================================
 function CaisseDecisionModal({
   show,
-  // onHide,
   achat,
   onConfirm,
   loading,
@@ -886,7 +746,9 @@ function CaisseDecisionModal({
 
   useEffect(() => {
     if (!show) return
+
     setDeduct(true)
+
     if (achat) {
       setMotif(`Achat زيتون — ${achat.dateAchat} — Total ${Number(achat.coutTotal || 0).toFixed(2)} DT`)
     } else {
@@ -896,15 +758,18 @@ function CaisseDecisionModal({
 
   const handleSubmit = () => {
     const m = motif.trim()
-    if (!m) return alert('Motif obligatoire.')
+    if (!m) {
+      alert('Motif obligatoire.')
+      return
+    }
     onConfirm({ deduct, motif: m })
   }
 
   const amount = Number(achat?.coutTotal || 0)
 
   return (
-    <Modal show={show}  centered backdrop={loading ? 'static' : true}>
-      <Modal.Header >
+    <Modal show={show} centered backdrop={loading ? 'static' : true}>
+      <Modal.Header>
         <Modal.Title>Validation caisse</Modal.Title>
       </Modal.Header>
 
@@ -954,7 +819,7 @@ function CaisseDecisionModal({
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary"  disabled={true}>
+        <Button variant="secondary" disabled>
           Annuler
         </Button>
         <Button variant="primary" onClick={handleSubmit} disabled={loading}>
@@ -969,6 +834,8 @@ function CaisseDecisionModal({
 // PAGE
 // ======================================================================
 export default function Page() {
+  const [isMounted, setIsMounted] = useState(false)
+
   const [achatData, setAchatData] = useState<AchatData[]>([])
   const [allTotals, setAllTotals] = useState<ExportTotals>({
     totalCout: 0,
@@ -993,12 +860,18 @@ export default function Page() {
   const [costMin, setCostMin] = useState<string>('')
   const [costMax, setCostMax] = useState<string>('')
 
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  })
 
-  // ✅ caisse decision
   const [caisseModalShow, setCaisseModalShow] = useState(false)
   const [pendingAchatForCaisse, setPendingAchatForCaisse] = useState<AchatData | null>(null)
   const [caisseLoading, setCaisseLoading] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const resetMessages = () => {
     setUiError(null)
@@ -1008,26 +881,40 @@ export default function Page() {
   const fetchAchatData = useCallback(async () => {
     setLoading(true)
     resetMessages()
+
     try {
       const [dataRes, totalsRes] = await Promise.all([
         fetch(API_ACHATS, { cache: 'no-store' }),
         fetch(`${API_ACHATS}/totals`, { cache: 'no-store' }),
       ])
 
-      if (!dataRes.ok || !totalsRes.ok) throw new Error("Erreur lors de la récupération des données de l'API.")
+      if (!dataRes.ok || !totalsRes.ok) {
+        throw new Error("Erreur lors de la récupération des données de l'API.")
+      }
 
       const data: AchatData[] = await dataRes.json()
       const totals: Omit<ExportTotals, 'totalNbreCaisse'> = await totalsRes.json()
-      const totalNbreCaisse = (Array.isArray(data) ? data : []).reduce((sum, item) => sum + Number(item.nbreCaisse || 0), 0)
 
-      setAchatData(Array.isArray(data) ? data : [])
-      setAllTotals({ ...totals, totalNbreCaisse })
-      setPagination((p) => ({ ...p, pageIndex: 0 }))
-    } catch (e: any) {
-      console.error(e)
+      const safeData = Array.isArray(data) ? data : []
+      const totalNbreCaisse = safeData.reduce((sum, item) => sum + Number(item.nbreCaisse || 0), 0)
+
+      setAchatData(safeData)
+      setAllTotals({
+        ...totals,
+        totalNbreCaisse,
+      })
+    } catch (e: unknown) {
+      const error = e as Error
+      console.error(error)
       setAchatData([])
-      setAllTotals({ totalCout: 0, totalProduitWiba: 0, totalQuantiteOlive: 0, totalQuantiteOliveNet: 0, totalNbreCaisse: 0 })
-      setUiError(e?.message || "Impossible de charger les achats.")
+      setAllTotals({
+        totalCout: 0,
+        totalProduitWiba: 0,
+        totalQuantiteOlive: 0,
+        totalQuantiteOliveNet: 0,
+        totalNbreCaisse: 0,
+      })
+      setUiError(error?.message || 'Impossible de charger les achats.')
     } finally {
       setLoading(false)
     }
@@ -1037,51 +924,78 @@ export default function Page() {
     fetchAchatData()
   }, [fetchAchatData])
 
-  const filtered = useMemo(() => {
-    let res = [...achatData]
+  const filteredData = useMemo(() => {
+    return achatData
+      .filter((x) => {
+        if (dateRange.length === 1) {
+          const d = startOfDay(dateRange[0])
+          const dt = new Date(`${x.dateAchat}T00:00:00`)
+          if (startOfDay(dt).getTime() !== d.getTime()) return false
+        }
 
-    if (dateRange.length === 1) {
-      const d = startOfDay(dateRange[0])
-      res = res.filter((x) => {
-        const dt = new Date(`${x.dateAchat}T00:00:00`)
-        return startOfDay(dt).getTime() === d.getTime()
+        if (dateRange.length === 2) {
+          const start = startOfDay(dateRange[0])
+          const end = addDays(startOfDay(dateRange[1]), 1)
+          const dt = new Date(`${x.dateAchat}T00:00:00`)
+          if (!(dt >= start && dt < end)) return false
+        }
+
+        const min = costMin.trim() === '' ? null : Number(costMin)
+        const max = costMax.trim() === '' ? null : Number(costMax)
+
+        if (min !== null && Number.isFinite(min) && Number(x.coutTotal || 0) < min) return false
+        if (max !== null && Number.isFinite(max) && Number(x.coutTotal || 0) > max) return false
+
+        return true
       })
-    } else if (dateRange.length === 2) {
-      const start = startOfDay(dateRange[0])
-      const end = addDays(startOfDay(dateRange[1]), 1)
-      res = res.filter((x) => {
-        const dt = new Date(`${x.dateAchat}T00:00:00`)
-        return dt >= start && dt < end
-      })
-    }
-
-    const min = costMin.trim() === '' ? null : Number(costMin)
-    const max = costMax.trim() === '' ? null : Number(costMax)
-
-    if (min !== null && Number.isFinite(min)) res = res.filter((x) => Number(x.coutTotal || 0) >= min)
-    if (max !== null && Number.isFinite(max)) res = res.filter((x) => Number(x.coutTotal || 0) <= max)
-
-    res.sort((a, b) => String(b.dateAchat).localeCompare(String(a.dateAchat)))
-    return res
+      .sort((a, b) => String(b.dateAchat).localeCompare(String(a.dateAchat)))
   }, [achatData, dateRange, costMin, costMax])
 
-  const pageIndex = pagination.pageIndex
-  const pageSize = pagination.pageSize
-  const totalItems = filtered.length
-  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
-  const end = Math.min(start + pageSize - 1, totalItems)
-  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize))
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(filteredData.length / pagination.pageSize) - 1)
 
-  const paged = useMemo(() => {
-    const startIdx = pageIndex * pageSize
-    return filtered.slice(startIdx, startIdx + pageSize)
-  }, [filtered, pageIndex, pageSize])
+    if (pagination.pageIndex > maxPage) {
+      setPagination((prev) => ({
+        ...prev,
+        pageIndex: maxPage,
+      }))
+    }
+  }, [filteredData.length, pagination.pageIndex, pagination.pageSize])
+
+  const filteredTotals = useMemo(() => {
+    return filteredData.reduce(
+      (acc, x) => ({
+        oliveBrut: acc.oliveBrut + Number(x.quantiteOlive || 0),
+        oliveNet: acc.oliveNet + Number(x.quantiteOliveNet || 0),
+        produit: acc.produit + Number(x.produitWiba || 0),
+        cout: acc.cout + Number(x.coutTotal || 0),
+      }),
+      {
+        oliveBrut: 0,
+        oliveNet: 0,
+        produit: 0,
+        cout: 0,
+      },
+    )
+  }, [filteredData])
+
+  const pagedRows = useMemo(() => {
+    const start = pagination.pageIndex * pagination.pageSize
+    return filteredData.slice(start, start + pagination.pageSize)
+  }, [filteredData, pagination.pageIndex, pagination.pageSize])
+
+  const pageCount = Math.max(1, Math.ceil(filteredData.length / pagination.pageSize))
 
   const toggleRowSelection = (id: string) => {
     setSelectedRows((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
-  const toggleAllSelection = (checked: boolean) => {
-    setSelectedRows(checked ? paged.map((d) => d._id) : [])
+
+  const toggleAllSelection = (checked: boolean, rows: AchatData[]) => {
+    if (!checked) {
+      setSelectedRows([])
+      return
+    }
+    setSelectedRows(rows.map((row) => row._id))
   }
 
   const handleView = (row: AchatData) => {
@@ -1109,8 +1023,10 @@ export default function Page() {
 
     setLoading(true)
     resetMessages()
+
     try {
       const res = await fetch(`${API_ACHATS}/${id}`, { method: 'DELETE' })
+
       if (!res.ok) {
         const body = await res.json().catch(() => null)
         throw new Error(body?.message || 'Suppression échouée.')
@@ -1119,30 +1035,33 @@ export default function Page() {
       setUiSuccess('Achat supprimé.')
       await fetchAchatData()
       setSelectedRows((prev) => prev.filter((x) => x !== id))
-    } catch (e: any) {
-      console.error(e)
-      setUiError(e?.message || 'Erreur suppression.')
+    } catch (e: unknown) {
+      const error = e as Error
+      console.error(error)
+      setUiError(error?.message || 'Erreur suppression.')
     } finally {
       setLoading(false)
     }
   }
 
-  // ✅ logique date caisse: date sélectionnée + heure actuelle (comme ta page caisse)
   const buildCaisseISODate = (selectedDate?: string) => {
     if (!selectedDate) return new Date().toISOString()
 
     const now = new Date()
     const [year, month, day] = String(selectedDate).split('-').map((p) => parseInt(p, 10))
+
     if (!year || !month || !day) return now.toISOString()
 
     now.setFullYear(year, month - 1, day)
     return now.toISOString()
   }
 
-  // ✅ crée mouvement caisse (endpoint /caisse)
-  const createCaisseMovement = async (params: { achat: AchatData; deduct: boolean; motif: string }) => {
+  const createCaisseMovement = async (params: {
+    achat: AchatData
+    deduct: boolean
+    motif: string
+  }) => {
     const { achat, deduct, motif } = params
-
     const montant = deduct ? Number(achat.coutTotal || 0) : 0
 
     const body = {
@@ -1151,7 +1070,6 @@ export default function Page() {
       type: 'debit',
       date: buildCaisseISODate(achat.dateAchat),
       commentaire: deduct ? '' : STANDARD_CAISSE_COMMENTAIRE,
-      // uniqueId: achat._id, // ⚠️ active seulement si ton backend l'accepte
     }
 
     const res = await fetch(API_CAISSE, {
@@ -1171,6 +1089,7 @@ export default function Page() {
 
     setCaisseLoading(true)
     resetMessages()
+
     try {
       await createCaisseMovement({
         achat: pendingAchatForCaisse,
@@ -1181,20 +1100,20 @@ export default function Page() {
       setUiSuccess(
         params.deduct
           ? `Caisse mise à jour: -${Number(pendingAchatForCaisse.coutTotal || 0).toFixed(2)} DT`
-          : `Notification caisse envoyée (montant 0) avec commentaire standard.`,
+          : 'Notification caisse envoyée (montant 0) avec commentaire standard.',
       )
 
       setCaisseModalShow(false)
       setPendingAchatForCaisse(null)
-    } catch (e: any) {
-      console.error(e)
-      setUiError(e?.message || 'Erreur caisse.')
+    } catch (e: unknown) {
+      const error = e as Error
+      console.error(error)
+      setUiError(error?.message || 'Erreur caisse.')
     } finally {
       setCaisseLoading(false)
     }
   }
 
-  // Save (create/update) + add to proprietaires on create
   const handleSave = async (payload: AchatPayload, id?: string) => {
     setLoading(true)
     resetMessages()
@@ -1216,23 +1135,19 @@ export default function Page() {
 
       const saved: AchatData = await response.json().catch(() => null)
 
-      // ✅ Sur création seulement: ouvrir modal caisse
       if (!id && saved?._id) {
         setPendingAchatForCaisse(saved)
         setCaisseModalShow(true)
       }
 
-      // ✅ Ajout stock propriétaire seulement sur création
       if (!id && saved?._id) {
         const proprietairePayload = {
           nomPrenom: `Achat olive — ${saved.dateAchat} — Total ${fmt2(Number(saved.coutTotal || 0))} DT`,
           type: 'proprietaire' as const,
           dateCreation: new Date(saved.dateAchat || payload.dateAchat).toISOString(),
-
           nombreCaisses: Number(saved.nbreCaisse ?? payload.nbreCaisse ?? 0),
           quantiteOlive: Number(saved.quantiteOlive ?? payload.quantiteOlive ?? 0),
           quantiteOliveNet: Number(saved.quantiteOliveNet ?? 0),
-
           quantiteHuile: 0,
           kattou3: 0,
           nisba: 0,
@@ -1262,28 +1177,26 @@ export default function Page() {
 
       await fetchAchatData()
       setSelectedRows([])
+    } catch (e: unknown) {
+      const error = e as Error
+      console.error(error)
+      setUiError(error?.message || 'Erreur sauvegarde.')
     } finally {
       setLoading(false)
     }
   }
 
-  const getExportData = (rows: AchatData[]): ExportRow[] => {
-    return rows.map((row) => {
-      const rowData: ExportRow = {}
-      COLUMNS.forEach((col) => {
-        if (col.accessor !== 'actions' && col.accessor !== 'select') {
-          const key = col.Header.trim()
-          const value = row[col.accessor as keyof AchatData]
-          if (typeof value === 'number') {
-            rowData[key] = col.accessor === 'nbreCaisse' ? value.toFixed(0) : value.toFixed(2)
-          } else {
-            rowData[key] = value ?? ''
-          }
-        }
-      })
-      return rowData
-    })
-  }
+  const getExportData = (rows: AchatData[]): ExportRow[] =>
+    rows.map((row) => ({
+      'Date Achat': row.dateAchat ?? '',
+      'Olive Brut (kg)': Number(row.quantiteOlive || 0).toFixed(2),
+      'Nbre Caisse': Number(row.nbreCaisse || 0).toFixed(0),
+      'Olive Net (kg)': Number(row.quantiteOliveNet || 0).toFixed(2),
+      'Poids Wiba (kg)': Number(row.poidWiba || 0).toFixed(2),
+      'Prix Wiba': Number(row.prixWiba || 0).toFixed(2),
+      'Produit (Wiba)': Number(row.produitWiba || 0).toFixed(2),
+      'Coût Total (DT)': Number(row.coutTotal || 0).toFixed(2),
+    }))
 
   const handleExport = (format: 'csv' | 'pdf') => {
     if (selectedRows.length === 0) {
@@ -1291,7 +1204,12 @@ export default function Page() {
       return
     }
 
-    const dataToExport = achatData.filter((d) => selectedRows.includes(d._id))
+    const dataToExport = filteredData.filter((d) => selectedRows.includes(d._id))
+    if (!dataToExport.length) {
+      setUiError('Aucune ligne valide sélectionnée pour l’export.')
+      return
+    }
+
     const exportData = getExportData(dataToExport)
 
     const selectedTotals: ExportTotals = dataToExport.reduce(
@@ -1302,11 +1220,22 @@ export default function Page() {
         totalQuantiteOliveNet: acc.totalQuantiteOliveNet + Number(item.quantiteOliveNet || 0),
         totalNbreCaisse: acc.totalNbreCaisse + Number(item.nbreCaisse || 0),
       }),
-      { totalCout: 0, totalProduitWiba: 0, totalQuantiteOlive: 0, totalQuantiteOliveNet: 0, totalNbreCaisse: 0 },
+      {
+        totalCout: 0,
+        totalProduitWiba: 0,
+        totalQuantiteOlive: 0,
+        totalQuantiteOliveNet: 0,
+        totalNbreCaisse: 0,
+      },
     )
 
     if (format === 'pdf') {
-      customExportToPDF(exportData, "Rapport d'Achats d'Olives", `Exportation de ${dataToExport.length} lignes sélectionnées`, selectedTotals)
+      customExportToPDF(
+        exportData,
+        "Rapport d'Achats d'Olives",
+        `Exportation de ${dataToExport.length} lignes sélectionnées`,
+        selectedTotals,
+      )
     } else {
       const headers = Object.keys(exportData[0]).join(',')
       const csvRows = exportData.map((r) => Object.values(r).join(','))
@@ -1328,6 +1257,152 @@ export default function Page() {
     printThermal(content)
   }
 
+  const columns = useMemo<ColumnDef<AchatData>[]>(() => [
+    {
+      id: 'select',
+      header: () => {
+        const isAllSelected =
+          pagedRows.length > 0 &&
+          pagedRows.every((row) => selectedRows.includes(row._id))
+
+        return (
+          <div className="d-flex justify-content-center">
+            <Form.Check
+              type="checkbox"
+              checked={isAllSelected}
+              onChange={(e) => toggleAllSelection(e.target.checked, pagedRows)}
+              title="Sélectionner tout"
+            />
+          </div>
+        )
+      },
+      cell: ({ row }: { row: TableRow<AchatData> }) => (
+        <div className="d-flex justify-content-center">
+          <Form.Check
+            type="checkbox"
+            checked={selectedRows.includes(row.original._id)}
+            onChange={() => toggleRowSelection(row.original._id)}
+            title="Sélectionner"
+          />
+        </div>
+      ),
+    },
+    {
+      header: 'Date Achat',
+      accessorKey: 'dateAchat',
+      cell: ({ row }: { row: TableRow<AchatData> }) => row.original.dateAchat || '-',
+    },
+    {
+      header: 'Olive Brut (kg)',
+      accessorKey: 'quantiteOlive',
+      cell: ({ row }: { row: TableRow<AchatData> }) => fmt2(Number(row.original.quantiteOlive || 0)),
+    },
+    {
+      header: 'Nbre Caisse',
+      accessorKey: 'nbreCaisse',
+      cell: ({ row }: { row: TableRow<AchatData> }) => (
+       
+          Number(row.original.nbreCaisse || 0)
+       
+      ),
+    },
+{
+  header: 'Olive Net (kg)',
+  accessorKey: 'quantiteOliveNet',
+  cell: ({ row }: { row: TableRow<AchatData> }) => (
+    <span className="badge rounded-pill border fw-semibold text-body bg-body-secondary">
+      {fmt2(Number(row.original.quantiteOliveNet || 0))} kg
+    </span>
+  ),
+},
+    {
+      header: 'Prix Wiba',
+      accessorKey: 'prixWiba',
+      cell: ({ row }: { row: TableRow<AchatData> }) => (
+        <Badge bg="warning" text="dark" pill className="border">
+          {fmt2(Number(row.original.prixWiba || 0))} DT
+        </Badge>
+      ),
+    },
+    {
+      header: 'Produit Wiba',
+      accessorKey: 'produitWiba',
+      cell: ({ row }: { row: TableRow<AchatData> }) => (
+        <Badge bg="success-subtle" text="success" pill className="border">
+          {fmt2(Number(row.original.produitWiba || 0))} Wiba
+        </Badge>
+      ),
+    },
+    {
+      header: 'Prix Final',
+      accessorKey: 'coutTotal',
+      cell: ({ row }: { row: TableRow<AchatData> }) => (
+        <Badge bg="primary-subtle" text="primary" pill className="border">
+          {fmt2(Number(row.original.coutTotal || 0))} DT
+        </Badge>
+      ),
+    },
+    {
+      header: 'Actions',
+      cell: ({ row }: { row: TableRow<AchatData> }) => {
+        const achat = row.original
+
+        return (
+          <div className="d-flex gap-1 flex-wrap flex-md-nowrap align-items-center">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => handleView(achat)}
+              title="Voir détails"
+            >
+              <TbEye className="fs-lg" />
+            </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => handlePrint(achat)}
+              title="Imprimer ticket"
+            >
+              <TbPrinter className="fs-lg" />
+            </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => handleEdit(achat)}
+              title="Modifier"
+            >
+              <TbEdit className="fs-lg" />
+            </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => handleDelete(achat._id)}
+              title="Supprimer"
+            >
+              <TbTrash className="fs-lg" />
+            </Button>
+          </div>
+        )
+      },
+    },
+  ], [pagedRows, selectedRows])
+
+  const table = useReactTable({
+    data: pagedRows,
+    columns,
+    state: {
+      pagination,
+    },
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    pageCount,
+  })
+
   return (
     <Container fluid>
       <PageBreadcrumb title="Achats Olives" subtitle="Gestion" />
@@ -1337,6 +1412,7 @@ export default function Page() {
           {uiError}
         </Alert>
       )}
+
       {uiSuccess && (
         <Alert variant="success" dismissible onClose={() => setUiSuccess(null)}>
           {uiSuccess}
@@ -1359,16 +1435,28 @@ export default function Page() {
                   </Button>
 
                   <Dropdown>
-                    <Dropdown.Toggle variant="success" id="dropdown-export" disabled={selectedRows.length === 0}>
+                    <Dropdown.Toggle
+                      variant="success"
+                      id="dropdown-export"
+                      disabled={selectedRows.length === 0}
+                    >
                       <TbDownload className="me-1" /> Exporter ({selectedRows.length})
                     </Dropdown.Toggle>
+
                     <Dropdown.Menu>
                       <Dropdown.Item onClick={() => handleExport('csv')}>Exporter en CSV</Dropdown.Item>
                       <Dropdown.Item onClick={() => handleExport('pdf')}>Exporter en PDF</Dropdown.Item>
                     </Dropdown.Menu>
                   </Dropdown>
 
-                  <Button variant="primary" onClick={() => setModalShow(true)} disabled={loading}>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setDataToEdit(null)
+                      setModalShow(true)
+                    }}
+                    disabled={loading}
+                  >
                     <TbPlus className="me-1" /> Nouveau Achat
                   </Button>
                 </div>
@@ -1378,19 +1466,19 @@ export default function Page() {
                 <Row className="text-center g-2">
                   <Col md={3}>
                     <div className="fw-semibold">Olive Brut</div>
-                    <div className="fs-5">{allTotals.totalQuantiteOlive.toFixed(2)} kg</div>
+                    <div className="fs-5">{fmt2(allTotals.totalQuantiteOlive)} kg</div>
                   </Col>
                   <Col md={3}>
                     <div className="fw-semibold">Olive Net</div>
-                    <div className="fs-5">{allTotals.totalQuantiteOliveNet.toFixed(2)} kg</div>
+                    <div className="fs-5">{fmt2(allTotals.totalQuantiteOliveNet)} kg</div>
                   </Col>
                   <Col md={3}>
                     <div className="fw-semibold">Produit</div>
-                    <div className="fs-5 text-success">{allTotals.totalProduitWiba.toFixed(2)} Wiba</div>
+                    <div className="fs-5 text-success">{fmt2(allTotals.totalProduitWiba)} Wiba</div>
                   </Col>
                   <Col md={3}>
                     <div className="fw-semibold">Coût Total</div>
-                    <div className="fs-5 text-primary">{allTotals.totalCout.toFixed(2)} DT</div>
+                    <div className="fs-5 text-primary">{fmt2(allTotals.totalCout)} DT</div>
                   </Col>
                 </Row>
               </Alert>
@@ -1398,15 +1486,19 @@ export default function Page() {
               <Row className="g-2 align-items-end mb-3">
                 <Col lg={4}>
                   <Form.Label className="mb-1">Filtre date (range)</Form.Label>
-                  <Flatpickr
-                    className="form-control"
-                    options={{ mode: 'range', dateFormat: 'Y-m-d' }}
-                    value={dateRange}
-                    onChange={(dates: Date[]) => {
-                      setDateRange(dates)
-                      setPagination((p) => ({ ...p, pageIndex: 0 }))
-                    }}
-                  />
+                  {isMounted ? (
+                    <Flatpickr
+                      className="form-control"
+                      options={{ mode: 'range', dateFormat: 'Y-m-d' }}
+                      value={dateRange}
+                      onChange={(dates: Date[]) => {
+                        setDateRange(dates)
+                        setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+                      }}
+                    />
+                  ) : (
+                    <FormControl disabled placeholder="Chargement..." />
+                  )}
                 </Col>
 
                 <Col lg={3}>
@@ -1416,7 +1508,7 @@ export default function Page() {
                     value={costMin}
                     onChange={(e) => {
                       setCostMin(e.target.value)
-                      setPagination((p) => ({ ...p, pageIndex: 0 }))
+                      setPagination((prev) => ({ ...prev, pageIndex: 0 }))
                     }}
                     placeholder="ex: 100"
                     min={0}
@@ -1430,14 +1522,14 @@ export default function Page() {
                     value={costMax}
                     onChange={(e) => {
                       setCostMax(e.target.value)
-                      setPagination((p) => ({ ...p, pageIndex: 0 }))
+                      setPagination((prev) => ({ ...prev, pageIndex: 0 }))
                     }}
                     placeholder="ex: 500"
                     min={0}
                   />
                 </Col>
 
-                <Col lg={2} className="d-flex gap-2">
+                <Col lg={2}>
                   <Button
                     variant="secondary"
                     className="w-100"
@@ -1445,7 +1537,7 @@ export default function Page() {
                       setDateRange([])
                       setCostMin('')
                       setCostMax('')
-                      setPagination((p) => ({ ...p, pageIndex: 0 }))
+                      setPagination((prev) => ({ ...prev, pageIndex: 0 }))
                     }}
                     disabled={loading}
                   >
@@ -1455,83 +1547,79 @@ export default function Page() {
               </Row>
 
               <Row className="g-2 mb-3">
-                <Col md={4}>
+                {/* <Col md={4}>
                   <Card className="p-2">
                     <div className="fw-semibold mb-1">Filtre courant</div>
                     <div className="d-flex flex-wrap gap-2">
-                      <Badge bg="secondary">Lignes: {filtered.length}</Badge>
-                      <Badge bg="primary">
-                        Page: {pageIndex + 1}/{pageCount}
-                      </Badge>
+                      <Badge bg="secondary">Lignes: {filteredData.length}</Badge>
+                      <Badge bg="primary">Page: {pagination.pageIndex + 1}/{pageCount}</Badge>
                       <Badge bg="info">Sélection: {selectedRows.length}</Badge>
                     </div>
                   </Card>
-                </Col>
+                </Col> */}
 
                 <Col md={8}>
                   <Card className="p-2">
                     <div className="fw-semibold mb-1">Totaux (filtre courant)</div>
                     <div className="d-flex flex-wrap gap-2">
-                      <Badge bg="secondary">
-                        Olive brut: {fmt2(filtered.reduce((s, x) => s + Number(x.quantiteOlive || 0), 0))} kg
-                      </Badge>
-                      <Badge bg="secondary">
-                        Olive net: {fmt2(filtered.reduce((s, x) => s + Number(x.quantiteOliveNet || 0), 0))} kg
-                      </Badge>
-                      <Badge bg="success">
-                        Produit: {fmt2(filtered.reduce((s, x) => s + Number(x.produitWiba || 0), 0))} Wiba
-                      </Badge>
-                      <Badge bg="primary">
-                        Coût: {fmt2(filtered.reduce((s, x) => s + Number(x.coutTotal || 0), 0))} DT
-                      </Badge>
+                      <Badge bg="secondary">Olive brut: {fmt2(filteredTotals.oliveBrut)} kg</Badge>
+                      <Badge bg="secondary">Olive net: {fmt2(filteredTotals.oliveNet)} kg</Badge>
+                      <Badge bg="success">Produit: {fmt2(filteredTotals.produit)} Wiba</Badge>
+                      <Badge bg="primary">Coût: {fmt2(filteredTotals.cout)} DT</Badge>
                     </div>
                   </Card>
                 </Col>
               </Row>
 
-              {loading ? (
-                <div className="text-center py-4">
-                  <Spinner animation="border" />
-                </div>
-              ) : (
-                <CustomDataTable
-                  columns={COLUMNS}
-                  data={paged}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onPrint={handlePrint}
-                  selectedRows={selectedRows}
-                  toggleRowSelection={toggleRowSelection}
-                  toggleAllSelection={toggleAllSelection}
+              <div className="table-responsive">
+                <DataTable<AchatData>
+                  table={table}
+                  emptyMessage="Aucun achat d'olive enregistré."
+                  loading={loading}
+                />
+              </div>
+
+              {!loading && (
+                <RightTablePagination
+                  pageIndex={pagination.pageIndex}
+                  pageSize={pagination.pageSize}
+                  pageCount={pageCount}
+                  totalRows={filteredData.length}
+                  onPageChange={(page) => {
+                    if (page < 0 || page >= pageCount) return
+                    setPagination((prev) => ({ ...prev, pageIndex: page }))
+                  }}
+                  onPageSizeChange={(size) => {
+                    setPagination({
+                      pageIndex: 0,
+                      pageSize: size,
+                    })
+                  }}
                 />
               )}
 
-              <div className="mt-2">
-                <TablePagination
-                  totalItems={totalItems}
-                  start={start}
-                  end={end}
-                  itemsName="achats"
-                  showInfo
-                  previousPage={() => setPagination((p) => ({ ...p, pageIndex: Math.max(0, p.pageIndex - 1) }))}
-                  canPreviousPage={pageIndex > 0}
-                  pageCount={pageCount}
-                  pageIndex={pageIndex}
-                  setPageIndex={(i) => setPagination((p) => ({ ...p, pageIndex: Math.min(Math.max(0, i), pageCount - 1) }))}
-                  nextPage={() => setPagination((p) => ({ ...p, pageIndex: Math.min(pageCount - 1, p.pageIndex + 1) }))}
-                  canNextPage={pageIndex < pageCount - 1}
-                  pageSize={pageSize}
-                  setPageSize={(size) => setPagination({ pageIndex: 0, pageSize: size })}
-                />
-              </div>
+              {loading && (
+                <div className="text-center py-3">
+                  <Spinner animation="border" />
+                </div>
+              )}
             </CardBody>
           </Card>
         </Col>
       </Row>
 
-      <NouveauAchatModal show={modalShow} handleClose={handleModalClose} handleSave={handleSave} dataToEdit={dataToEdit} />
-      <DetailModal show={detailModalShow} handleClose={handleDetailModalClose} data={dataToView} />
+      <NouveauAchatModal
+        show={modalShow}
+        handleClose={handleModalClose}
+        handleSave={handleSave}
+        dataToEdit={dataToEdit}
+      />
+
+      <DetailModal
+        show={detailModalShow}
+        handleClose={handleDetailModalClose}
+        data={dataToView}
+      />
 
       <CaisseDecisionModal
         show={caisseModalShow}

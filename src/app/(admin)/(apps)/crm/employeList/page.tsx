@@ -72,7 +72,7 @@ type EmployeTableType = Employe & { nomComplet: string }
 
 const columnHelper = createColumnHelper<EmployeTableType>()
 
-const API_HOST = 'http://192.168.1.15:8170'
+const API_HOST = 'http://localhost:8170'
 const API_BASE_URL = `${API_HOST}/employes`
 
 function normalizeEmp(emp: any): EmployeTableType {

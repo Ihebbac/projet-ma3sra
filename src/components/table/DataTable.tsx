@@ -1,8 +1,9 @@
+// components/table/DataTable.tsx
 'use client'
 
 import { flexRender, Table as TableType } from '@tanstack/react-table'
 import clsx from 'clsx'
-import { Table } from 'react-bootstrap'
+import { Table, Spinner } from 'react-bootstrap'
 import { TbArrowDown, TbArrowUp } from 'react-icons/tb'
 
 type DataTableProps<TData> = {
@@ -25,9 +26,21 @@ type DataTableProps<TData> = {
    * @default true
    */
   showHeaders?: boolean
+
+  /**
+   * Optional loading state to show a spinner in the table
+   * @default false
+   */
+  loading?: boolean
 }
 
-const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing found.', showHeaders = true }: DataTableProps<TData>) => {
+const DataTable = <TData,>({ 
+  table, 
+  className = '', 
+  emptyMessage = 'Nothing found.', 
+  showHeaders = true,
+  loading = false 
+}: DataTableProps<TData>) => {
   const columns = table.getAllColumns()
 
   return (
@@ -56,12 +69,25 @@ const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing foun
                     </div>
                   </th>
                 ))}
-              </tr>
+               </tr>
             ))}
           </thead>
         )}
         <tbody>
-          {table.getRowModel().rows?.length ? (
+          {loading ? (
+            <tr>
+              <td colSpan={columns.length} className="text-center py-5">
+                <div className="d-flex justify-content-center align-items-center gap-3">
+                  <Spinner 
+                    animation="border" 
+                    variant="success" 
+                    style={{ width: '2rem', height: '2rem' }}
+                  />
+                  <span className="text-muted">Chargement des données...</span>
+                </div>
+              </td>
+            </tr>
+          ) : table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
               <tr key={row.id}>
                 {row.getVisibleCells().map((cell) => (

@@ -76,7 +76,7 @@ type FeedbackState = {
   message: string
 }
 
-const API_BASE_URL = 'http://192.168.1.15:8170'
+const API_BASE_URL = 'http://localhost:8170'
 const columnHelper = createColumnHelper<FitouraType>()
 
 const FitouraCard = () => {
@@ -680,7 +680,7 @@ const handleExportPdf = () => {
               </div>
             </CardHeader>
 
-            <DataTable table={table} emptyMessage="Aucune opération trouvée" />
+            <DataTable table={table} emptyMessage="Aucune opération trouvée"  />
 
             {table.getRowModel().rows.length > 0 && (
               <CardFooter className="border-0">

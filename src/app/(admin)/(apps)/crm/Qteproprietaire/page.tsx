@@ -121,7 +121,7 @@ const Qteclient = () => {
   const fetchProprietaires = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://192.168.1.15:8170/proprietaires', { cache: 'no-store' as any })
+      const response = await fetch('http://localhost:8170/proprietaires', { cache: 'no-store' as any })
       if (!response.ok) throw new Error('Failed to fetch data')
       const json: CustomerType[] = await response.json()
       setData(Array.isArray(json) ? (json as any) : [])
@@ -305,7 +305,7 @@ const Qteclient = () => {
 
   const handleSaveEdit = async (updatedData: CustomerType) => {
     try {
-      const response = await fetch(`http://192.168.1.15:8170/proprietaires/${updatedData._id}`, {
+      const response = await fetch(`http://localhost:8170/proprietaires/${updatedData._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData),
@@ -321,7 +321,7 @@ const Qteclient = () => {
   const handleDelete = async () => {
     try {
       const selectedRows = table.getSelectedRowModel().rows
-      const deletePromises = selectedRows.map((r) => fetch(`http://192.168.1.15:8170/proprietaires/${r.original._id}`, { method: 'DELETE' }))
+      const deletePromises = selectedRows.map((r) => fetch(`http://localhost:8170/proprietaires/${r.original._id}`, { method: 'DELETE' }))
       await Promise.all(deletePromises)
 
       await fetchProprietaires()
@@ -408,8 +408,8 @@ const Qteclient = () => {
                         }}
                         style={{ minWidth: 260 }}>
                         <option value="All">Tous</option>
-                        <option value="olive">Olive seulement (Huile = 0)</option>
-                        <option value="olive_huile">Olive + Huile (Huile &gt; 0)</option>
+                        <option value="olive">Olive seulement </option>
+                        <option value="olive_huile">Olive + Huile</option>
                       </select>
 
                       <div className="flex-shrink-0">
@@ -479,7 +479,7 @@ const Qteclient = () => {
                   </div>
                 </div>
               ) : (
-                <DataTable<TableCustomerType> table={table} emptyMessage="Aucun propriétaire trouvé" />
+                <DataTable<TableCustomerType> table={table} emptyMessage="Aucun propriétaire trouvé" loading={loading} />
               )}
             </div>
 

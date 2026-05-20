@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react'
 import { motion } from 'framer-motion'
 
-const API_BASE_URL = 'http://192.168.1.15:8170'
+const API_BASE_URL = 'http://localhost:8170'
 const DENSITE_HUILE_OLIVE = 0.916
 
 type TrackingData = {
@@ -217,10 +217,10 @@ export default function TrackingTunisieFinal({ params }: { params: Promise<{ tok
             <div className="oil-main">
               {format2(stats.litres)} {isArabic ? 'لتر' : 'Litres'}
               <span style={{ color: '#94a3b8', margin: '0 10px' }}>≈</span>
-              {format(stats.nbGalba)} {isArabic ? 'قالبة' : 'Galba'}
+              {format(stats.nbGalba)} {isArabic ? 'قلبة' : 'Galba'}
             </div>
             <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: 6 }}>
-              {isArabic ? 'الكمية التقريبية (قالبة = 10 لتر)' : 'Quantité approx. (1 Galba = 10L)'}
+              {isArabic ? 'الكمية التقريبية (قلبة = 10 لتر)' : 'Quantité approx. (1 Galba = 10L)'}
             </div>
           </motion.div>
         )}

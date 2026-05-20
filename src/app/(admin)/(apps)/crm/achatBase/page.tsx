@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Button,
   Card,
   CardBody,
+  CardFooter,
   Col,
   Container,
   Form,
@@ -12,7 +13,7 @@ import {
   FormLabel,
   Modal,
   Row,
-  Table,
+  Badge,
 } from 'react-bootstrap'
 import {
   TbEdit,
@@ -24,14 +25,26 @@ import {
   TbCash,
   TbFileTypePdf,
 } from 'react-icons/tb'
+import {
+  ColumnDef,
+  createColumnHelper,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  Row as TableRow,
+  useReactTable,
+} from '@tanstack/react-table'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import DataTable from '@/components/table/DataTable'
+import TablePagination from '@/components/table/TablePagination'
 
 // ======================================================================
 // ⚙️ CONFIGURATION & CONSTANTES
 // ======================================================================
-const API_BASE_URL = 'http://192.168.1.15:8170/achats-base'
-const CAISSE_API_BASE_URL = 'http://192.168.1.15:8170/caisse'
-const PROPRIETAIRES_API_BASE_URL = 'http://192.168.1.15:8170/proprietaires'
+const API_BASE_URL = 'http://localhost:8170/achats-base'
+const CAISSE_API_BASE_URL = 'http://localhost:8170/caisse'
+const PROPRIETAIRES_API_BASE_URL = 'http://localhost:8170/proprietaires'
 
 const POIDS_CAISSE = 30
 const WIBA_PAR_QFIZ = 16
@@ -124,8 +137,55 @@ interface FiltersState {
 }
 
 // ======================================================================
+// TAXATION TUNISIENNE (Retenue à la source)
+// ======================================================================
+
+interface TaxInfo {
+  taux: number;
+  montantRetenu: number;
+  montantNetAPayer: number;
+  typeOperation: 'achat_olive' | 'achat_huile';
+  statutFiscal: 'assujetti_tva' | 'non_assujetti_tva';
+}
+
+// Déterminer le taux de retenue selon le statut fiscal et la nature de l'opération
+const getTauxRetenue = (
+  statutFiscal: 'assujetti_tva' | 'non_assujetti_tva',
+  typeOperation: 'achat_olive' | 'achat_huile'
+): number => {
+  if (typeOperation === 'achat_olive') {
+    return statutFiscal === 'assujetti_tva' ? 1.0 : 1.5;
+  }
+  if (typeOperation === 'achat_huile') {
+    return statutFiscal === 'assujetti_tva' ? 1.0 : 1.5;
+  }
+  return 0;
+};
+
+// Calculer la retenue à la source
+const calculerRetenueSource = (
+  montantHT: number,
+  statutFiscal: 'assujetti_tva' | 'non_assujetti_tva',
+  typeOperation: 'achat_olive' | 'achat_huile'
+): TaxInfo => {
+  const taux = getTauxRetenue(statutFiscal, typeOperation);
+  const montantRetenu = (montantHT * taux) / 100;
+  const montantNetAPayer = montantHT - montantRetenu;
+  
+  return {
+    taux,
+    montantRetenu: round2(montantRetenu),
+    montantNetAPayer: round2(montantNetAPayer),
+    typeOperation,
+    statutFiscal,
+  };
+};
+
+// ======================================================================
 // COLONNES
 // ======================================================================
+const columnHelper = createColumnHelper<AchatBaseData>()
+
 const COLUMNS_BASE: Array<{ Header: string; accessor: string; className: string }> = [
   { Header: '', accessor: 'select', className: 'text-center align-middle' },
   { Header: 'Date Achat', accessor: 'dateAchat', className: 'align-middle' },
@@ -201,6 +261,368 @@ const calculateMetrics = (input: AchatBaseInput): AchatBaseCalculated => {
     nombreQfza: round4(nQfza),
   }
 }
+
+// ======================================================================
+// BON DE LIVRAISON & BON DE SORTIE (PDF style Odoo)
+// ======================================================================
+
+const buildBonLivraisonHtml = (achat: AchatBaseData) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Bon de Livraison</title>
+  <style>
+    @page { 
+      size: A4;
+      margin: 15mm;
+    }
+    body {
+      font-family: 'Helvetica', Arial, sans-serif;
+      font-size: 12px;
+      color: #2c3e50;
+      line-height: 1.4;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+    .header h1 {
+      color: #3498db;
+      margin: 0;
+      font-size: 24px;
+    }
+    .header .subtitle {
+      color: #7f8c8d;
+      font-size: 12px;
+    }
+    .company-info {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 10px;
+      color: #7f8c8d;
+    }
+    .title-bon {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin: 20px 0;
+      text-transform: uppercase;
+      color: #2c3e50;
+    }
+    .info-section {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+    }
+    .info-row {
+      display: flex;
+      margin: 5px 0;
+    }
+    .info-label {
+      width: 150px;
+      font-weight: bold;
+    }
+    .info-value {
+      flex: 1;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      font-weight: bold;
+    }
+    .totals {
+      margin-top: 20px;
+      text-align: right;
+    }
+    .totals table {
+      width: 300px;
+      margin-left: auto;
+    }
+    .footer {
+      margin-top: 40px;
+      font-size: 10px;
+      text-align: center;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
+    .signature {
+      margin-top: 30px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .signature div {
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .badge-success {
+      background-color: #27ae60;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>HUILE D'OLIVE - HOUCINE AFFES</h1>
+    <div class="subtitle">Huilerie Traditionnelle - Qualité Supérieure</div>
+  </div>
+  <div class="company-info">
+    <div>Adresse : [Votre adresse] | Tél : [Votre téléphone] | Email : [Votre email]</div>
+    <div>Matricule Fiscal : [Votre matricule] | Code TVA : [Votre code TVA]</div>
+  </div>
+
+  <div class="title-bon">BON DE LIVRAISON</div>
+
+  <div class="info-section">
+    <div class="info-row">
+      <div class="info-label">N° Bon de Livraison :</div>
+      <div class="info-value">BL-${achat._id.substring(0, 8).toUpperCase()}</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">Date :</div>
+      <div class="info-value">${new Date(achat.dateAchat || '').toLocaleDateString('fr-FR')}</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">Client :</div>
+      <div class="info-value"><strong>${escapeHtml(achat.nomPrenom || '-')}</strong></div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">Téléphone :</div>
+      <div class="info-value">${escapeHtml(achat.numTel || '-')}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Code Produit</th>
+        <th>Désignation</th>
+        <th>Quantité (kg)</th>
+        <th>Prix Unitaire (DT)</th>
+        <th>Montant HT (DT)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>H001</td>
+        <td>Huile d'Olive Vierge Extra</td>
+        <td>${formatNumber(achat.quantiteHuileNet)}</td>
+        <td>${formatNumber(achat.prixBase)}</td>
+        <td>${formatNumber(achat.coutAchatClient)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <table>
+      <tr>
+        <td><strong>Total HT :</strong></td>
+        <td>${formatNumber(achat.coutAchatClient)} DT</td>
+      </tr>
+      <tr>
+        <td><strong>TVA (0%) :</strong></td>
+        <td>0.00 DT</td>
+      </tr>
+      <tr style="background-color: #f0f0f0;">
+        <td><strong>Total TTC :</strong></td>
+        <td><strong>${formatNumber(achat.coutAchatClient)} DT</strong></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="signature">
+    <div>
+      <div>____________________</div>
+      <div>Cachet et signature</div>
+      <div>du client</div>
+    </div>
+    <div>
+      <div>____________________</div>
+      <div>Signature</div>
+      <div>du responsable</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>Merci de votre confiance - Règlement à réception de facture</div>
+    <div>Document non valable pour facturation</div>
+  </div>
+</body>
+</html>
+`;
+
+const buildBonSortieHtml = (achat: AchatBaseData) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Bon de Sortie</title>
+  <style>
+    @page { 
+      size: A4;
+      margin: 15mm;
+    }
+    body {
+      font-family: 'Helvetica', Arial, sans-serif;
+      font-size: 12px;
+      color: #2c3e50;
+      line-height: 1.4;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e74c3c;
+      padding-bottom: 10px;
+    }
+    .header h1 {
+      color: #e74c3c;
+      margin: 0;
+      font-size: 24px;
+    }
+    .title-bon {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin: 20px 0;
+      text-transform: uppercase;
+      color: #2c3e50;
+    }
+    .info-section {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+    }
+    .info-row {
+      display: flex;
+      margin: 5px 0;
+    }
+    .info-label {
+      width: 150px;
+      font-weight: bold;
+    }
+    .info-value {
+      flex: 1;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #e74c3c;
+      color: white;
+      font-weight: bold;
+    }
+    .footer {
+      margin-top: 40px;
+      font-size: 10px;
+      text-align: center;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
+    .signature {
+      margin-top: 30px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .motif {
+      margin: 20px 0;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-left: 4px solid #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>HUILE D'OLIVE - HOUCINE AFFES</h1>
+  </div>
+
+  <div class="title-bon">BON DE SORTIE DE STOCK</div>
+
+  <div class="info-section">
+    <div class="info-row">
+      <div class="info-label">N° Bon de Sortie :</div>
+      <div class="info-value">BS-${achat._id.substring(0, 8).toUpperCase()}</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">Date :</div>
+      <div class="info-value">${new Date(achat.dateAchat || '').toLocaleDateString('fr-FR')}</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">Destinataire :</div>
+      <div class="info-value"><strong>${escapeHtml(achat.nomPrenom || '-')}</strong></div>
+    </div>
+  </div>
+
+  <div class="motif">
+    <strong>Motif de sortie :</strong> Vente d'huile d'olive - Transaction commerciale
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Code Article</th>
+        <th>Désignation</th>
+        <th>Quantité Sortie (kg)</th>
+        <th>Stock Avant (kg)</th>
+        <th>Stock Après (kg)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>H001</td>
+        <td>Huile d'Olive Vierge Extra</td>
+        <td>${formatNumber(achat.quantiteHuileNet)}</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="signature">
+    <div>
+      <div>____________________</div>
+      <div>Bon pour réception</div>
+      <div>Cachet client</div>
+    </div>
+    <div>
+      <div>____________________</div>
+      <div>Bon pour sortie</div>
+      <div>Responsable stock</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>Ce document atteste de la sortie de marchandises de nos stocks</div>
+    <div>Document valable pour justification de sortie</div>
+  </div>
+</body>
+</html>
+`;
 
 // ======================================================================
 // IMPRESSION / EXPORT PDF
@@ -354,164 +776,188 @@ const sendPaymentToCaisse = async (
 // ======================================================================
 // TABLEAU
 // ======================================================================
-interface CustomDataTableProps {
-  columns: Array<{ Header: string; accessor: string; className: string }>
-  data: AchatBaseData[]
-  onView: (row: AchatBaseData) => void
-  onEdit: (row: AchatBaseData) => void
-  onDelete: (id: string) => void
-  onPrint: (row: AchatBaseData) => void
+
+// Fonction pour créer les colonnes avec TanStack
+const createAchatBaseColumns = (
+  onView: (row: AchatBaseData) => void,
+  onEdit: (row: AchatBaseData) => void,
+  onDelete: (id: string) => void,
+  onPrint: (row: AchatBaseData) => void,
+  onPrintBonLivraison: (row: AchatBaseData) => void,
+  onPrintBonSortie: (row: AchatBaseData) => void,
   onPayment: (row: AchatBaseData) => void
-  selectedRows: string[]
-  toggleRowSelection: (id: string) => void
-  toggleAllSelection: (checked: boolean) => void
-  tableClass?: string
-}
+): ColumnDef<AchatBaseData>[] => [
+  {
+    id: 'select',
+    header: ({ table }) => (
+      <input
+        type="checkbox"
+        className="form-check-input form-check-input-light fs-14"
+        checked={table.getIsAllRowsSelected()}
+        onChange={table.getToggleAllRowsSelectedHandler()}
+      />
+    ),
+    cell: ({ row }) => (
+      <input
+        type="checkbox"
+        className="form-check-input form-check-input-light fs-14"
+        checked={row.getIsSelected()}
+        onChange={row.getToggleSelectedHandler()}
+      />
+    ),
+    enableSorting: false,
+    enableColumnFilter: false,
+  },
 
-const CustomDataTable: React.FC<CustomDataTableProps> = ({
-  columns,
-  data,
-  onView,
-  onEdit,
-  onDelete,
-  onPrint,
-  onPayment,
-  selectedRows,
-  toggleRowSelection,
-  toggleAllSelection,
-  tableClass = '',
-}) => {
-  if (!data || data.length === 0) {
-    return <p className="text-center text-muted p-4">Aucun achat de base enregistré.</p>
-  }
+  {
+    header: 'Date Achat',
+    accessorKey: 'dateAchat',
+    cell: (info) => String(info.getValue() || '').substring(0, 10),
+  } as ColumnDef<AchatBaseData>,
 
-  const isAllSelected = data.length > 0 && data.every((item) => selectedRows.includes(item._id))
+  {
+    header: 'Client',
+    accessorKey: 'nomPrenom',
+  } as ColumnDef<AchatBaseData>,
 
-  return (
-    <div className="table-responsive">
-      <Table className={`mb-0 table-striped table-hover align-middle ${tableClass}`}>
-        <thead>
-          <tr>
-            {columns.map((column, idx) => (
-              <th key={idx} className={column.className}>
-                {column.accessor === 'select' ? (
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={(e) => toggleAllSelection(e.target.checked)}
-                    title="Sélectionner tout"
-                  />
-                ) : (
-                  column.Header
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row) => {
-            const rowPaid = Boolean(row.isPaid)
+  {
+    header: 'Olive Brut (kg)',
+    accessorKey: 'quantiteOliveBrute',
+    cell: (info) => `${(Number(info.getValue()) || 0).toFixed(2)}`,
+  } as ColumnDef<AchatBaseData>,
 
-            return (
-              <tr key={row._id}>
-                {columns.map((column, idx) => {
-                  let content: React.ReactNode = row[column.accessor as keyof AchatBaseData]
+  {
+    header: 'Caisses',
+    accessorKey: 'nbreCaisse',
+    cell: (info) => `${(Number(info.getValue()) || 0).toFixed(0)}`,
+  } as ColumnDef<AchatBaseData>,
 
-                  if (column.accessor === 'select') {
-                    content = (
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.includes(row._id)}
-                        onChange={() => toggleRowSelection(row._id)}
-                      />
-                    )
-                  } else if (column.accessor === 'actions') {
-                    content = (
-                      <div className="d-flex gap-1 flex-wrap flex-md-nowrap align-items-center justify-content-center">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => onView(row)}
-                          title="Voir détail"
-                        >
-                          <TbEye className="fs-lg" />
-                        </Button>
+  {
+    header: 'Olive Net (kg)',
+    accessorKey: 'quantiteOliveNet',
+    cell: (info) => <span className="fw-bold text-dark">{(Number(info.getValue()) || 0).toFixed(2)}</span>,
+  } as ColumnDef<AchatBaseData>,
 
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => onEdit(row)}
-                          title="Modifier"
-                        >
-                          <TbEdit className="fs-lg" />
-                        </Button>
+  {
+    header: 'Huile Net (kg)',
+    accessorKey: 'quantiteHuileNet',
+    cell: (info) => <span className="fw-semibold text-success">{(Number(info.getValue()) || 0).toFixed(2)}</span>,
+  } as ColumnDef<AchatBaseData>,
 
-                        <Button
-                          variant={rowPaid ? 'success' : 'danger'}
-                          size="sm"
-                          onClick={() => onPayment(row)}
-                          title={`Statut: ${rowPaid ? 'payé' : 'non payé'}. Cliquer pour changer`}
-                          className="position-relative"
-                        >
-                          <TbCash className="fs-lg" />
-                          <span
-                            className={`position-absolute top-0 start-100 translate-middle p-1 border border-light rounded-circle ${
-                              rowPaid ? 'bg-success' : 'bg-danger'
-                            }`}
-                          >
-                            <span className="visually-hidden">Statut</span>
-                          </span>
-                        </Button>
+  {
+    header: 'Nisba (%)',
+    accessorKey: 'nisba',
+    cell: (info) => `${(Number(info.getValue()) || 0).toFixed(2)}%`,
+  } as ColumnDef<AchatBaseData>,
 
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => onPrint(row)}
-                          disabled={!rowPaid}
-                          title={!rowPaid ? "Impossible d'imprimer - Client non payé" : 'Imprimer le ticket'}
-                        >
-                          <TbPrinter className="fs-lg" />
-                        </Button>
+  {
+    header: 'Ktou3',
+    accessorKey: 'ktou3',
+    cell: (info) => `${(Number(info.getValue()) || 0).toFixed(4)}`,
+  } as ColumnDef<AchatBaseData>,
 
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => onDelete(row._id)}
-                          title="Supprimer"
-                        >
-                          <TbTrash className="fs-lg" />
-                        </Button>
-                      </div>
-                    )
-                  } else if (column.accessor === 'dateAchat') {
-                    content = String(row.dateAchat || '').substring(0, 10)
-                  } else if (typeof row[column.accessor as keyof AchatBaseData] === 'number') {
-                    const value = row[column.accessor as keyof AchatBaseData] as number
-                    if (column.accessor === 'nisba') {
-                      content = `${value.toFixed(2)} %`
-                    } else if (column.accessor === 'ktou3') {
-                      content = value.toFixed(4)
-                    } else if (column.accessor === 'nbreCaisse') {
-                      content = value.toFixed(0)
-                    } else {
-                      content = value.toFixed(2)
-                    }
-                  }
+  {
+    header: 'Prix Base (Dinar)',
+    accessorKey: 'prixBase',
+    cell: (info) => `${(Number(info.getValue()) || 0).toFixed(2)}`,
+  } as ColumnDef<AchatBaseData>,
 
-                  return (
-                    <td key={idx} className={column.className}>
-                      {content}
-                    </td>
-                  )
-                })}
-              </tr>
-            )
-          })}
-        </tbody>
-      </Table>
-    </div>
-  )
-}
+  {
+    header: 'Paiement Client',
+    accessorKey: 'coutAchatClient',
+    cell: (info) => <span className="fw-bold text-primary">{(Number(info.getValue()) || 0).toFixed(2)}</span>,
+  } as ColumnDef<AchatBaseData>,
+
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row }) => {
+      const data = row.original
+      const rowPaid = Boolean(data.isPaid)
+
+      return (
+        <div className="d-flex gap-1 flex-wrap flex-md-nowrap align-items-center justify-content-center">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => onView(data)}
+            title="Voir détail"
+          >
+            <TbEye className="fs-lg" />
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => onEdit(data)}
+            title="Modifier"
+          >
+            <TbEdit className="fs-lg" />
+          </Button>
+
+          <Button
+            variant={rowPaid ? 'success' : 'danger'}
+            size="sm"
+            onClick={() => onPayment(data)}
+            title={`Statut: ${rowPaid ? 'payé' : 'non payé'}. Cliquer pour changer`}
+            className="position-relative"
+          >
+            <TbCash className="fs-lg" />
+            <span
+              className={`position-absolute top-0 start-100 translate-middle p-1 border border-light rounded-circle ${
+                rowPaid ? 'bg-success' : 'bg-danger'
+              }`}
+            >
+              <span className="visually-hidden">Statut</span>
+            </span>
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => onPrint(data)}
+            disabled={!rowPaid}
+            title={!rowPaid ? "Impossible d'imprimer - Client non payé" : 'Imprimer le ticket'}
+          >
+            <TbPrinter className="fs-lg" />
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => onPrintBonLivraison(data)}
+            disabled={!rowPaid}
+            title={!rowPaid ? "Impossible d'émettre - Client non payé" : 'Bon de livraison'}
+          >
+            <TbFileTypePdf className="fs-lg" />
+            <span className="ms-1" style={{ fontSize: '10px' }}>BL</span>
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => onPrintBonSortie(data)}
+            disabled={!rowPaid}
+            title={!rowPaid ? "Impossible d'émettre - Client non payé" : 'Bon de sortie'}
+          >
+            <TbPrinter className="fs-lg" />
+            <span className="ms-1" style={{ fontSize: '10px' }}>BS</span>
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => onDelete(data._id)}
+            title="Supprimer"
+          >
+            <TbTrash className="fs-lg" />
+          </Button>
+        </div>
+      )
+    },
+    enableSorting: false,
+  } as ColumnDef<AchatBaseData>,
+]
 
 // ======================================================================
 // MODAL DETAIL
@@ -728,6 +1174,7 @@ interface NouveauAchatBaseModalProps {
   handleClose: () => void
   handleSave: (payload: AchatBasePayload, id?: string) => Promise<void>
   dataToEdit: AchatBaseData | null
+  existingClients?: string[]
 }
 
 const NouveauAchatBaseModal: React.FC<NouveauAchatBaseModalProps> = ({
@@ -735,6 +1182,7 @@ const NouveauAchatBaseModal: React.FC<NouveauAchatBaseModalProps> = ({
   handleClose,
   handleSave,
   dataToEdit,
+  existingClients = [],
 }) => {
   const isEditMode = !!dataToEdit
 
@@ -760,6 +1208,37 @@ const NouveauAchatBaseModal: React.FC<NouveauAchatBaseModalProps> = ({
   const [formData, setFormData] = useState<AchatBaseInput>(getInitialInput(dataToEdit))
   const [isLoading, setIsLoading] = useState(false)
   const [lastEdited, setLastEdited] = useState<'brute' | 'net'>('brute')
+  const [clientSuggestions, setClientSuggestions] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  // Vérifier le mode dark
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark' ||
+                     document.body.classList.contains('dark-mode');
+      setIsDarkMode(isDark);
+    };
+    
+    checkDarkMode();
+    
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // Filtrer les suggestions de clients
+  useEffect(() => {
+    if (existingClients && formData.nomPrenom) {
+      const filtered = existingClients.filter(client =>
+        client.toLowerCase().includes(formData.nomPrenom.toLowerCase())
+      );
+      setClientSuggestions(filtered.slice(0, 10));
+      setShowSuggestions(filtered.length > 0 && formData.nomPrenom.length > 0);
+    }
+  }, [formData.nomPrenom, existingClients]);
 
   useEffect(() => {
     if (show) {
@@ -865,15 +1344,62 @@ const NouveauAchatBaseModal: React.FC<NouveauAchatBaseModalProps> = ({
         <Form>
           <Row>
             <Col md={6}>
-              <Form.Group className="mb-3">
+              <Form.Group className="mb-3" style={{ position: 'relative' }}>
                 <FormLabel>Client <span className="text-danger">*</span></FormLabel>
                 <FormControl
                   type="text"
                   name="nomPrenom"
                   value={formData.nomPrenom}
                   onChange={handleChange}
+                  onFocus={() => formData.nomPrenom && setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   required
+                  autoComplete="off"
+                  style={{
+                    backgroundColor: isDarkMode ? '#2b2b2b' : '#ffffff',
+                    color: isDarkMode ? '#e0e0e0' : '#000000',
+                    borderColor: isDarkMode ? '#404040' : '#ced4da',
+                  }}
                 />
+                {showSuggestions && clientSuggestions.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 1000,
+                    backgroundColor: isDarkMode ? '#2b2b2b' : '#ffffff',
+                    border: `1px solid ${isDarkMode ? '#404040' : '#ced4da'}`,
+                    borderRadius: '4px',
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  }}>
+                    {clientSuggestions.map((client, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          color: isDarkMode ? '#e0e0e0' : '#000000',
+                          borderBottom: `1px solid ${isDarkMode ? '#404040' : '#eee'}`,
+                        }}
+                        onMouseDown={() => {
+                          setFormData(prev => ({ ...prev, nomPrenom: client }));
+                          setShowSuggestions(false);
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = isDarkMode ? '#3a3a3a' : '#f5f5f5';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = isDarkMode ? '#2b2b2b' : '#ffffff';
+                        }}
+                      >
+                        {client}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Form.Group>
             </Col>
             <Col md={6}>
@@ -1083,6 +1609,7 @@ const Page: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(1)
   const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [sorting, setSorting] = useState<SortingState>([])
 
   const fetchAchatBaseData = useCallback(async () => {
     setIsLoadingData(true)
@@ -1120,30 +1647,32 @@ const Page: React.FC = () => {
     fetchAchatBaseData()
   }, [fetchAchatBaseData])
 
-  const filteredData: AchatBaseData[] = achatData.filter((item) => {
-    const clientMatch = String(item.nomPrenom || '')
-      .toLowerCase()
-      .includes(filters.clientName.trim().toLowerCase())
+  const getUniqueClients = useCallback(() => {
+    const clients = achatData
+      .map(item => item.nomPrenom)
+      .filter((name): name is string => !!name && name.trim() !== '');
+    return [...new Set(clients)].sort();
+  }, [achatData]);
 
-    const amount = Number(item.coutAchatClient || 0)
-    const minOk = filters.amountMin === '' || amount >= Number(filters.amountMin || 0)
-    const maxOk = filters.amountMax === '' || amount <= Number(filters.amountMax || 0)
+  const uniqueClients = getUniqueClients();
 
-    const itemDate = String(item.dateAchat || '').substring(0, 10)
-    const fromOk = !filters.dateFrom || itemDate >= filters.dateFrom
-    const toOk = !filters.dateTo || itemDate <= filters.dateTo
+  const filteredData: AchatBaseData[] = useMemo(() => {
+    return achatData.filter((item) => {
+      const clientMatch = String(item.nomPrenom || '')
+        .toLowerCase()
+        .includes(filters.clientName.trim().toLowerCase())
 
-    return clientMatch && minOk && maxOk && fromOk && toOk
-  })
+      const amount = Number(item.coutAchatClient || 0)
+      const minOk = filters.amountMin === '' || amount >= Number(filters.amountMin || 0)
+      const maxOk = filters.amountMax === '' || amount <= Number(filters.amountMax || 0)
 
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [filters, rowsPerPage])
+      const itemDate = String(item.dateAchat || '').substring(0, 10)
+      const fromOk = !filters.dateFrom || itemDate >= filters.dateFrom
+      const toOk = !filters.dateTo || itemDate <= filters.dateTo
 
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage))
-  const safeCurrentPage = Math.min(currentPage, totalPages)
-  const startIndex = (safeCurrentPage - 1) * rowsPerPage
-  const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage)
+      return clientMatch && minOk && maxOk && fromOk && toOk
+    })
+  }, [achatData, filters])
 
   const exportAchatBaseToPDF = async (
     rows: AchatBaseType[],
@@ -1401,6 +1930,36 @@ const Page: React.FC = () => {
     printWindow.document.close()
   }
 
+  const handlePrintBonLivraison = (data: AchatBaseData) => {
+    if (!data.isPaid) {
+      alert("Impossible d'émettre le bon de livraison - Client non payé");
+      return;
+    }
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!printWindow) {
+      alert("Impossible d'ouvrir la fenêtre d'impression.");
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(buildBonLivraisonHtml(data));
+    printWindow.document.close();
+  };
+
+  const handlePrintBonSortie = (data: AchatBaseData) => {
+    if (!data.isPaid) {
+      alert("Impossible d'émettre le bon de sortie - Client non payé");
+      return;
+    }
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!printWindow) {
+      alert("Impossible d'ouvrir la fenêtre d'impression.");
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(buildBonSortieHtml(data));
+    printWindow.document.close();
+  };
+
   const handleModalClose = () => {
     setModalShow(false)
     setDataToEdit(null)
@@ -1442,9 +2001,44 @@ const Page: React.FC = () => {
     )
   }
 
-  const toggleAllSelection = (checked: boolean) => {
-    setSelectedRows(checked ? paginatedData.map((d) => d._id) : [])
-  }
+  // Créer les colonnes avec les handlers
+  const columns = useMemo(
+    () => createAchatBaseColumns(
+      handleView,
+      handleEdit,
+      handleDelete,
+      handlePrint,
+      handlePrintBonLivraison,
+      handlePrintBonSortie,
+      handleOpenPayment
+    ),
+    [handleView, handleEdit, handleDelete, handlePrint, handlePrintBonLivraison, handlePrintBonSortie, handleOpenPayment]
+  )
+
+  // Créer l'instance table avec TanStack React Table
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      sorting,
+      pagination: {
+        pageIndex: Math.max(0, currentPage - 1),
+        pageSize: rowsPerPage,
+      },
+      rowSelection: selectedRows.reduce((acc, id) => ({ ...acc, [id]: true }), {}),
+    },
+    onSortingChange: setSorting,
+    onPaginationChange: (updater) => {
+      const newState = typeof updater === 'function' 
+        ? updater({ pageIndex: Math.max(0, currentPage - 1), pageSize: rowsPerPage })
+        : updater
+      setCurrentPage(newState.pageIndex + 1)
+      setRowsPerPage(newState.pageSize)
+    },
+  })
 
   return (
     <Container fluid>
@@ -1579,67 +2173,32 @@ const Page: React.FC = () => {
 
               {isLoadingData ? (
                 <p className="text-center p-5">Chargement des données...</p>
+              ) : filteredData.length === 0 ? (
+                <p className="text-center text-muted p-4">Aucun achat de base enregistré.</p>
               ) : (
                 <>
-                  <CustomDataTable
-                    columns={COLUMNS_BASE}
-                    data={paginatedData}
-                    onView={handleView}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onPrint={handlePrint}
-                    onPayment={handleOpenPayment}
-                    selectedRows={selectedRows}
-                    toggleRowSelection={toggleRowSelection}
-                    toggleAllSelection={toggleAllSelection}
-                    tableClass=""
-                  />
-
-                  <div className="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="text-muted">Lignes par page</span>
-                      <Form.Select
-                        style={{ width: 90 }}
-                        value={rowsPerPage}
-                        onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                      >
-                        <option value={10}>10</option>
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                        <option value={100}>100</option>
-                      </Form.Select>
-                    </div>
-
-                    <div className="text-muted">
-                      Affichage {filteredData.length === 0 ? 0 : startIndex + 1}
-                      {' - '}
-                      {Math.min(startIndex + rowsPerPage, filteredData.length)} sur {filteredData.length}
-                    </div>
-
-                    <div className="d-flex align-items-center gap-2">
-                      <Button
-                        variant="light"
-                        className="border"
-                        disabled={safeCurrentPage <= 1}
-                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                      >
-                        Précédent
-                      </Button>
-
-                      <span className="fw-semibold">
-                        Page {safeCurrentPage} / {totalPages}
-                      </span>
-
-                      <Button
-                        variant="light"
-                        className="border"
-                        disabled={safeCurrentPage >= totalPages}
-                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                      >
-                        Suivant
-                      </Button>
-                    </div>
+                  <div className="table-responsive">
+                    <DataTable<AchatBaseData> table={table} emptyMessage="Aucun achat de base trouvé" />
                   </div>
+
+                  <Card.Footer className="border-0">
+                    <TablePagination
+                      totalItems={filteredData.length}
+                      start={table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}
+                      end={Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, filteredData.length)}
+                      itemsName="achats"
+                      showInfo
+                      previousPage={table.previousPage}
+                      canPreviousPage={table.getCanPreviousPage()}
+                      pageCount={table.getPageCount()}
+                      pageIndex={table.getState().pagination.pageIndex}
+                      setPageIndex={table.setPageIndex}
+                      nextPage={table.nextPage}
+                      canNextPage={table.getCanNextPage()}
+                      pageSize={table.getState().pagination.pageSize}
+                      setPageSize={table.setPageSize}
+                    />
+                  </Card.Footer>
                 </>
               )}
             </CardBody>
@@ -1652,6 +2211,7 @@ const Page: React.FC = () => {
         handleClose={handleModalClose}
         handleSave={handleSave}
         dataToEdit={dataToEdit}
+        existingClients={uniqueClients}
       />
 
       <ViewAchatBaseModal

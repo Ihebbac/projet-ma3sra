@@ -13,7 +13,7 @@ export default function Page() {
          
                 
       <PageBreadcrumb title="Tableau de Bord" />
-      <p className="text-muted mb-0">Vue d'ensemble de votre activité</p>
+      {/* <p className="text-muted mb-0">Vue d'ensemble de votre activité</p> */}
       <DashboardClient />
     </Container>
   )
